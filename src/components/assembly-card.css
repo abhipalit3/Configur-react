@@ -1,0 +1,89 @@
+.assembly-card-container1 {
+  width: auto;
+  height: auto;
+  display: flex;
+  padding: var(--dl-layout-space-unit);
+  min-width: var(--dl-layout-size-xxlarge);
+  min-height: var(--dl-layout-size-xxlarge);
+  transition: 0.3s;
+  align-items: center;
+  border-radius: var(--dl-layout-radius-buttonradius);
+  flex-direction: column;
+}
+ 
+.assembly-card-container1:hover {
+  box-shadow: 5px 5px 10px 0px #d4d4d4;
+  border-radius: var(--dl-layout-radius-buttonradius);
+}
+ 
+.assembly-card-container2 {
+  width: auto;
+  display: flex;
+  min-width: auto;
+  min-height: auto;
+  padding-top: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-unit);
+}
+ 
+.assembly-card-image {
+  max-width: var(--dl-layout-size-xxlarge);
+  min-width: auto;
+  object-fit: cover;
+  aspect-ratio: 2/1;
+  border-radius: 12px;
+}
+ 
+.assembly-card-container3 {
+  gap: var(--dl-layout-space-halfunit);
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+}
+ 
+.assembly-card-project-name {
+  font-size: 18px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 700;
+}
+ 
+.assembly-card-description {
+  width: auto;
+  min-width: auto;
+  font-family: "Bricolage Grotesque";
+}
+ 
+.assembly-card-created-by {
+  font-family: "Bricolage Grotesque";
+}
+ 
+.assembly-card-edited {
+  font-family: "Bricolage Grotesque";
+}
+ 
+.assembly-card-text1 {
+  display: inline-block;
+}
+ 
+.assembly-card-text2 {
+  display: inline-block;
+}
+ 
+.assembly-card-text3 {
+  display: inline-block;
+}
+ 
+.assembly-card-text4 {
+  display: inline-block;
+}
+ 
+
+ 
+
+ 
+
+ 
+

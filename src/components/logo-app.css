@@ -1,0 +1,35 @@
+.logo-app-container {
+  height: 48px;
+  display: flex;
+  position: relative;
+  align-items: center;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: 0px;
+  padding-right: 0px;
+  padding-bottom: var(--dl-layout-space-halfunit);
+  justify-content: center;
+  text-decoration: none;
+  background-color: #ffffff;
+}
+ 
+.logo-app-image1 {
+  width: 40px;
+  height: 40px;
+  border-radius: 0px;
+}
+ 
+.logo-app-text1 {
+  fill: var(--dl-color-theme-neutral-dark);
+  color: var(--dl-color-theme-neutral-dark);
+  font-size: 16px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 800;
+  line-height: 2;
+}
+ 
+.logo-app-text2 {
+  display: inline-block;
+}
+ 
+
