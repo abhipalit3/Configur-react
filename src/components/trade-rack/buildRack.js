@@ -55,8 +55,10 @@ export function buildRackScene(scene, params, mats) {
     }
   })
 
+  const snapPoints = []
+
   // rack + shell
-  const rack  = buildRack(params, mats.steelMat)
+  const rack  = buildRack(params, mats.steelMat, snapPoints)
   const shell = buildShell(
     params,
     mats.wallMaterial,
@@ -101,4 +103,6 @@ export function buildRackScene(scene, params, mats) {
     ))
   })
   scene.add(pg)
+  console.log('Rack scene built with snap points:', snapPoints.length)
+  return snapPoints
 }

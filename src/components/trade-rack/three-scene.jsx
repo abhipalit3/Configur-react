@@ -6,6 +6,8 @@ import { dispose } from './utils.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { ViewCube } from './ViewCube.js'
 import {buildRackScene} from './buildRack.js'
+import { MeasurementTool } from './MeasurementTool.js'
+
 
 export default function ThreeScene() {
   const mountRef = useRef(null)
@@ -162,7 +164,26 @@ export default function ThreeScene() {
         ductMat
         };
     
-    buildRackScene(scene, params, mats)
+    const snapPoints = buildRackScene(scene, params, mats)
+
+    // for (const p of snapPoints) {
+    //   const marker = new THREE.Mesh(
+    //     new THREE.SphereGeometry(0.015),
+    //     new THREE.MeshBasicMaterial({ color: 0x0000ff })
+    //   )
+    //   marker.position.copy(p)
+    //   scene.add(marker)
+    //   }
+
+    console.log('Snap points extracted:', snapPoints.length)
+
+    const measurementTool = new MeasurementTool(
+      scene,
+      camera,
+      renderer.domElement,
+      snapPoints
+    )
+    measurementTool.enable()
 
     // ViewCube
     const viewCubeScene    = new THREE.Scene()
@@ -202,6 +223,7 @@ export default function ThreeScene() {
       viewCubeCamera.quaternion.copy(camera.quaternion)
       viewCubeCamera.updateProjectionMatrix()
       viewCubeRenderer.render(viewCubeScene, viewCubeCamera)
+      measurementTool.updateLabels()
     })()
 
     // Cleanup

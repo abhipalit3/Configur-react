@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { extractSnapPoints } from './extractGeometrySnapPoints.js'
 
 /* ---------- unit helpers ---------- */
 const FT2M = 0.3048;
@@ -52,7 +53,7 @@ function addEdges(mesh, color = 0x333333, lineWidth = 0.5, opacity = 0.5) {
  *                        the rack.  Child meshes share the material
  *                        `p.material || steelMat`.
  */
-export function buildRack(p, steelMat){
+export function buildRack(p, steelMat, snapPoints = []){
   const mat   = p.material ?? steelMat;
   const g     = new THREE.Group();
 
@@ -85,6 +86,11 @@ export function buildRack(p, steelMat){
       );
       g.add(post);
       addEdges(post); // add edges for visibility
+      post.updateMatrixWorld(true)
+      if (snapPoints) {
+        const { corners } = extractSnapPoints(post.geometry, post.matrixWorld)
+        snapPoints.push(...corners)
+      }
     }
   }
 
@@ -112,7 +118,12 @@ const bottomLevel = Math.min(...levelList);  // lowest  beam elevation
     rail.position.set(0, y, z);
     g.add(rail);
     addEdges(rail);
-  });
+    rail.updateMatrixWorld(true)
+    if (snapPoints) {
+      const { corners } = extractSnapPoints(rail.geometry, rail.matrixWorld)
+      snapPoints.push(...corners)
+    }
+});
 });
 
 /* ---------- transverse beams: at every level --------------------------- */
@@ -123,6 +134,11 @@ levelList.forEach(y => {
     tr.position.set(x, y, 0);
     g.add(tr);
     addEdges(tr);
+    tr.updateMatrixWorld(true)
+    if (snapPoints) {
+      const { corners } = extractSnapPoints(tr.geometry, tr.matrixWorld)
+      snapPoints.push(...corners)
+    }
   }
 });
 
