@@ -13,7 +13,7 @@
     "react-router-dom": "^5.2.0",
     "three": "^0.178.0"
   },
-  "homepage": "https://abhipalit3.github.io/Configur-react/",
+  "homepage": "https://abhipalit3.github.io/Configur-react",
   "scripts": {
     "start": "craco start",
     "build": "craco build",
