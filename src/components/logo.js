@@ -29,7 +29,7 @@ const Logo = (props) => {
 Logo.defaultProps = {
   image1Alt: 'Company Logo',
   text: undefined,
-  image1Src: '/external/3d-cube-1500h-200h.png',
+  image1Src: `${process.env.PUBLIC_URL}/external/3d-cube-1500h-200h.png`,
   rootClassName: '',
 }
 

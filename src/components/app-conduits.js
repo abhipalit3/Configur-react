@@ -1,10 +1,55 @@
-import React, { Fragment } from 'react'
+import React, { Fragment, useState } from 'react'
 
 import PropTypes from 'prop-types'
 
 import './app-conduits.css'
 
 const AppConduits = (props) => {
+  const [count, setCount] = useState(1)
+  const [conduitType, setConduitType] = useState('Select Conduit Type')
+  const [diameter, setDiameter] = useState('Select Conduit Outside Diameter')
+  const [errors, setErrors] = useState({})
+  
+  const handleAddConduit = () => {
+    const spacingInput = document.querySelector('.app-conduits-input4 input')
+    
+    // Validation
+    const newErrors = {}
+    if (conduitType === 'Select Conduit Type') {
+      newErrors.conduitType = 'Please select a conduit type'
+    }
+    if (diameter === 'Select Conduit Outside Diameter') {
+      newErrors.diameter = 'Please select a conduit diameter'
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    
+    const conduitData = {
+      type: 'conduit',
+      conduitType: conduitType,
+      diameter: diameter,
+      spacing: spacingInput?.value || '0',
+      count: count
+    }
+    
+    if (props.onAddConduit) {
+      props.onAddConduit(conduitData)
+    }
+    
+    // Clear inputs
+    if (spacingInput) spacingInput.value = ''
+    setConduitType('Select Conduit Type')
+    setDiameter('Select Conduit Outside Diameter')
+    setErrors({})
+    setCount(1)
+  }
+  
+  const incrementCount = () => setCount(prev => prev + 1)
+  const decrementCount = () => setCount(prev => Math.max(1, prev - 1))
+  
   return (
     <div className={`app-conduits-container1 ${props.rootClassName} `}>
       <div className="app-conduits-heading">
@@ -34,13 +79,7 @@ const AppConduits = (props) => {
                 className="app-conduits-dropdown-toggle1"
               >
                 <span className="app-conduits-text11">
-                  {props.conduitType ?? (
-                    <Fragment>
-                      <span className="app-conduits-text23">
-                        Select Conduit Type
-                      </span>
-                    </Fragment>
-                  )}
+                  {conduitType}
                 </span>
                 <div
                   data-thq="thq-dropdown-arrow"
@@ -58,63 +97,44 @@ const AppConduits = (props) => {
                 <li
                   data-thq="thq-dropdown"
                   className="app-conduits-dropdown1 list-item"
+                  onClick={() => {setConduitType('EMT'); setErrors({...errors, conduitType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-conduits-dropdown-toggle2"
                   >
-                    <span className="app-conduits-text12">
-                      {props.conduitType1 ?? (
-                        <Fragment>
-                          <span className="app-conduits-text27">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-conduits-text12">EMT</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-conduits-dropdown2 list-item"
+                  onClick={() => {setConduitType('Rigid'); setErrors({...errors, conduitType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-conduits-dropdown-toggle3"
                   >
-                    <span className="app-conduits-text13">
-                      {props.conduitType2 ?? (
-                        <Fragment>
-                          <span className="app-conduits-text30">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-conduits-text13">Rigid</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-conduits-dropdown3 list-item"
+                  onClick={() => {setConduitType('Flexible'); setErrors({...errors, conduitType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-conduits-dropdown-toggle4"
                   >
-                    <span className="app-conduits-text14">
-                      {props.conduitType3 ?? (
-                        <Fragment>
-                          <span className="app-conduits-text24">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-conduits-text14">Flexible</span>
                   </div>
                 </li>
               </ul>
             </div>
           </div>
+          {errors.conduitType && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.conduitType}</span>}
+          
           <div className="app-conduits-input3">
             <div
               data-thq="thq-dropdown"
@@ -125,13 +145,7 @@ const AppConduits = (props) => {
                 className="app-conduits-dropdown-toggle5"
               >
                 <span className="app-conduits-text15">
-                  {props.conduitDiameter ?? (
-                    <Fragment>
-                      <span className="app-conduits-text28">
-                        Select Conduit Outside Diameter
-                      </span>
-                    </Fragment>
-                  )}
+                  {diameter}
                 </span>
                 <div
                   data-thq="thq-dropdown-arrow"
@@ -149,74 +163,55 @@ const AppConduits = (props) => {
                 <li
                   data-thq="thq-dropdown"
                   className="app-conduits-dropdown4 list-item"
+                  onClick={() => {setDiameter('1"'); setErrors({...errors, diameter: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-conduits-dropdown-toggle6"
                   >
-                    <span className="app-conduits-text16">
-                      {props.conduitDia1 ?? (
-                        <Fragment>
-                          <span className="app-conduits-text22">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-conduits-text16">1"</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-conduits-dropdown5 list-item"
+                  onClick={() => {setDiameter('2"'); setErrors({...errors, diameter: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-conduits-dropdown-toggle7"
                   >
-                    <span className="app-conduits-text17">
-                      {props.conduitDia2 ?? (
-                        <Fragment>
-                          <span className="app-conduits-text26">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-conduits-text17">2"</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-conduits-dropdown6 list-item"
+                  onClick={() => {setDiameter('3"'); setErrors({...errors, diameter: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-conduits-dropdown-toggle8"
                   >
-                    <span className="app-conduits-text18">
-                      {props.conduitDia3 ?? (
-                        <Fragment>
-                          <span className="app-conduits-text29">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-conduits-text18">3"</span>
                   </div>
                 </li>
               </ul>
             </div>
           </div>
+          {errors.diameter && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.diameter}</span>}
+          
           <div className="app-conduits-input4">
             <input
-              type="text"
+              type="number"
               placeholder="Enter conduit spacing (center to center)"
               className="input-form"
             />
-            <span className="app-conduits-text19">meters</span>
+            <span className="app-conduits-text19">inches</span>
           </div>
         </div>
         <div className="app-conduits-save">
-          <button type="button" className="app-conduits-button save-button">
+          <button type="button" className="app-conduits-button save-button" onClick={handleAddConduit}>
             <span className="app-conduits-text20">
               {props.addConduitButton ?? (
                 <Fragment>
@@ -231,6 +226,8 @@ const AppConduits = (props) => {
               height="36"
               viewBox="0 0 36 36"
               className="app-conduits-icon16"
+              onClick={incrementCount}
+              style={{cursor: 'pointer'}}
             >
               <path
                 d="M30 17H19V6a1 1 0 1 0-2 0v11H6a1 1 0 0 0-1 1a.91.91 0 0 0 1 .94h11V30a1 1 0 1 0 2 0V19h11a1 1 0 0 0 1-1a1 1 0 0 0-1-1"
@@ -239,12 +236,14 @@ const AppConduits = (props) => {
               ></path>
               <path d="M0 0h36v36H0z" fill="none"></path>
             </svg>
-            <span className="app-conduits-text21">1</span>
+            <span className="app-conduits-text21">{count}</span>
             <svg
               width="1024"
               height="1024"
               viewBox="0 0 1024 1024"
               className="app-conduits-icon19"
+              onClick={decrementCount}
+              style={{cursor: 'pointer', opacity: count === 1 ? 0.5 : 1}}
             >
               <path
                 d="M872 474H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h720c4.4 0 8-3.6 8-8v-60c0-4.4-3.6-8-8-8"
@@ -269,6 +268,8 @@ AppConduits.defaultProps = {
   conduitDiameter: undefined,
   conduitDia3: undefined,
   conduitType2: undefined,
+  onClose: () => {},
+  onAddConduit: () => {},
 }
 
 AppConduits.propTypes = {
@@ -282,6 +283,8 @@ AppConduits.propTypes = {
   conduitDiameter: PropTypes.element,
   conduitDia3: PropTypes.element,
   conduitType2: PropTypes.element,
+  onClose: PropTypes.func,
+  onAddConduit: PropTypes.func,
 }
 
 export default AppConduits

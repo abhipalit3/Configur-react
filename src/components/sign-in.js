@@ -128,7 +128,7 @@ const SignIn = (props) => {
 SignIn.defaultProps = {
   heading1: undefined,
   image1Alt: 'Sign In Image',
-  image1Src: '74ccb368-60f7-4402-b7bf-0328e73895ac',
+  image1Src: `${process.env.PUBLIC_URL}/public/prefab software1.png`,
   action1: undefined,
 }
 

@@ -61,7 +61,7 @@ Hero.defaultProps = {
   heading1: undefined,
   action1: undefined,
   content1: undefined,
-  image1Src: '/prefab%20software-1400w.png',
+  image1Src: `${process.env.PUBLIC_URL}/prefab%20software-1400w.png`,
   rootClassName: '',
   image1Alt: 'Image of our team providing services',
 }

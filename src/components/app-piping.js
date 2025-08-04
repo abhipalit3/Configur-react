@@ -1,10 +1,59 @@
-import React, { Fragment } from 'react'
+import React, { Fragment, useState } from 'react'
 
 import PropTypes from 'prop-types'
 
 import './app-piping.css'
 
 const AppPiping = (props) => {
+  const [count, setCount] = useState(1)
+  const [pipeType, setPipeType] = useState('Select Pipe Type')
+  const [diameter, setDiameter] = useState('Select Pipe Outside Diameter')
+  const [errors, setErrors] = useState({})
+  
+  const handleAddPipe = () => {
+    // Get values
+    const insulationInput = document.querySelector('.app-piping-input4 input')
+    const spacingInput = document.querySelector('.app-piping-input5 input')
+    
+    // Validation
+    const newErrors = {}
+    if (pipeType === 'Select Pipe Type') {
+      newErrors.pipeType = 'Please select a pipe type'
+    }
+    if (diameter === 'Select Pipe Outside Diameter') {
+      newErrors.diameter = 'Please select a pipe diameter'
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    
+    const pipeData = {
+      type: 'pipe',
+      pipeType: pipeType,
+      diameter: diameter,
+      insulation: insulationInput?.value || '0',
+      spacing: spacingInput?.value || '0',
+      count: count
+    }
+    
+    if (props.onAddPipe) {
+      props.onAddPipe(pipeData)
+    }
+    
+    // Clear inputs
+    if (insulationInput) insulationInput.value = ''
+    if (spacingInput) spacingInput.value = ''
+    setPipeType('Select Pipe Type')
+    setDiameter('Select Pipe Outside Diameter')
+    setErrors({})
+    setCount(1)
+  }
+  
+  const incrementCount = () => setCount(prev => prev + 1)
+  const decrementCount = () => setCount(prev => Math.max(1, prev - 1))
+  
   return (
     <div className={`app-piping-container1 ${props.rootClassName} `}>
       <div className="app-piping-heading">
@@ -34,13 +83,7 @@ const AppPiping = (props) => {
                 className="app-piping-dropdown-toggle1"
               >
                 <span className="app-piping-text11">
-                  {props.text ?? (
-                    <Fragment>
-                      <span className="app-piping-text24">
-                        Select Pipe Type
-                      </span>
-                    </Fragment>
-                  )}
+                  {pipeType}
                 </span>
                 <div
                   data-thq="thq-dropdown-arrow"
@@ -58,63 +101,44 @@ const AppPiping = (props) => {
                 <li
                   data-thq="thq-dropdown"
                   className="app-piping-dropdown1 list-item"
+                  onClick={() => {setPipeType('Copper'); setErrors({...errors, pipeType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-piping-dropdown-toggle2"
                   >
-                    <span className="app-piping-text12">
-                      {props.text1 ?? (
-                        <Fragment>
-                          <span className="app-piping-text31">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-piping-text12">Copper</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-piping-dropdown2 list-item"
+                  onClick={() => {setPipeType('PVC'); setErrors({...errors, pipeType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-piping-dropdown-toggle3"
                   >
-                    <span className="app-piping-text13">
-                      {props.text2 ?? (
-                        <Fragment>
-                          <span className="app-piping-text23">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-piping-text13">PVC</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-piping-dropdown3 list-item"
+                  onClick={() => {setPipeType('Steel'); setErrors({...errors, pipeType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-piping-dropdown-toggle4"
                   >
-                    <span className="app-piping-text14">
-                      {props.text3 ?? (
-                        <Fragment>
-                          <span className="app-piping-text30">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-piping-text14">Steel</span>
                   </div>
                 </li>
               </ul>
             </div>
           </div>
+          {errors.pipeType && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.pipeType}</span>}
+          
           <div className="app-piping-input3">
             <div
               data-thq="thq-dropdown"
@@ -125,13 +149,7 @@ const AppPiping = (props) => {
                 className="app-piping-dropdown-toggle5"
               >
                 <span className="app-piping-text15">
-                  {props.text4 ?? (
-                    <Fragment>
-                      <span className="app-piping-text29">
-                        Select Pipe Outside Diameter
-                      </span>
-                    </Fragment>
-                  )}
+                  {diameter}
                 </span>
                 <div
                   data-thq="thq-dropdown-arrow"
@@ -149,94 +167,75 @@ const AppPiping = (props) => {
                 <li
                   data-thq="thq-dropdown"
                   className="app-piping-dropdown4 list-item"
+                  onClick={() => {setDiameter('2"'); setErrors({...errors, diameter: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-piping-dropdown-toggle6"
                   >
-                    <span className="app-piping-text16">
-                      {props.text11 ?? (
-                        <Fragment>
-                          <span className="app-piping-text28">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-piping-text16">2"</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-piping-dropdown5 list-item"
+                  onClick={() => {setDiameter('4"'); setErrors({...errors, diameter: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-piping-dropdown-toggle7"
                   >
-                    <span className="app-piping-text17">
-                      {props.text21 ?? (
-                        <Fragment>
-                          <span className="app-piping-text27">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-piping-text17">4"</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-piping-dropdown6 list-item"
+                  onClick={() => {setDiameter('6"'); setErrors({...errors, diameter: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-piping-dropdown-toggle8"
                   >
-                    <span className="app-piping-text18">
-                      {props.text31 ?? (
-                        <Fragment>
-                          <span className="app-piping-text33">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-piping-text18">6"</span>
                   </div>
                 </li>
               </ul>
             </div>
           </div>
+          {errors.diameter && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.diameter}</span>}
+          
           <div className="app-piping-input4">
             <input
-              type="text"
+              type="number"
               placeholder="Enter pipe insulation thickness"
               className="input-form"
             />
             <span className="app-piping-text19">
               {props.unit112 ?? (
                 <Fragment>
-                  <span className="app-piping-text25">meters</span>
+                  <span className="app-piping-text25">inches</span>
                 </Fragment>
               )}
             </span>
           </div>
           <div className="app-piping-input5">
             <input
-              type="text"
+              type="number"
               placeholder="Enter pipe spacing (center to center)"
               className="input-form"
             />
             <span className="app-piping-text20">
               {props.unit1121 ?? (
                 <Fragment>
-                  <span className="app-piping-text26">meters</span>
+                  <span className="app-piping-text26">inches</span>
                 </Fragment>
               )}
             </span>
           </div>
         </div>
         <div className="app-piping-save">
-          <button type="button" className="app-piping-button save-button">
+          <button type="button" className="app-piping-button save-button" onClick={handleAddPipe}>
             <span className="app-piping-text21">
               {props.button11 ?? (
                 <Fragment>
@@ -251,6 +250,8 @@ const AppPiping = (props) => {
               height="36"
               viewBox="0 0 36 36"
               className="app-piping-icon16"
+              onClick={incrementCount}
+              style={{cursor: 'pointer'}}
             >
               <path
                 d="M30 17H19V6a1 1 0 1 0-2 0v11H6a1 1 0 0 0-1 1a.91.91 0 0 0 1 .94h11V30a1 1 0 1 0 2 0V19h11a1 1 0 0 0 1-1a1 1 0 0 0-1-1"
@@ -259,12 +260,14 @@ const AppPiping = (props) => {
               ></path>
               <path d="M0 0h36v36H0z" fill="none"></path>
             </svg>
-            <span className="app-piping-text22">1</span>
+            <span className="app-piping-text22">{count}</span>
             <svg
               width="1024"
               height="1024"
               viewBox="0 0 1024 1024"
               className="app-piping-icon19"
+              onClick={decrementCount}
+              style={{cursor: 'pointer', opacity: count === 1 ? 0.5 : 1}}
             >
               <path
                 d="M872 474H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h720c4.4 0 8-3.6 8-8v-60c0-4.4-3.6-8-8-8"
@@ -291,6 +294,8 @@ AppPiping.defaultProps = {
   button11: undefined,
   text31: undefined,
   rootClassName: '',
+  onClose: () => {},
+  onAddPipe: () => {},
 }
 
 AppPiping.propTypes = {
@@ -306,6 +311,8 @@ AppPiping.propTypes = {
   button11: PropTypes.element,
   text31: PropTypes.element,
   rootClassName: PropTypes.string,
+  onClose: PropTypes.func,
+  onAddPipe: PropTypes.func,
 }
 
 export default AppPiping

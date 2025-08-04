@@ -360,3 +360,77 @@
   left: var(--dl-layout-space-sixunits);
   position: fixed;
 }
+
+/* Add these styles to your respective component CSS files */
+
+/* Error state for inputs */
+.input-form.error {
+  border-color: #ff0000;
+  background-color: #fff5f5;
+}
+
+/* Error message styling */
+.error-message {
+  color: red;
+  font-size: 11px;
+  padding-left: 16px;
+  display: block;
+  margin-top: -8px;
+  margin-bottom: 8px;
+}
+
+/* Counter button styling */
+.app-ductwork-plus,
+.app-ductwork-minus,
+.app-piping-icon16,
+.app-piping-icon19,
+.app-conduits-icon16,
+.app-conduits-icon19,
+.app-cable-trays-icon5,
+.app-cable-trays-icon8 {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.app-ductwork-plus:hover,
+.app-piping-icon16:hover,
+.app-conduits-icon16:hover,
+.app-cable-trays-icon5:hover {
+  transform: scale(1.1);
+}
+
+.app-ductwork-minus:hover,
+.app-piping-icon19:hover,
+.app-conduits-icon19:hover,
+.app-cable-trays-icon8:hover {
+  transform: scale(1.1);
+}
+
+/* Dropdown selected state */
+.app-piping-dropdown-toggle1.selected,
+.app-conduits-dropdown-toggle1.selected,
+.app-cable-trays-dropdown-toggle1.selected {
+  color: #000;
+  font-weight: 500;
+}
+
+/* Search input in TierMEP */
+.app-tier-mep-textinput {
+  transition: 0.3s;
+}
+
+.app-tier-mep-textinput:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* MEP item hover state */
+.app-tier-mep-added-mep1:hover {
+  background-color: #f5f5f5;
+}
+
+/* Total items counter */
+.app-tier-mep-title {
+  align-items: center;
+  padding: 8px;
+}

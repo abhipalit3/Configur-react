@@ -113,9 +113,9 @@ export default function ThreeScene() {
 
     // Materials
     const texLoader = new THREE.TextureLoader()
-    const floorAlbedo = texLoader.load('./textures/Floor-Roof/Wood066_1K-JPG_Color.jpg')
-    const floorNormal = texLoader.load('./textures/Floor-Roof/Wood066_1K-JPG_NormalGL.jpg')
-    const floorRough  = texLoader.load('./textures/Floor-Roof/Wood066_1K-JPG_Roughness.jpg')
+    const floorAlbedo = texLoader.load(process.env.PUBLIC_URL + '/textures/Floor-Roof/Wood066_1K-JPG_Color.jpg')
+    const floorNormal = texLoader.load(process.env.PUBLIC_URL + '/textures/Floor-Roof/Wood066_1K-JPG_NormalGL.jpg')
+    const floorRough  = texLoader.load(process.env.PUBLIC_URL + '/textures/Floor-Roof/Wood066_1K-JPG_Roughness.jpg')
     ;[floorAlbedo, floorNormal, floorRough].forEach(tex => {
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping
       tex.repeat.set(8, 8)

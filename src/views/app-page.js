@@ -20,8 +20,28 @@ import './app-page.css'
 const AppPage = (props) => {
   // State to track which panel is currently active
   const [activePanel, setActivePanel] = useState(null)
-  // State to track if rack properties is visible
+  // State to track if rack properties is visible - default to true
   const [isRackPropertiesVisible, setIsRackPropertiesVisible] = useState(true)
+  
+  // State to track MEP items - initialize from localStorage
+  const [mepItems, setMepItems] = useState(() => {
+    try {
+      const savedItems = localStorage.getItem('configurMepItems')
+      return savedItems ? JSON.parse(savedItems) : []
+    } catch (error) {
+      console.error('Error loading MEP items:', error)
+      return []
+    }
+  })
+  
+  // Save to localStorage whenever mepItems changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('configurMepItems', JSON.stringify(mepItems))
+    } catch (error) {
+      console.error('Error saving MEP items:', error)
+    }
+  }, [mepItems])
   
   // Handler for panel button clicks
   const handlePanelClick = (panelName) => {
@@ -32,6 +52,18 @@ const AppPage = (props) => {
   // Handler for templates/rack properties toggle
   const handleTemplatesClick = () => {
     setIsRackPropertiesVisible(!isRackPropertiesVisible)
+  }
+  
+  // Handler for adding MEP items
+  const handleAddMepItem = (item) => {
+    setMepItems([...mepItems, { ...item, id: Date.now() + Math.random() }])
+    // Optionally close the panel after adding
+    setActivePanel(null)
+  }
+  
+  // Handler for removing MEP items
+  const handleRemoveMepItem = (itemId) => {
+    setMepItems(mepItems.filter(item => item.id !== itemId))
   }
   
   return (
@@ -64,7 +96,11 @@ const AppPage = (props) => {
             onClose={() => setIsRackPropertiesVisible(false)}
           />
         )}
-        <AppTierMEP rootClassName="app-tier-me-proot-class-name" />
+        <AppTierMEP 
+          rootClassName="app-tier-me-proot-class-name" 
+          mepItems={mepItems}
+          onRemoveItem={handleRemoveMepItem}
+        />
         <AppAddMEP rootClassName="app-add-me-proot-class-name" />
       </div>
       
@@ -87,6 +123,7 @@ const AppPage = (props) => {
         <AppDuctwork 
           rootClassName="app-ductworkroot-class-name" 
           onClose={() => setActivePanel(null)}
+          onAddDuct={handleAddMepItem}
         />
       )}
 
@@ -94,6 +131,7 @@ const AppPage = (props) => {
         <AppPiping 
           rootClassName="app-pipingroot-class-name" 
           onClose={() => setActivePanel(null)}
+          onAddPipe={handleAddMepItem}
         />
       )}
 
@@ -101,6 +139,7 @@ const AppPage = (props) => {
         <AppConduits 
           rootClassName="app-conduitsroot-class-name" 
           onClose={() => setActivePanel(null)}
+          onAddConduit={handleAddMepItem}
         />
       )}
 
@@ -108,6 +147,7 @@ const AppPage = (props) => {
         <AppCableTrays 
           rootClassName="app-cable-traysroot-class-name" 
           onClose={() => setActivePanel(null)}
+          onAddCableTray={handleAddMepItem}
         />
       )}
 

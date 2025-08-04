@@ -1,10 +1,58 @@
-import React, { Fragment } from 'react'
+import React, { Fragment, useState } from 'react'
 
 import PropTypes from 'prop-types'
 
 import './app-cable-trays.css'
 
 const AppCableTrays = (props) => {
+  const [count, setCount] = useState(1)
+  const [trayType, setTrayType] = useState('Select Cable Tray Type')
+  const [errors, setErrors] = useState({})
+  
+  const handleAddCableTray = () => {
+    const widthInput = document.querySelector('.app-cable-trays-input3 input')
+    const heightInput = document.querySelector('.app-cable-trays-input4 input')
+    
+    // Validation
+    const newErrors = {}
+    if (trayType === 'Select Cable Tray Type') {
+      newErrors.trayType = 'Please select a cable tray type'
+    }
+    if (!widthInput?.value || parseFloat(widthInput.value) <= 0) {
+      newErrors.width = 'Width is required and must be greater than 0'
+    }
+    if (!heightInput?.value || parseFloat(heightInput.value) <= 0) {
+      newErrors.height = 'Height is required and must be greater than 0'
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    
+    const cableTrayData = {
+      type: 'cableTray',
+      trayType: trayType,
+      width: widthInput.value,
+      height: heightInput.value,
+      count: count
+    }
+    
+    if (props.onAddCableTray) {
+      props.onAddCableTray(cableTrayData)
+    }
+    
+    // Clear inputs
+    if (widthInput) widthInput.value = ''
+    if (heightInput) heightInput.value = ''
+    setTrayType('Select Cable Tray Type')
+    setErrors({})
+    setCount(1)
+  }
+  
+  const incrementCount = () => setCount(prev => prev + 1)
+  const decrementCount = () => setCount(prev => Math.max(1, prev - 1))
+  
   return (
     <div className={`app-cable-trays-container1 ${props.rootClassName} `}>
       <div className="app-cable-trays-heading">
@@ -34,13 +82,7 @@ const AppCableTrays = (props) => {
                 className="app-cable-trays-dropdown-toggle1"
               >
                 <span className="app-cable-trays-text11">
-                  {props.cableTrayType ?? (
-                    <Fragment>
-                      <span className="app-cable-trays-text23">
-                        Select Cable Tray Type
-                      </span>
-                    </Fragment>
-                  )}
+                  {trayType}
                 </span>
                 <div
                   data-thq="thq-dropdown-arrow"
@@ -61,82 +103,68 @@ const AppCableTrays = (props) => {
                 <li
                   data-thq="thq-dropdown"
                   className="app-cable-trays-dropdown1 list-item"
+                  onClick={() => {setTrayType('Ladder'); setErrors({...errors, trayType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-cable-trays-dropdown-toggle2"
                   >
-                    <span className="app-cable-trays-text12">
-                      {props.cableTrayOption1 ?? (
-                        <Fragment>
-                          <span className="app-cable-trays-text22">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-cable-trays-text12">Ladder</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-cable-trays-dropdown2 list-item"
+                  onClick={() => {setTrayType('Solid Bottom'); setErrors({...errors, trayType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-cable-trays-dropdown-toggle3"
                   >
-                    <span className="app-cable-trays-text13">
-                      {props.cableTrayOption2 ?? (
-                        <Fragment>
-                          <span className="app-cable-trays-text19">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-cable-trays-text13">Solid Bottom</span>
                   </div>
                 </li>
                 <li
                   data-thq="thq-dropdown"
                   className="app-cable-trays-dropdown3 list-item"
+                  onClick={() => {setTrayType('Wire Mesh'); setErrors({...errors, trayType: ''})}}
                 >
                   <div
                     data-thq="thq-dropdown-toggle"
                     className="app-cable-trays-dropdown-toggle4"
                   >
-                    <span className="app-cable-trays-text14">
-                      {props.cableTrayOption3 ?? (
-                        <Fragment>
-                          <span className="app-cable-trays-text21">
-                            Sub-menu Item
-                          </span>
-                        </Fragment>
-                      )}
-                    </span>
+                    <span className="app-cable-trays-text14">Wire Mesh</span>
                   </div>
                 </li>
               </ul>
             </div>
           </div>
+          {errors.trayType && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.trayType}</span>}
+          
           <div className="app-cable-trays-input3">
             <input
-              type="text"
+              type="number"
               placeholder="Enter cable tray width"
-              className="input-form"
+              className={`input-form ${errors.width ? 'error' : ''}`}
+              onChange={() => setErrors({...errors, width: ''})}
             />
-            <span className="app-cable-trays-text15">meters</span>
+            <span className="app-cable-trays-text15">inches</span>
           </div>
+          {errors.width && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.width}</span>}
+          
           <div className="app-cable-trays-input4">
             <input
-              type="text"
+              type="number"
               placeholder="Enter cable tray height"
-              className="input-form"
+              className={`input-form ${errors.height ? 'error' : ''}`}
+              onChange={() => setErrors({...errors, height: ''})}
             />
-            <span className="app-cable-trays-text16">meters</span>
+            <span className="app-cable-trays-text16">inches</span>
           </div>
+          {errors.height && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.height}</span>}
         </div>
         <div className="app-cable-trays-save">
-          <button type="button" className="app-cable-trays-button save-button">
+          <button type="button" className="app-cable-trays-button save-button" onClick={handleAddCableTray}>
             <span className="app-cable-trays-text17">
               {props.addCableTrayButton ?? (
                 <Fragment>
@@ -151,6 +179,8 @@ const AppCableTrays = (props) => {
               height="36"
               viewBox="0 0 36 36"
               className="app-cable-trays-icon5"
+              onClick={incrementCount}
+              style={{cursor: 'pointer'}}
             >
               <path
                 d="M30 17H19V6a1 1 0 1 0-2 0v11H6a1 1 0 0 0-1 1a.91.91 0 0 0 1 .94h11V30a1 1 0 1 0 2 0V19h11a1 1 0 0 0 1-1a1 1 0 0 0-1-1"
@@ -159,12 +189,14 @@ const AppCableTrays = (props) => {
               ></path>
               <path d="M0 0h36v36H0z" fill="none"></path>
             </svg>
-            <span className="app-cable-trays-text18">1</span>
+            <span className="app-cable-trays-text18">{count}</span>
             <svg
               width="1024"
               height="1024"
               viewBox="0 0 1024 1024"
               className="app-cable-trays-icon8"
+              onClick={decrementCount}
+              style={{cursor: 'pointer', opacity: count === 1 ? 0.5 : 1}}
             >
               <path
                 d="M872 474H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h720c4.4 0 8-3.6 8-8v-60c0-4.4-3.6-8-8-8"
@@ -185,6 +217,8 @@ AppCableTrays.defaultProps = {
   cableTrayOption1: undefined,
   rootClassName: '',
   cableTrayType: undefined,
+  onClose: () => {},
+  onAddCableTray: () => {},
 }
 
 AppCableTrays.propTypes = {
@@ -194,6 +228,8 @@ AppCableTrays.propTypes = {
   cableTrayOption1: PropTypes.element,
   rootClassName: PropTypes.string,
   cableTrayType: PropTypes.element,
+  onClose: PropTypes.func,
+  onAddCableTray: PropTypes.func,
 }
 
 export default AppCableTrays

@@ -131,7 +131,7 @@ const Home = (props) => {
               </span>
             </Fragment>
           }
-          feature1ImageSrc="/mtricon-800w.png"
+          feature1ImageSrc={process.env.PUBLIC_URL + '/mtricon-800w.png'}
           feature1MainAction={
             <Fragment>
               <span className="home-text27">Configure Now</span>
