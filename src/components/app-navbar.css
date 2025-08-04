@@ -28,7 +28,7 @@
 }
  
 .app-navbar-navlink {
-  display: block;
+  display: contents;
 }
  
 .app-navbar-component1 {

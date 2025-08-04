@@ -1,4 +1,4 @@
-.manual-building-container {
+.app-manual-rack-container {
   width: auto;
   height: auto;
   display: flex;
@@ -10,7 +10,7 @@
   background-color: rgba(255, 255, 255, 0.8);
 }
  
-.manual-building-heading {
+.app-manual-rack-heading {
   flex: 0 0 auto;
   width: 300px;
   height: auto;
@@ -26,12 +26,12 @@
   justify-content: space-between;
 }
  
-.manual-building-icon1 {
+.app-manual-rack-icon1 {
   width: 12px;
   height: 12px;
 }
  
-.manual-building-title1 {
+.app-manual-rack-title1 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -46,7 +46,7 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.manual-building-input1 {
+.app-manual-rack-input1 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -61,14 +61,14 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.manual-building-text12 {
+.app-manual-rack-text12 {
   font-size: 12px;
   font-style: normal;
   font-family: "Bricolage Grotesque";
   font-weight: 400;
 }
  
-.manual-building-title2 {
+.app-manual-rack-title2 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -83,14 +83,14 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.manual-building-text13 {
+.app-manual-rack-text13 {
   font-size: 12px;
   font-style: normal;
   font-family: "Bricolage Grotesque";
   font-weight: 400;
 }
  
-.manual-building-input2 {
+.app-manual-rack-input2 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -105,7 +105,7 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.manual-building-textinput2 {
+.app-manual-rack-textinput2 {
   fill: var(--dl-color-theme-neutral-dark);
   color: #646464;
   width: 100%;
@@ -117,14 +117,14 @@
   font-weight: 400;
 }
  
-.manual-building-text14 {
+.app-manual-rack-text14 {
   font-size: 12px;
   font-style: normal;
   font-family: "Bricolage Grotesque";
   font-weight: 400;
 }
  
-.manual-building-title3 {
+.app-manual-rack-title3 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -139,14 +139,14 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.manual-building-text15 {
+.app-manual-rack-text15 {
   font-size: 12px;
   font-style: normal;
   font-family: "Bricolage Grotesque";
   font-weight: 400;
 }
  
-.manual-building-input3 {
+.app-manual-rack-input3 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -161,26 +161,17 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.manual-building-textinput3 {
-  fill: var(--dl-color-theme-neutral-dark);
-  color: #646464;
+.app-manual-rack-select1 {
+  color: gray;
   width: 100%;
   height: 100%;
-  padding: 0px;
   font-size: 12px;
-  font-style: normal;
-  font-family: "Bricolage Grotesque";
+  font-family: ""Bricolage Grotesque"";
   font-weight: 400;
+  font-display: auto;
 }
  
-.manual-building-text16 {
-  font-size: 12px;
-  font-style: normal;
-  font-family: "Bricolage Grotesque";
-  font-weight: 400;
-}
- 
-.manual-building-title4 {
+.app-manual-rack-title4 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -195,14 +186,14 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.manual-building-text17 {
+.app-manual-rack-text16 {
   font-size: 12px;
   font-style: normal;
   font-family: "Bricolage Grotesque";
   font-weight: 400;
 }
  
-.manual-building-input4 {
+.app-manual-rack-input4 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -217,7 +208,54 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.manual-building-textinput4 {
+.app-manual-rack-select2 {
+  color: gray;
+  width: 100%;
+  height: 100%;
+  font-size: 12px;
+  font-family: ""Bricolage Grotesque"";
+  font-weight: 400;
+  font-display: auto;
+}
+ 
+.app-manual-rack-title5 {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+ 
+.app-manual-rack-text17 {
+  font-size: 12px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+}
+ 
+.app-manual-rack-input5 {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: row;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+ 
+.app-manual-rack-textinput3 {
   fill: var(--dl-color-theme-neutral-dark);
   color: #646464;
   width: 100%;
@@ -229,14 +267,69 @@
   font-weight: 400;
 }
  
-.manual-building-text18 {
+.app-manual-rack-title6 {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+ 
+.app-manual-rack-text18 {
   font-size: 12px;
   font-style: normal;
   font-family: "Bricolage Grotesque";
   font-weight: 400;
 }
  
-.manual-building-save {
+.app-manual-rack-input6 {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+ 
+.app-manual-rack-select3 {
+  color: gray;
+  width: 100%;
+  height: 100%;
+  font-size: 12px;
+  font-family: ""Bricolage Grotesque"";
+  font-weight: 400;
+  font-display: auto;
+}
+ 
+.app-manual-rack-textinput4 {
+  fill: var(--dl-color-theme-neutral-dark);
+  color: #646464;
+  width: 100%;
+  height: 100%;
+  font-size: 12px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+  padding-top: 0px;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-bottom: 0px;
+}
+ 
+.app-manual-rack-save {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -253,33 +346,48 @@
   justify-content: flex-start;
 }
  
-.manual-building-text19 {
+.app-manual-rack-text19 {
   fill: white;
   color: white;
   font-style: normal;
   font-weight: 600;
 }
  
-.manual-building-text20 {
+.app-manual-rack-text20 {
   display: inline-block;
 }
  
-.manual-building-text21 {
+.app-manual-rack-text21 {
   display: inline-block;
 }
  
-.manual-building-text22 {
+.app-manual-rack-text22 {
   display: inline-block;
 }
  
-.manual-building-text23 {
+.app-manual-rack-text23 {
   display: inline-block;
 }
  
-.manual-building-text24 {
+.app-manual-rack-text24 {
   display: inline-block;
 }
  
-.manual-building-text25 {
+.app-manual-rack-text25 {
   display: inline-block;
+}
+ 
+.app-manual-rack-text26 {
+  display: inline-block;
+}
+ 
+.app-manual-rack-text27 {
+  display: inline-block;
+}
+ 
+.app-manual-rackroot-class-name {
+  top: var(--dl-layout-space-sixunits);
+  left: var(--dl-layout-space-sixunits);
+  display: none;
+  position: fixed;
 }

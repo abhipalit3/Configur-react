@@ -178,7 +178,7 @@ const ProjectDashboard = (props) => {
                     </span>
                   </Fragment>
                 }
-                projectImage="/mtricon-200h.png"
+                projectImage="https://images.unsplash.com/photo-1661156565686-d5450ed3e42a?ixid=M3w5MTMyMXwwfDF8c2VhcmNofDE5fHxyYWNrfGVufDB8fHx8MTc1NDI1Njg3NXww&amp;ixlib=rb-4.1.0&amp;w=1500"
                 rootClassName="assembly-cardroot-class-name7"
                 className="project-dashboard-component3"
               ></AssemblyCard>

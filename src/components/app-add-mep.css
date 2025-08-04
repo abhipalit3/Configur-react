@@ -1,0 +1,168 @@
+.app-add-mep-container {
+  gap: var(--dl-layout-space-halfunit);
+  width: auto;
+  height: auto;
+  display: flex;
+  padding: 4px;
+  position: relative;
+  box-shadow: -1px 1px 1px 0px #d4d4d4,1px -1px 1px 0px #d4d4d4;
+  align-items: flex-start;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+ 
+.app-add-mep-add-duct-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  padding: 0px;
+  position: relative;
+  transition: 0.3s;
+  align-items: center;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: center;
+  background-color: #ffffff;
+}
+ 
+.app-add-mep-add-duct-button:hover {
+  background-color: #5c5c5c;
+}
+ 
+.app-add-mep-add-duct-button:active {
+  background-color: #5c5c5c;
+}
+ 
+.app-add-mep-icon1 {
+  width: 100%;
+  height: 100%;
+  padding: var(--dl-layout-space-halfunit);
+  overflow: visible;
+  transition: 0.3s;
+}
+ 
+.app-add-mep-icon1:hover {
+  color: white;
+}
+ 
+.app-add-mep-icon1:active {
+  color: white;
+}
+ 
+.app-add-mep-add-piping {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  padding: 0px;
+  position: relative;
+  transition: 0.3s;
+  align-items: center;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: center;
+  background-color: #ffffff;
+}
+ 
+.app-add-mep-add-piping:hover {
+  background-color: #5c5c5c;
+}
+ 
+.app-add-mep-add-piping:active {
+  background-color: #5c5c5c;
+}
+ 
+.app-add-mep-icon3 {
+  width: 100%;
+  height: 100%;
+  padding: var(--dl-layout-space-halfunit);
+  transition: 0.3s;
+}
+ 
+.app-add-mep-icon3:hover {
+  color: white;
+}
+ 
+.app-add-mep-icon3:active {
+  color: white;
+}
+ 
+.app-add-mep-add-conduit {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  padding: 0px;
+  position: relative;
+  transition: 0.3s;
+  align-items: center;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: center;
+  background-color: #ffffff;
+}
+ 
+.app-add-mep-add-conduit:hover {
+  background-color: #5c5c5c;
+}
+ 
+.app-add-mep-add-conduit:active {
+  background-color: #5c5c5c;
+}
+ 
+.app-add-mep-icon5 {
+  width: 100%;
+  height: 100%;
+  padding: var(--dl-layout-space-halfunit);
+  transition: 0.3s;
+}
+ 
+.app-add-mep-icon5:hover {
+  color: white;
+}
+ 
+.app-add-mep-icon5:active {
+  color: white;
+}
+ 
+.app-add-mep-add-cable-tray {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  padding: 0px;
+  position: relative;
+  transition: 0.3s;
+  align-items: center;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: center;
+  background-color: #ffffff;
+}
+ 
+.app-add-mep-add-cable-tray:hover {
+  background-color: #5c5c5c;
+}
+ 
+.app-add-mep-add-cable-tray:active {
+  background-color: #5c5c5c;
+}
+ 
+.app-add-mep-icon7 {
+  width: 100%;
+  height: 100%;
+  padding: var(--dl-layout-space-halfunit);
+  transition: 0.3s;
+}
+ 
+.app-add-mep-icon7:hover {
+  color: white;
+}
+ 
+.app-add-mep-icon7:active {
+  color: white;
+}
+ 
+.app-add-me-proot-class-name {
+  width: auto;
+  align-self: center;
+}

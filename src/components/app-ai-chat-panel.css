@@ -1,4 +1,4 @@
-.ai-chat-panel-container1 {
+.app-ai-chat-panel-container1 {
   width: auto;
   height: auto;
   display: flex;
@@ -10,7 +10,7 @@
   background-color: rgba(255, 255, 255, 0.8);
 }
  
-.ai-chat-panel-container2 {
+.app-ai-chat-panel-container2 {
   flex: 0 0 auto;
   width: 300px;
   height: auto;
@@ -26,7 +26,7 @@
   justify-content: space-between;
 }
  
-.ai-chat-panel-text1 {
+.app-ai-chat-panel-text1 {
   color: rgb(0, 0, 0);
   font-size: 13px;
   font-style: normal;
@@ -34,12 +34,24 @@
   font-weight: 600;
 }
  
-.ai-chat-panel-icon1 {
-  width: 12px;
-  height: 12px;
+.app-ai-chat-panel-icon1 {
+  width: 16px;
+  height: 16px;
+  transition: 0.3s;
+  border-radius: var(--dl-layout-radius-radius4);
 }
  
-.ai-chat-panel-container3 {
+.app-ai-chat-panel-icon1:hover {
+  color: white;
+  background: gray;
+}
+ 
+.app-ai-chat-panel-icon1:active {
+  color: white;
+  background: black;
+}
+ 
+.app-ai-chat-panel-container3 {
   gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
@@ -55,7 +67,7 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.ai-chat-panel-text2 {
+.app-ai-chat-panel-text2 {
   fill: var(--dl-color-theme-neutral-dark);
   color: #646464;
   font-size: 12px;
@@ -64,7 +76,7 @@
   font-weight: 400;
 }
  
-.ai-chat-panel-textarea {
+.app-ai-chat-panel-textarea {
   width: 100%;
   height: 129px;
   padding: var(--dl-layout-space-halfunit);
@@ -76,20 +88,20 @@
   background-color: white;
 }
  
-.ai-chat-panel-button {
+.app-ai-chat-panel-button {
   font-size: 12px;
   align-self: flex-end;
   transition: 0.3s;
   border-color: gray;
 }
  
-.ai-chat-panel-button:hover {
+.app-ai-chat-panel-button:hover {
   background-color: black;
 }
  
 
  
-.ai-chat-panel-text3 {
+.app-ai-chat-panel-text3 {
   fill: white;
   color: white;
   font-size: 12px;
@@ -98,10 +110,23 @@
   font-weight: 600;
 }
  
-.ai-chat-panel-text4 {
+.app-ai-chat-panel-text4 {
   display: inline-block;
 }
  
-.ai-chat-panel-text5 {
+.app-ai-chat-panel-text5 {
   display: inline-block;
+}
+ 
+.app-ai-chat-panelroot-class-name {
+  top: var(--dl-layout-space-sixunits);
+  left: var(--dl-layout-space-sixunits);
+  display: none;
+  position: fixed;
+}
+ 
+.app-ai-chat-panelroot-class-name1 {
+  top: var(--dl-layout-space-sixunits);
+  left: var(--dl-layout-space-sixunits);
+  position: fixed;
 }

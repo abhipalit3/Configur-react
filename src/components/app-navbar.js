@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import PropTypes from 'prop-types'
 
-import LogoApp from './logo-app'
+import AppLogo from './app-logo'
 import Logo from './logo'
 import './app-navbar.css'
 
@@ -12,15 +12,15 @@ const AppNavbar = (props) => {
     <div className={`app-navbar-container ${props.rootClassName} `}>
       <header data-thq="thq-navbar" className="app-navbar-navbar-interactive">
         <Link to="/" className="app-navbar-navlink">
-          <LogoApp
+          <AppLogo
             text={
               <Fragment>
                 <span className="app-navbar-text10">configur.</span>
               </Fragment>
             }
-            rootClassName="logo-approot-class-name"
+            rootClassName="app-logoroot-class-name"
             className="app-navbar-component1"
-          ></LogoApp>
+          ></AppLogo>
         </Link>
         <div data-thq="thq-navbar-nav" className="app-navbar-desktop-menu">
           <div className="app-navbar-buttons1">

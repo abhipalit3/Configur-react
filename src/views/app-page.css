@@ -1,8 +1,7 @@
 .app-page-container {
   width: 100%;
   display: block;
-  max-height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
  
 .app-page-text10 {
@@ -29,6 +28,18 @@
   display: inline-block;
 }
  
+.app-page-right-menus {
+  gap: 0;
+  top: var(--dl-layout-space-twounits);
+  right: var(--dl-layout-space-twounits);
+  width: auto;
+  height: auto;
+  display: flex;
+  position: fixed;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+ 
 .app-page-text16 {
   display: inline-block;
 }
@@ -43,14 +54,6 @@
  
 .app-page-text19 {
   display: inline-block;
-}
- 
-.app-page-image {
-  width: 100%;
-  height: auto;
-  display: none;
-  overflow: hidden;
-  object-fit: cover;
 }
  
 .app-page-text20 {
@@ -82,5 +85,185 @@
 }
  
 .app-page-text27 {
+  display: inline-block;
+}
+ 
+.app-page-text28 {
+  display: inline-block;
+}
+ 
+.app-page-text29 {
+  display: inline-block;
+}
+ 
+.app-page-text30 {
+  display: inline-block;
+}
+ 
+.app-page-text31 {
+  display: inline-block;
+}
+ 
+.app-page-text32 {
+  display: inline-block;
+}
+ 
+.app-page-text33 {
+  display: inline-block;
+}
+ 
+.app-page-text34 {
+  display: inline-block;
+}
+ 
+.app-page-text35 {
+  display: inline-block;
+}
+ 
+.app-page-text36 {
+  display: inline-block;
+}
+ 
+.app-page-text37 {
+  display: inline-block;
+}
+ 
+.app-page-text38 {
+  display: inline-block;
+}
+ 
+.app-page-text39 {
+  display: inline-block;
+}
+ 
+.app-page-text40 {
+  display: inline-block;
+}
+ 
+.app-page-text41 {
+  display: inline-block;
+}
+ 
+.app-page-text42 {
+  display: inline-block;
+}
+ 
+.app-page-text43 {
+  display: inline-block;
+}
+ 
+.app-page-text44 {
+  display: inline-block;
+}
+ 
+.app-page-text45 {
+  display: inline-block;
+}
+ 
+.app-page-text46 {
+  display: inline-block;
+}
+ 
+.app-page-text47 {
+  display: inline-block;
+}
+ 
+.app-page-text48 {
+  display: inline-block;
+}
+ 
+.app-page-text49 {
+  display: inline-block;
+}
+ 
+.app-page-text50 {
+  display: inline-block;
+}
+ 
+.app-page-text51 {
+  display: inline-block;
+}
+ 
+.app-page-text52 {
+  display: inline-block;
+}
+ 
+.app-page-text53 {
+  display: inline-block;
+}
+ 
+.app-page-text54 {
+  display: inline-block;
+}
+ 
+.app-page-text55 {
+  display: inline-block;
+}
+ 
+.app-page-text56 {
+  display: inline-block;
+}
+ 
+.app-page-text57 {
+  display: inline-block;
+}
+ 
+.app-page-text58 {
+  display: inline-block;
+}
+ 
+.app-page-text59 {
+  display: inline-block;
+}
+ 
+.app-page-text60 {
+  display: inline-block;
+}
+ 
+.app-page-text61 {
+  display: inline-block;
+}
+ 
+.app-page-text62 {
+  display: inline-block;
+}
+ 
+.app-page-text63 {
+  display: inline-block;
+}
+ 
+.app-page-text64 {
+  display: inline-block;
+}
+ 
+.app-page-text65 {
+  display: inline-block;
+}
+ 
+.app-page-text66 {
+  display: inline-block;
+}
+ 
+.app-page-text67 {
+  display: inline-block;
+}
+ 
+.app-page-text68 {
+  display: inline-block;
+}
+ 
+.app-page-text69 {
+  display: inline-block;
+}
+ 
+.app-page-text70 {
+  display: inline-block;
+}
+ 
+.app-page-text71 {
+  display: inline-block;
+}
+ 
+.app-page-text72 {
   display: inline-block;
 }

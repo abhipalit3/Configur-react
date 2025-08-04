@@ -22,6 +22,7 @@
   --dl-color-theme-secondary2: #FBF1EB;
   --dl-layout-space-fiveunits: 80px;
   --dl-layout-space-fourunits: 64px;
+  --dl-layout-space-sevenunits: 112;
   --dl-layout-space-threeunits: 48px;
   --dl-color-theme-neutral-dark: #191818;
   --dl-layout-radius-cardradius: 8px;
@@ -629,10 +630,18 @@
 }
  
 .Content {
-  font-size: 16px;
-  font-family: Inter;
+  font-size: 12px;
+  font-family: "Bricolage Grotesque";
   font-weight: 400;
   line-height: 1.15;
+  text-transform: none;
+  text-decoration: none;
+}
+ 
+.Title1 {
+  font-size: 12px;
+  font-family: "Bricolage Grotesque";
+  font-weight: 600;
   text-transform: none;
   text-decoration: none;
 }

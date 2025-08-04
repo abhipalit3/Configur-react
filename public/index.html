@@ -11,8 +11,8 @@
     </style>
     <style data-tag="default-style-sheet">
       html {
-        font-family: Inter;
-        font-size: 16px;
+        font-family: "Bricolage Grotesque";
+        font-size: 12px;
       }
 
       body {
@@ -62,6 +62,15 @@
       rel="stylesheet"
       href="https://unpkg.com/@teleporthq/teleport-custom-scripts/dist/style.css"
     />
+    <style>
+      [data-thq="thq-dropdown"]:hover > [data-thq="thq-dropdown-list"] {
+          display: flex;
+        }
+
+        [data-thq="thq-dropdown"]:hover > div [data-thq="thq-dropdown-arrow"] {
+          transform: rotate(90deg);
+        }
+    </style>
   </head>
   <body>
     <div id="app"></div>
