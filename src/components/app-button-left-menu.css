@@ -275,3 +275,26 @@
   left: var(--dl-layout-space-twounits);
   position: fixed;
 }
+
+/* Active state for buttons */
+.app-button-left-menu-ai-chat-button.active {
+  background-color: transparent;
+  background-image: linear-gradient(to right, #c2e59c 0%, #64b3f4 100%);
+}
+
+.app-button-left-menu-building-prop.active,
+.app-button-left-menu-add-duct-button.active,
+.app-button-left-menu-add-piping.active,
+.app-button-left-menu-add-conduit.active,
+.app-button-left-menu-add-cable-tray.active {
+  background-color: #5c5c5c;
+}
+
+.app-button-left-menu-ai-chat-button.active .app-button-left-menu-icon10,
+.app-button-left-menu-building-prop.active .app-button-left-menu-icon12,
+.app-button-left-menu-add-duct-button.active .app-button-left-menu-icon15,
+.app-button-left-menu-add-piping.active .app-button-left-menu-icon17,
+.app-button-left-menu-add-conduit.active .app-button-left-menu-icon19,
+.app-button-left-menu-add-cable-tray.active .app-button-left-menu-icon21 {
+  color: white;
+}

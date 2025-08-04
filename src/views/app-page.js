@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react'
+import React, { Fragment, useState } from 'react'
 
 import { Helmet } from 'react-helmet'
 
@@ -18,6 +18,22 @@ import ThreeScene from '../components/trade-rack/three-scene'
 import './app-page.css'
 
 const AppPage = (props) => {
+  // State to track which panel is currently active
+  const [activePanel, setActivePanel] = useState(null)
+  // State to track if rack properties is visible
+  const [isRackPropertiesVisible, setIsRackPropertiesVisible] = useState(true)
+  
+  // Handler for panel button clicks
+  const handlePanelClick = (panelName) => {
+    // If clicking the same panel, close it. Otherwise, open the new panel
+    setActivePanel(activePanel === panelName ? null : panelName)
+  }
+  
+  // Handler for templates/rack properties toggle
+  const handleTemplatesClick = () => {
+    setIsRackPropertiesVisible(!isRackPropertiesVisible)
+  }
+  
   return (
     <div className="app-page-container">
       <Helmet>
@@ -35,27 +51,71 @@ const AppPage = (props) => {
 
       <AppTopMainMenu rootClassName="app-top-main-menuroot-class-name1" />
       
-      <AppButtonLeftMenu rootClassName="app-button-left-menuroot-class-name1" />
+      <AppButtonLeftMenu 
+        rootClassName="app-button-left-menuroot-class-name1"
+        onPanelClick={handlePanelClick}
+        activePanel={activePanel}
+      />
 
       <div className="app-page-right-menus">
-        <AppRackProperties rootClassName="app-rack-propertiesroot-class-name2" />
+        {isRackPropertiesVisible && (
+          <AppRackProperties 
+            rootClassName="app-rack-propertiesroot-class-name2" 
+            onClose={() => setIsRackPropertiesVisible(false)}
+          />
+        )}
         <AppTierMEP rootClassName="app-tier-me-proot-class-name" />
         <AppAddMEP rootClassName="app-add-me-proot-class-name" />
       </div>
       
-      <AppAIChatPanel rootClassName="app-ai-chat-panelroot-class-name1" />
+      {/* Conditionally render panels based on activePanel state */}
+      {activePanel === 'aiChat' && (
+        <AppAIChatPanel 
+          rootClassName="app-ai-chat-panelroot-class-name1" 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
 
-      <AppManualBuilding rootClassName="app-manual-buildingroot-class-name1" />
+      {activePanel === 'building' && (
+        <AppManualBuilding 
+          rootClassName="app-manual-buildingroot-class-name1" 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
 
-      <AppDuctwork rootClassName="app-ductworkroot-class-name" />
+      {activePanel === 'ductwork' && (
+        <AppDuctwork 
+          rootClassName="app-ductworkroot-class-name" 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
 
-      <AppPiping rootClassName="app-pipingroot-class-name" />
+      {activePanel === 'piping' && (
+        <AppPiping 
+          rootClassName="app-pipingroot-class-name" 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
 
-      <AppConduits rootClassName="app-conduitsroot-class-name" />
+      {activePanel === 'conduits' && (
+        <AppConduits 
+          rootClassName="app-conduitsroot-class-name" 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
 
-      <AppCableTrays rootClassName="app-cable-traysroot-class-name" />
+      {activePanel === 'cableTrays' && (
+        <AppCableTrays 
+          rootClassName="app-cable-traysroot-class-name" 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
 
-      <AppBottomOptions rootClassName="app-bottom-optionsroot-class-name" />
+      <AppBottomOptions 
+        rootClassName="app-bottom-optionsroot-class-name" 
+        onTemplatesClick={handleTemplatesClick}
+        isTemplatesActive={isRackPropertiesVisible}
+      />
       
       <ThreeScene />
     </div>

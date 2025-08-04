@@ -5,6 +5,8 @@ import PropTypes from 'prop-types'
 import './app-bottom-options.css'
 
 const AppBottomOptions = (props) => {
+  const { onTemplatesClick, isTemplatesActive } = props
+  
   return (
     <div className={`app-bottom-options-container ${props.rootClassName} `}>
       <button
@@ -78,13 +80,14 @@ const AppBottomOptions = (props) => {
       <button
         id="BuildingPropButton"
         type="button"
-        className="app-bottom-options-templates-button button-icon2"
+        className={`app-bottom-options-templates-button button-icon2 ${isTemplatesActive ? 'active' : ''}`}
+        onClick={onTemplatesClick}
       >
         <svg
           width="32"
           height="32"
           viewBox="0 0 32 32"
-          className="app-bottom-options-icon5 button2-icon"
+          className={`app-bottom-options-icon5 button2-icon ${isTemplatesActive ? 'active' : ''}`}
         >
           <path
             d="M26 6v4H6V6zm0-2H6a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M10 16v10H6V16zm0-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V16a2 2 0 0 0-2-2m16 2v10H16V16zm0-2H16a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V16a2 2 0 0 0-2-2"
@@ -100,12 +103,16 @@ AppBottomOptions.defaultProps = {
   text11: undefined,
   text1: undefined,
   rootClassName: '',
+  onTemplatesClick: () => {},
+  isTemplatesActive: false,
 }
 
 AppBottomOptions.propTypes = {
   text11: PropTypes.element,
   text1: PropTypes.element,
   rootClassName: PropTypes.string,
+  onTemplatesClick: PropTypes.func,
+  isTemplatesActive: PropTypes.bool,
 }
 
 export default AppBottomOptions

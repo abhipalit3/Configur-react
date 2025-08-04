@@ -6,12 +6,16 @@ import './app-button-left-menu.css'
 
 const AppButtonLeftMenu = (props) => {
   const [buildingIsVisible, setBuildingIsVisible] = useState(false)
+  
+  const { onPanelClick, activePanel } = props
+  
   return (
     <div className={`app-button-left-menu-container ${props.rootClassName} `}>
       <button
         id="AI_ChatButton"
         type="button"
-        className="app-button-left-menu-ai-chat-button thq-button-icon"
+        className={`app-button-left-menu-ai-chat-button thq-button-icon ${activePanel === 'aiChat' ? 'active' : ''}`}
+        onClick={() => onPanelClick('aiChat')}
       >
         <svg
           id="AI_ChatIcon"
@@ -30,7 +34,8 @@ const AppButtonLeftMenu = (props) => {
         <button
           id="BuildingPropButton"
           type="button"
-          className="app-button-left-menu-building-prop button-icon2"
+          className={`app-button-left-menu-building-prop button-icon2 ${activePanel === 'building' ? 'active' : ''}`}
+          onClick={() => onPanelClick('building')}
         >
           <svg
             id="BuildingProperties"
@@ -52,7 +57,8 @@ const AppButtonLeftMenu = (props) => {
         <button
           id="AddDuct"
           type="button"
-          className="app-button-left-menu-add-duct-button button-icon2"
+          className={`app-button-left-menu-add-duct-button button-icon2 ${activePanel === 'ductwork' ? 'active' : ''}`}
+          onClick={() => onPanelClick('ductwork')}
         >
           <svg
             id="AddDuctIcon"
@@ -70,7 +76,8 @@ const AppButtonLeftMenu = (props) => {
         <button
           id="AddPipingButton"
           type="button"
-          className="app-button-left-menu-add-piping button-icon2"
+          className={`app-button-left-menu-add-piping button-icon2 ${activePanel === 'piping' ? 'active' : ''}`}
+          onClick={() => onPanelClick('piping')}
         >
           <svg
             id="AddPipingIcon"
@@ -88,7 +95,8 @@ const AppButtonLeftMenu = (props) => {
         <button
           id="AddConduitButton"
           type="button"
-          className="app-button-left-menu-add-conduit button-icon2"
+          className={`app-button-left-menu-add-conduit button-icon2 ${activePanel === 'conduits' ? 'active' : ''}`}
+          onClick={() => onPanelClick('conduits')}
         >
           <svg
             id="AddConduitIcon"
@@ -106,7 +114,8 @@ const AppButtonLeftMenu = (props) => {
         <button
           id="AddCableTrayButton"
           type="button"
-          className="app-button-left-menu-add-cable-tray thq-button-icon"
+          className={`app-button-left-menu-add-cable-tray thq-button-icon ${activePanel === 'cableTrays' ? 'active' : ''}`}
+          onClick={() => onPanelClick('cableTrays')}
         >
           <svg
             id="AddCableTrayIcon"
@@ -146,10 +155,14 @@ const AppButtonLeftMenu = (props) => {
 
 AppButtonLeftMenu.defaultProps = {
   rootClassName: '',
+  onPanelClick: () => {},
+  activePanel: null,
 }
 
 AppButtonLeftMenu.propTypes = {
   rootClassName: PropTypes.string,
+  onPanelClick: PropTypes.func,
+  activePanel: PropTypes.string,
 }
 
 export default AppButtonLeftMenu
