@@ -120,15 +120,27 @@ export class ViewCube extends THREE.Mesh {
     return bbox;
   }
 
+  // Method to center orbit controls on the content
+  centerOrbitOnContent() {
+    const bbox = this.getBoundingBox();
+    if (!bbox.isEmpty()) {
+      const center = bbox.getCenter(new THREE.Vector3());
+      this.controls.target.copy(center);
+      this.controls.update();
+      return center;
+    }
+    return new THREE.Vector3(0, 0, 0);
+  }
+
   animateToView(faceIndex) {
     const config = this.viewConfigs[faceIndex];
     if (!config) return;
 
     console.log(`Switching to ${config.name} view`);
 
-    // Get bounding box of generated content
+    // Get bounding box of generated content and center orbit on it
+    const center = this.centerOrbitOnContent();
     const bbox = this.getBoundingBox();
-    const center = bbox.getCenter(new THREE.Vector3());
     const size = bbox.getSize(new THREE.Vector3());
     
     // Calculate appropriate distance based on bounding box

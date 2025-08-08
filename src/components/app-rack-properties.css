@@ -218,11 +218,13 @@
 }
  
 .app-rack-properties-title4 {
+  gap: var(--dl-layout-space-halfunit);
   flex: 0 0 auto;
   width: 300px;
   height: auto;
   display: flex;
   box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: center;
   padding-top: 0px;
   padding-left: var(--dl-layout-space-unit);
   padding-right: var(--dl-layout-space-unit);
@@ -239,15 +241,83 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.app-rack-properties-select1 {
-  width: 98px;
-  height: auto;
-  font-size: 12px;
-  align-self: center;
-  padding-top: 4pxt;
-  padding-left: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: 4pxt;
+.app-rack-properties-count1 {
+  width: 24px;
+  height: 24px;
+  transition: 0.3s;
+  background-color: rgba(183, 180, 180, 0.6);
+}
+ 
+
+ 
+
+ 
+.app-rack-properties-text20 {
+  fill: var(--dl-color-theme-secondary1);
+  color: #393939;
+  font-style: normal;
+  transition: 0.3s;
+  font-weight: 600;
+}
+ 
+.app-rack-properties-text20:hover {
+  color: #ffffff;
+}
+ 
+.app-rack-properties-text20:active {
+  color: #ffffff;
+}
+ 
+.app-rack-properties-count2 {
+  width: 24px;
+  height: 24px;
+  background-color: rgba(183, 180, 180, 0.6);
+}
+ 
+.app-rack-properties-text21 {
+  fill: var(--dl-color-theme-secondary1);
+  color: #393939;
+  font-style: normal;
+  font-weight: 600;
+}
+ 
+.app-rack-properties-count3 {
+  width: 24px;
+  height: 24px;
+  background-color: rgba(183, 180, 180, 0.6);
+}
+ 
+.app-rack-properties-text22 {
+  fill: var(--dl-color-theme-secondary1);
+  color: #393939;
+  font-style: normal;
+  font-weight: 600;
+}
+ 
+.app-rack-properties-count4 {
+  width: 24px;
+  height: 24px;
+  background-color: rgba(183, 180, 180, 0.6);
+}
+ 
+.app-rack-properties-text23 {
+  fill: var(--dl-color-theme-secondary1);
+  color: #393939;
+  font-style: normal;
+  font-weight: 600;
+}
+ 
+.app-rack-properties-count5 {
+  width: 24px;
+  height: 24px;
+  background-color: rgba(183, 180, 180, 0.6);
+}
+ 
+.app-rack-properties-text24 {
+  fill: var(--dl-color-theme-secondary1);
+  color: #393939;
+  font-style: normal;
+  font-weight: 600;
 }
  
 .app-rack-properties-title5 {
@@ -264,7 +334,7 @@
   justify-content: flex-start;
 }
  
-.app-rack-properties-text20 {
+.app-rack-properties-text25 {
   width: var(--dl-layout-size-large);
   padding-top: var(--dl-layout-space-halfunit);
   padding-left: var(--dl-layout-space-halfunit);
@@ -272,7 +342,7 @@
   padding-bottom: var(--dl-layout-space-halfunit);
 }
  
-.app-rack-properties-select2 {
+.app-rack-properties-select1 {
   width: 98px;
   height: auto;
   font-size: 12px;
@@ -297,7 +367,7 @@
   justify-content: flex-start;
 }
  
-.app-rack-properties-text21 {
+.app-rack-properties-text26 {
   width: var(--dl-layout-size-large);
   padding-top: var(--dl-layout-space-halfunit);
   padding-left: var(--dl-layout-space-halfunit);
@@ -316,7 +386,7 @@
   padding-bottom: 4px;
 }
  
-.app-rack-properties-select3 {
+.app-rack-properties-select2 {
   width: 74px;
   height: auto;
   font-size: 12px;
@@ -344,7 +414,7 @@
   justify-content: flex-start;
 }
  
-.app-rack-properties-text22 {
+.app-rack-properties-text27 {
   fill: white;
   color: white;
   font-style: normal;
@@ -360,31 +430,11 @@
  
 
  
-.app-rack-properties-text23 {
+.app-rack-properties-text28 {
   fill: white;
   color: white;
   font-style: normal;
   font-weight: 600;
-}
- 
-.app-rack-properties-text24 {
-  display: inline-block;
-}
- 
-.app-rack-properties-text25 {
-  display: inline-block;
-}
- 
-.app-rack-properties-text26 {
-  display: inline-block;
-}
- 
-.app-rack-properties-text27 {
-  display: inline-block;
-}
- 
-.app-rack-properties-text28 {
-  display: inline-block;
 }
  
 .app-rack-properties-text29 {
@@ -411,6 +461,46 @@
   display: inline-block;
 }
  
+.app-rack-properties-text35 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text36 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text37 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text38 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text39 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text40 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text41 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text42 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text43 {
+  display: inline-block;
+}
+ 
+.app-rack-properties-text44 {
+  display: inline-block;
+}
+ 
 .app-rack-propertiesroot-class-name {
   top: var(--dl-layout-space-sixunits);
   right: var(--dl-layout-space-twounits);
@@ -426,8 +516,7 @@
 }
  
 .app-rack-propertiesroot-class-name2 {
-  top: 64px;
-  left: 0px;
-  position: static;
-  margin-bottom: var(--dl-layout-space-unit);
+  top: var(--dl-layout-space-sixunits);
+  left: var(--dl-layout-space-sixunits);
+  position: fixed;
 }

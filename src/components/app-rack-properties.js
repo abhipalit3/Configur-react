@@ -1,10 +1,31 @@
-import React, { Fragment } from 'react'
-
+import React, { Fragment, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-
 import './app-rack-properties.css'
 
 const AppRackProperties = (props) => {
+  // Always-selected state: 'deck' | 'floor'
+  const [mountType, setMountType] = useState('deck') // default is deck
+
+  useEffect(() => {
+    if (props.initialMountType === 'deck' || props.initialMountType === 'floor') {
+      setMountType(props.initialMountType)
+    }
+  }, [props.initialMountType])
+
+  const selectDeck = () => {
+    if (mountType !== 'deck') {
+      setMountType('deck')
+      props.onMountTypeChange?.('deck')
+    }
+  }
+
+  const selectFloor = () => {
+    if (mountType !== 'floor') {
+      setMountType('floor')
+      props.onMountTypeChange?.('floor')
+    }
+  }
+
   return (
     <div className={`app-rack-properties-container ${props.rootClassName} `}>
       <div className="app-rack-properties-heading">
@@ -23,10 +44,14 @@ const AppRackProperties = (props) => {
           ></path>
         </svg>
       </div>
-      <div className="app-rack-properties-input">
+
+      {/* Mount type: one always selected, default deck */}
+      <div className="app-rack-properties-input" role="group" aria-label="Mount Type">
         <button
           type="button"
-          className="app-rack-properties-button1 save-button"
+          aria-pressed={mountType === 'deck'}
+          className={`app-rack-properties-button1 save-button ${mountType === 'deck' ? 'selected' : ''}`}
+          onClick={selectDeck}
         >
           <span className="app-rack-properties-text11">
             {props.deckMounted ?? (
@@ -38,19 +63,20 @@ const AppRackProperties = (props) => {
         </button>
         <button
           type="button"
-          className="app-rack-properties-button2 save-button"
+          aria-pressed={mountType === 'floor'}
+          className={`app-rack-properties-button2 save-button ${mountType === 'floor' ? 'selected' : ''}`}
+          onClick={selectFloor}
         >
           <span className="app-rack-properties-text12">
             {props.floorMounted ?? (
               <Fragment>
-                <span className="app-rack-properties-text28">
-                  Floor Mounted
-                </span>
+                <span className="app-rack-properties-text28">Floor Mounted</span>
               </Fragment>
             )}
           </span>
         </button>
       </div>
+
       <div className="app-rack-properties-title1">
         <span className="app-rack-properties-text13">
           {props.rackLength ?? (
@@ -72,6 +98,7 @@ const AppRackProperties = (props) => {
           )}
         </span>
       </div>
+
       <div className="app-rack-properties-title2">
         <span className="app-rack-properties-text15">
           {props.rackWidth ?? (
@@ -93,6 +120,7 @@ const AppRackProperties = (props) => {
           )}
         </span>
       </div>
+
       <div className="app-rack-properties-title3">
         <span className="app-rack-properties-text17">
           {props.bayWidth ?? (
@@ -114,13 +142,12 @@ const AppRackProperties = (props) => {
           )}
         </span>
       </div>
+
       <div className="app-rack-properties-title4">
         <span className="app-rack-properties-text19">
           {props.numberTiers ?? (
             <Fragment>
-              <span className="app-rack-properties-text25">
-                Number of Tiers
-              </span>
+              <span className="app-rack-properties-text25">Number of Tiers</span>
             </Fragment>
           )}
         </span>
@@ -130,6 +157,7 @@ const AppRackProperties = (props) => {
           <option value="Option 3">Option 3</option>
         </select>
       </div>
+
       <div className="app-rack-properties-title5">
         <span className="app-rack-properties-text20">
           {props.numberTiers2 ?? (
@@ -144,6 +172,7 @@ const AppRackProperties = (props) => {
           <option value="Option 3">Option 3</option>
         </select>
       </div>
+
       <div className="app-rack-properties-title6">
         <span className="app-rack-properties-text21">
           {props.numberTiers1 ?? (
@@ -163,6 +192,7 @@ const AppRackProperties = (props) => {
           <option value="Tier 3">Tier 3</option>
         </select>
       </div>
+
       <div className="app-rack-properties-save1">
         <button type="button" className="save-button">
           <span className="app-rack-properties-text22">
@@ -180,9 +210,7 @@ const AppRackProperties = (props) => {
           <span className="app-rack-properties-text23">
             {props.downloadRvtButton ?? (
               <Fragment>
-                <span className="app-rack-properties-text30">
-                  Download Revit Family
-                </span>
+                <span className="app-rack-properties-text30">Download Revit Family</span>
               </Fragment>
             )}
           </span>
@@ -205,6 +233,8 @@ AppRackProperties.defaultProps = {
   rootClassName: '',
   numberTiers1: undefined,
   numberTiers2: undefined,
+  initialMountType: 'deck', // default deck
+  onMountTypeChange: undefined,
 }
 
 AppRackProperties.propTypes = {
@@ -220,6 +250,8 @@ AppRackProperties.propTypes = {
   rootClassName: PropTypes.string,
   numberTiers1: PropTypes.element,
   numberTiers2: PropTypes.element,
+  initialMountType: PropTypes.oneOf(['deck', 'floor']),
+  onMountTypeChange: PropTypes.func,
 }
 
 export default AppRackProperties

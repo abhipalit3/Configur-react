@@ -166,6 +166,29 @@ export default function ThreeScene() {
     
     const snapPoints = buildRackScene(scene, params, mats)
 
+    // Center the orbit controls on the generated content
+    const centerOrbitOnContent = () => {
+      const bbox = new THREE.Box3()
+      
+      // Only include generated objects (rack and MEP components)
+      scene.traverse((object) => {
+        if (object.userData.isGenerated && object.isMesh) {
+          const objectBBox = new THREE.Box3().setFromObject(object)
+          bbox.union(objectBBox)
+        }
+      })
+
+      if (!bbox.isEmpty()) {
+        const center = bbox.getCenter(new THREE.Vector3())
+        controls.target.copy(center)
+        controls.update()
+        console.log('Orbit center set to:', center)
+      }
+    }
+
+    // Set initial orbit center
+    centerOrbitOnContent()
+
     console.log('Snap points extracted:', snapPoints.length)
 
     const measurementTool = new MeasurementTool(
