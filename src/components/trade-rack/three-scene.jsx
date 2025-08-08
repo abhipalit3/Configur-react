@@ -166,15 +166,6 @@ export default function ThreeScene() {
     
     const snapPoints = buildRackScene(scene, params, mats)
 
-    // for (const p of snapPoints) {
-    //   const marker = new THREE.Mesh(
-    //     new THREE.SphereGeometry(0.015),
-    //     new THREE.MeshBasicMaterial({ color: 0x0000ff })
-    //   )
-    //   marker.position.copy(p)
-    //   scene.add(marker)
-    //   }
-
     console.log('Snap points extracted:', snapPoints.length)
 
     const measurementTool = new MeasurementTool(
@@ -185,15 +176,27 @@ export default function ThreeScene() {
     )
     measurementTool.enable()
 
-    // ViewCube
+    // Enhanced ViewCube Setup
     const viewCubeScene    = new THREE.Scene()
-    const viewCubeCamera   = camera.clone()
-    const viewCube         = new ViewCube(5)
+    const viewCubeCamera   = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
+    viewCubeCamera.position.set(0, 0, 5) // Closer for better visibility
+    viewCubeCamera.lookAt(0, 0, 0)
+    
+    const viewCube         = new ViewCube(1.2) // Larger size
     viewCubeScene.add(viewCube)
 
-    const viewCubeRenderer = new THREE.WebGLRenderer({ alpha: true })
-    viewCubeRenderer.setSize(128,128)
-    viewCubeRenderer.setClearColor(0x000000,0)
+    // Add some lighting to the ViewCube scene
+    const viewCubeAmbient = new THREE.AmbientLight(0xffffff, 0.6)
+    const viewCubeDirectional = new THREE.DirectionalLight(0xffffff, 0.4)
+    viewCubeDirectional.position.set(1, 1, 1)
+    viewCubeScene.add(viewCubeAmbient, viewCubeDirectional)
+
+    // Setup click handling for the ViewCube
+    viewCube.setupClickHandler(camera, controls, scene)
+
+    const viewCubeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+    viewCubeRenderer.setSize(150, 150) // Larger ViewCube display
+    viewCubeRenderer.setClearColor(0x000000, 0) // Fully transparent background
     viewCubeRenderer.toneMapping = THREE.ACESFilmicToneMapping
     viewCubeRenderer.outputColorSpace = THREE.SRGBColorSpace
     viewCubeRenderer.physicallyCorrectLights = true
@@ -202,9 +205,33 @@ export default function ThreeScene() {
     Object.assign(viewCubeRenderer.domElement.style, {
       position: 'absolute',
       left: '20px',
-      bottom: '50px',
-      zIndex: '1000'
+      bottom: '20px',
+      zIndex: '1000',
+      cursor: 'pointer'
+      // Removed border and background styling for clean transparent look
     })
+
+    // ViewCube click handler
+    const onViewCubeClick = (event) => {
+      // Calculate mouse position relative to ViewCube canvas
+      const rect = viewCubeRenderer.domElement.getBoundingClientRect()
+      const mouse = new THREE.Vector2()
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+      // Raycast against ViewCube
+      const raycaster = new THREE.Raycaster()
+      raycaster.setFromCamera(mouse, viewCubeCamera)
+      const intersects = raycaster.intersectObject(viewCube)
+
+      if (intersects.length > 0) {
+        const faceIndex = intersects[0].face.materialIndex
+        console.log(`Clicked face index: ${faceIndex}, Face: ${viewCube.viewConfigs[faceIndex]?.name}`)
+        viewCube.animateToView(faceIndex)
+      }
+    }
+
+    viewCubeRenderer.domElement.addEventListener('click', onViewCubeClick)
 
     // Resize & Animate
     const onResize = () => {
@@ -219,9 +246,17 @@ export default function ThreeScene() {
       controls.update()
       updateOrthoCamera(camera, 20)
       renderer.render(scene, camera)
-      viewCubeCamera.position.copy(camera.position)
-      viewCubeCamera.quaternion.copy(camera.quaternion)
-      viewCubeCamera.updateProjectionMatrix()
+      
+      // Apply inverse rotation to ViewCube so it shows correct faces
+      // When camera rotates right, ViewCube should rotate left to show the face we're looking from
+      const inverseQuaternion = camera.quaternion.clone().invert()
+      viewCube.quaternion.copy(inverseQuaternion)
+      
+      // Keep ViewCube camera looking at the ViewCube with same up vector as main camera
+      viewCubeCamera.position.set(0, 0, 5)
+      viewCubeCamera.up.copy(camera.up)
+      viewCubeCamera.lookAt(0, 0, 0)
+      
       viewCubeRenderer.render(viewCubeScene, viewCubeCamera)
       measurementTool.updateLabels()
     })()
@@ -231,12 +266,17 @@ export default function ThreeScene() {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keydown', onLog)
       window.removeEventListener('resize', onResize)
+      viewCubeRenderer.domElement.removeEventListener('click', onViewCubeClick)
       dispose(scene)
       renderer.dispose()
       viewCubeRenderer.dispose()
       if (mountRef.current) {
-        mountRef.current.removeChild(renderer.domElement)
-        mountRef.current.removeChild(viewCubeRenderer.domElement)
+        if (mountRef.current.contains(renderer.domElement)) {
+          mountRef.current.removeChild(renderer.domElement)
+        }
+        if (mountRef.current.contains(viewCubeRenderer.domElement)) {
+          mountRef.current.removeChild(viewCubeRenderer.domElement)
+        }
       }
     }
   }, [])
