@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/Configur-react/static/css/main.a59a3a35.css",
-    "main.js": "/Configur-react/static/js/main.a6182061.js",
+    "main.css": "/Configur-react/static/css/main.bbb2ecfa.css",
+    "main.js": "/Configur-react/static/js/main.fd6c9a42.js",
     "index.html": "/Configur-react/index.html",
-    "main.a59a3a35.css.map": "/Configur-react/static/css/main.a59a3a35.css.map",
-    "main.a6182061.js.map": "/Configur-react/static/js/main.a6182061.js.map"
+    "main.bbb2ecfa.css.map": "/Configur-react/static/css/main.bbb2ecfa.css.map",
+    "main.fd6c9a42.js.map": "/Configur-react/static/js/main.fd6c9a42.js.map"
   },
   "entrypoints": [
-    "static/css/main.a59a3a35.css",
-    "static/js/main.a6182061.js"
+    "static/css/main.bbb2ecfa.css",
+    "static/js/main.fd6c9a42.js"
   ]
 }

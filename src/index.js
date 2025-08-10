@@ -8,13 +8,15 @@ import {
 } from 'react-router-dom'
 
 import './style.css'
-import ProjectDashboard from './views/project-dashboard'
-import Projects from './views/projects'
-import Home from './views/home'
-import AppPage from './views/app-page'
-import SignupPage from './views/signup-page'
-import Login from './views/login'
-import NotFound from './views/not-found'
+import {
+  ProjectDashboard,
+  Projects,
+  Home,
+  AppPage,
+  SignupPage,
+  Login,
+  NotFound
+} from './pages'
 
 const App = () => {
   return (

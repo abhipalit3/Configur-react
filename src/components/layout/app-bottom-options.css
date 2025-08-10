@@ -1,0 +1,238 @@
+.app-bottom-options-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.app-bottom-options-container {
+  gap: 0;
+  width: auto;
+  height: 48px;
+  display: flex;
+  padding: 4px;
+  max-width: auto;
+  min-width: auto;
+  box-shadow: 1px 1px 1px 0px #d4d4d4,-1px -1px 1px 0px #d4d4d4;
+  align-items: center;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+ 
+.app-bottom-options-two-d-view-buton {
+  width: 36px;
+  height: 36px;
+  transition: 0.3s;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+ 
+
+ 
+
+ 
+.app-bottom-options-text1 {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  padding: var(--dl-layout-space-halfunit);
+  font-size: 14px;
+  font-style: normal;
+  text-align: center;
+  transition: 0.3s;
+  align-items: center;
+  font-weight: 600;
+  justify-content: center;
+}
+ 
+.app-bottom-options-text1:hover {
+  color: white;
+}
+ 
+.app-bottom-options-text1:active {
+  color: white;
+}
+ 
+.app-bottom-options-three-d-view-button {
+  width: 36px;
+  height: 36px;
+  transition: 0.3s;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+ 
+
+ 
+
+ 
+.app-bottom-options-text2 {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  padding: var(--dl-layout-space-halfunit);
+  font-size: 14px;
+  font-style: normal;
+  transition: 0.3s;
+  align-items: center;
+  font-weight: 600;
+  justify-content: center;
+}
+ 
+.app-bottom-options-text2:hover {
+  color: white;
+}
+ 
+.app-bottom-options-text2:active {
+  color: white;
+}
+ 
+.app-bottom-options-fit-view-button {
+  width: 36px;
+  height: 36px;
+  transition: 0.3s;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+ 
+
+ 
+
+ 
+.app-bottom-options-icon1 {
+  width: 36px;
+  height: 36px;
+  padding: var(--dl-layout-space-halfunit);
+  transition: 0.3s;
+  border-radius: var(--dl-layout-radius-radius8);
+}
+ 
+.app-bottom-options-icon1:hover {
+  color: white;
+}
+ 
+.app-bottom-options-icon1:active {
+  color: white;
+}
+ 
+.app-bottom-options-measure-button {
+  width: 36px;
+  height: 36px;
+  transition: 0.3s;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+ 
+
+ 
+
+ 
+.app-bottom-options-icon3 {
+  width: 36px;
+  height: 36px;
+  padding: var(--dl-layout-space-halfunit);
+  transition: 0.3s;
+  border-radius: var(--dl-layout-radius-radius8);
+}
+ 
+.app-bottom-options-icon3:hover {
+  color: white;
+}
+ 
+.app-bottom-options-icon3:active {
+  color: white;
+}
+
+.app-bottom-options-measure-button.active {
+  background-color: #0088ff;
+}
+
+.app-bottom-options-icon3.active {
+  color: white;
+}
+ 
+.app-bottom-options-templates-button {
+  width: 36px;
+  height: 36px;
+  transition: 0.3s;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+ 
+
+ 
+
+ 
+.app-bottom-options-icon5 {
+  width: 36px;
+  height: 36px;
+  padding: var(--dl-layout-space-halfunit);
+  transition: 0.3s;
+  border-radius: var(--dl-layout-radius-radius8);
+}
+ 
+.app-bottom-options-icon5:hover {
+  color: white;
+}
+ 
+
+ 
+.app-bottom-options-text3 {
+  display: inline-block;
+}
+ 
+.app-bottom-options-text4 {
+  display: inline-block;
+}
+ 
+/* Clear measurements button */
+.app-bottom-options-clear-measurements-button {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #E1E8ED;
+  border-radius: var(--dl-layout-radius-radius8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  margin-bottom: 8px; /* Space between clear button and main toolbar */
+}
+
+.app-bottom-options-clear-measurements-button:hover {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: #FF6B6B;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+}
+
+.app-bottom-options-clear-measurements-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.app-bottom-options-clear-icon {
+  width: 20px;
+  height: 20px;
+  color: #666;
+  transition: color 0.2s ease;
+}
+
+.app-bottom-options-clear-measurements-button:hover .app-bottom-options-clear-icon {
+  color: #FF6B6B;
+}
+
+.app-bottom-optionsroot-class-name {
+  left: 0px;
+  right: 0px;
+  width: var(--dl-layout-size-xxlarge);
+  bottom: var(--dl-layout-space-fourunits);
+  margin: auto;
+  overflow: auto;
+  position: fixed;
+}

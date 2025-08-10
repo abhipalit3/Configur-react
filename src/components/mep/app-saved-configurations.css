@@ -1,0 +1,213 @@
+.app-saved-configurations-container {
+  width: 300px;
+  height: auto;
+  display: flex;
+  position: relative;
+  max-height: 320px;
+  align-items: flex-start;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: column;
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: -1px 1px 1px 0px #d4d4d4, 1px -1px 1px 0px #d4d4d4;
+  margin-bottom: var(--dl-layout-space-unit);
+}
+
+.app-saved-configurations-heading {
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 2px 0px #d4d4d4;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.app-saved-configurations-title {
+  gap: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.app-saved-configurations-icon {
+  color: #555;
+  opacity: 0.8;
+}
+
+.app-saved-configurations-close-icon {
+  cursor: pointer;
+  color: #666;
+  width: 16px;
+  height: 16px;
+  transition: 0.3s;
+  border-radius: var(--dl-layout-radius-radius4);
+}
+
+.app-saved-configurations-close-icon:hover {
+  color: white;
+  background: gray;
+}
+
+.app-saved-configurations-close-icon:active {
+  color: white;
+  background: black;
+}
+
+.app-saved-configurations-content {
+  width: 100%;
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 260px;
+  flex: 1;
+}
+
+.app-saved-configurations-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.app-saved-configurations-empty-text {
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 11px;
+  font-family: "Bricolage Grotesque";
+  text-align: center;
+  line-height: 1.4;
+}
+
+.app-saved-configurations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-saved-configurations-card {
+  background-color: rgba(245, 245, 245, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.app-saved-configurations-card:hover {
+  background-color: rgba(240, 240, 240, 0.8);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.1);
+}
+
+.app-saved-configurations-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.app-saved-configurations-card-title {
+  color: #333;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "Bricolage Grotesque";
+  margin: 0;
+}
+
+.app-saved-configurations-card-status {
+  display: flex;
+  align-items: center;
+}
+
+.app-saved-configurations-status-icon {
+  opacity: 0.8;
+}
+
+.app-saved-configurations-card-details {
+  margin-bottom: 8px;
+}
+
+.app-saved-configurations-detail-row {
+  margin-bottom: 4px;
+}
+
+.app-saved-configurations-detail-label {
+  color: #666;
+  font-size: 10px;
+  font-family: "Bricolage Grotesque";
+  line-height: 1.3;
+}
+
+.app-saved-configurations-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.app-saved-configurations-mount-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-saved-configurations-mount-badge {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.app-saved-configurations-date {
+  flex: 1;
+  text-align: center;
+}
+
+.app-saved-configurations-date-text {
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 9px;
+  font-family: "Bricolage Grotesque";
+}
+
+.app-saved-configurations-delete-btn {
+  background: none;
+  border: none;
+  color: rgba(244, 67, 54, 0.7);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.app-saved-configurations-delete-btn:hover {
+  color: #f44336;
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+/* Scrollbar styling */
+.app-saved-configurations-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-saved-configurations-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+  margin: 4px 0;
+}
+
+.app-saved-configurations-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.app-saved-configurations-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}

@@ -1,0 +1,306 @@
+import React, { Fragment, useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
+import './app-tier-mep.css'
+
+const AppTierMEP = (props) => {
+  const { mepItems = [], onRemoveItem, onItemClick, onColorChange } = props
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showColorPicker, setShowColorPicker] = useState(null) // Track which item's color picker is open
+  
+  // Color palette options
+  const colorPalette = [
+    { name: 'Pink', value: '#d05e8f' },
+    { name: 'Blue', value: '#4A90E2' },
+    { name: 'Green', value: '#27AE60' },
+    { name: 'Orange', value: '#E67E22' },
+    { name: 'Red', value: '#E74C3C' },
+    { name: 'Purple', value: '#9B59B6' },
+    { name: 'Teal', value: '#1ABC9C' },
+    { name: 'Gray', value: '#95A5A6' },
+    { name: 'Dark Blue', value: '#2C3E50' },
+    { name: 'Lime', value: '#2ECC71' },
+    { name: 'Yellow', value: '#F1C40F' },
+    { name: 'Deep Orange', value: '#D35400' },
+    { name: 'Maroon', value: '#8E44AD' },
+    { name: 'Cyan', value: '#3498DB' },
+    { name: 'Brown', value: '#A0522D' },
+    { name: 'Black', value: '#34495E' }
+  ]
+
+  // Handle click outside to close color picker
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click is outside any color picker
+      if (!event.target.closest('.color-picker-container')) {
+        setShowColorPicker(null)
+      }
+    }
+
+    if (showColorPicker) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [showColorPicker])
+
+  // Display text per item with detailed information
+  function getItemDisplayText(item) {
+    if (!item || typeof item !== 'object') return ''
+
+    if (item.type === 'duct') {
+      const name = item.name || 'Duct'
+      const w = item.width ?? 0
+      const h = item.height ?? 0
+      const insulation = item.insulation ?? 0
+      const tier = item.tier ?? 1
+      const insulationText = insulation > 0 ? ` | Insulation: ${insulation}"` : ''
+      return `${name} - ${w}" x ${h}" | Tier: ${tier}${insulationText}`
+    }
+
+    if (item.type === 'pipe') {
+      const name = item.name || 'Pipe'
+      const typ = item.pipeType || 'Pipe'
+      const dia = item.diameter ?? 0
+      return `Pipe - ${name} - ${typ} ${dia} Ø`
+    }
+
+    if (item.type === 'conduit') {
+      const typ = item.conduitType || 'Conduit'
+      const dia = item.diameter ?? 0
+      return `Conduit - ${typ} ${dia} Ø`
+    }
+
+    if (item.type === 'cableTray') {
+      const w = item.width ?? 0
+      const h = item.height ?? 0
+      return `Cable Tray - ${w}"x${h}"`
+    }
+
+    return ''
+  }
+
+
+  // Filter items based on search term (against display text)
+  const filteredItems = mepItems.filter(item => {
+    const searchLower = searchTerm.toLowerCase()
+    const itemText = (getItemDisplayText(item) || '').toLowerCase()
+    return itemText.includes(searchLower)
+  })
+
+  return (
+    <div className={`app-tier-mep-container1 ${props.rootClassName} `}>
+      <div className="app-tier-mep-heading">
+        <input
+          type="text"
+          placeholder="Search MEP items..."
+          className="app-tier-mep-textinput input-form"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      <div className="app-tier-mep-container2">
+        {mepItems.length === 0 ? (
+          <div className="app-tier-mep-added-mep1">
+            <span className="app-tier-mep-text10">No MEP items added yet</span>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="app-tier-mep-added-mep1">
+            <span className="app-tier-mep-text10">No items match your search</span>
+          </div>
+        ) : (
+          filteredItems.map((item) => (
+            <div key={item.id} className="app-tier-mep-added-mep1" style={{
+              cursor: item.type === 'duct' ? 'pointer' : 'default',
+              display: 'flex',
+              alignItems: 'center',
+              position: 'relative'
+            }}
+            onMouseEnter={(e) => {
+              if (item.type === 'duct') {
+                e.currentTarget.style.backgroundColor = '#f0f8ff'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (item.type === 'duct') {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }
+            }}>
+              {/* Color Picker for Ducts - moved to start */}
+              {item.type === 'duct' && (
+                <div className="color-picker-container" style={{ position: 'relative', marginRight: '8px' }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowColorPicker(showColorPicker === item.id ? null : item.id)
+                    }}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      borderRadius: '50%', // Makes it circular
+                      border: '1px solid #ccc',
+                      background: item.color || '#d05e8f',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      minWidth: '16px',
+                      flexShrink: 0
+                    }}
+                    title="Change duct color"
+                  >
+                  </button>
+                  
+                  {showColorPicker === item.id && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      left: '0',
+                      background: 'white',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      padding: '8px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 1fr)',
+                      gap: '4px',
+                      zIndex: 1001,
+                      minWidth: '120px'
+                    }}>
+                      {colorPalette.map((color, index) => (
+                        <button
+                          key={index}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (onColorChange) {
+                              onColorChange(item.id, color.value)
+                            }
+                            setShowColorPicker(null)
+                          }}
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '3px',
+                            border: (item.color || '#d05e8f') === color.value ? '2px solid #333' : '1px solid #ccc',
+                            background: color.value,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          title={color.name}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <span 
+                className="app-tier-mep-text10" 
+                onClick={() => {
+                  if (item.type === 'duct' && onItemClick) {
+                    onItemClick(item)
+                  }
+                }}
+                style={{ flex: 1, cursor: item.type === 'duct' ? 'pointer' : 'default' }}
+              >
+                {getItemDisplayText(item)}
+              </span>
+              
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 32 32"
+                className="app-tier-mep-remove-icon"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRemoveItem(item.id)
+                }}
+                style={{
+                  cursor: 'pointer',
+                  minWidth: '16px'
+                }}
+              >
+                <path
+                  d="M17.414 16L26 7.414L24.586 6L16 14.586L7.414 6L6 7.414L14.586 16L6 24.586L7.414 26L16 17.414L24.586 26L26 24.586z"
+                  fill="currentColor"
+                ></path>
+              </svg>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="app-tier-mep-title">
+        <span style={{ fontSize: '11px', color: '#666', padding: '4px' }}>
+          Total items: {mepItems.length}
+        </span>
+
+        <svg
+          height="24"
+          width="24"
+          viewBox="0 0 24 24"
+          className="app-tier-mep-icon10"
+          style={{ marginLeft: 'auto' }}
+        >
+          <path
+            fill="currentColor"
+            d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
+          ></path>
+        </svg>
+
+        <svg
+          height="48"
+          width="48"
+          viewBox="0 0 48 48"
+          className="app-tier-mep-icon12"
+        >
+          <g
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="4"
+          >
+            <path d="M6 24.008V42h36V24"></path>
+            <path d="m33 23-9 9-9-9m8.992-17v26"></path>
+          </g>
+        </svg>
+
+        <svg
+          height="48"
+          width="48"
+          viewBox="0 0 48 48"
+          className="app-tier-mep-icon16"
+        >
+          <g
+            fill="none"
+            stroke="currentColor"
+            strokeLinejoin="round"
+            strokeWidth="4"
+          >
+            <path d="M9 10v34h30V10z"></path>
+            <path strokeLinecap="round" d="M20 20v13m8-13v13M4 10h40"></path>
+            <path d="m16 10 3.289-6h9.488L32 10z"></path>
+          </g>
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+AppTierMEP.defaultProps = {
+  rootClassName: '',
+  mepItems: [],
+  onRemoveItem: () => {},
+  onItemClick: () => {},
+  onColorChange: () => {},
+}
+
+AppTierMEP.propTypes = {
+  rootClassName: PropTypes.string,
+  mepItems: PropTypes.array,
+  onRemoveItem: PropTypes.func,
+  onItemClick: PropTypes.func,
+  onColorChange: PropTypes.func,
+}
+
+export default AppTierMEP

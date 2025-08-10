@@ -1,0 +1,354 @@
+.app-ductwork-container {
+  width: auto;
+  height: auto;
+  display: flex;
+  position: relative;
+  box-shadow: 1px 1px 1px 0px #d4d4d4,-1px -1px 1px 0px #d4d4d4;
+  align-items: flex-start;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: column;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+ 
+.app-ductwork-heading {
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 2px 0px #d4d4d4;
+  align-items: center;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  border-radius: var(--dl-layout-radius-radius8);
+  padding-right: var(--dl-layout-space-halfunit);
+  flex-direction: row;
+  padding-bottom: var(--dl-layout-space-halfunit);
+  justify-content: space-between;
+}
+ 
+.app-ductwork-icon1 {
+  width: 16px;
+  height: 16px;
+  transition: 0.3s;
+  border-radius: var(--dl-layout-radius-radius4);
+}
+ 
+.app-ductwork-icon1:hover {
+  color: white;
+  background: gray;
+}
+ 
+.app-ductwork-icon1:active {
+  color: white;
+  background: black;
+}
+ 
+.app-ductwork-ductwork {
+  display: block;
+}
+ 
+.app-ductwork-inputs {
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  flex-direction: column;
+}
+ 
+.app-ductwork-duct-name {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+ 
+.app-ductwork-duct-width {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+ 
+.app-ductwork-unit1 {
+  font-size: 12px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+}
+ 
+.app-ductwork-duct-height {
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+ 
+.app-ductwork-unit2 {
+  font-size: 12px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+}
+ 
+.app-ductwork-duct-insulation {
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+ 
+.app-ductwork-unit3 {
+  font-size: 12px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+}
+ 
+.app-ductwork-save {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  border-radius: var(--dl-layout-radius-radius8);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: row-reverse;
+  padding-bottom: var(--dl-layout-space-halfunit);
+  justify-content: flex-start;
+}
+ 
+.app-ductwork-button {
+  width: var(--dl-layout-size-medium);
+}
+ 
+.app-ductwork-add-duct {
+  fill: white;
+  color: white;
+  display: block;
+  font-style: normal;
+  font-weight: 600;
+}
+ 
+.app-ductwork-counter {
+  gap: var(--dl-layout-space-halfunit);
+  display: flex;
+  align-self: center;
+  align-items: center;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+ 
+.app-ductwork-plus {
+  width: var(--dl-layout-size-xsmall);
+  height: var(--dl-layout-size-xsmall);
+}
+ 
+.app-ductwork-count {
+  font-size: 14px;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+  line-height: 1.15;
+  text-transform: none;
+  text-decoration: none;
+}
+ 
+.app-ductwork-minus {
+  width: var(--dl-layout-size-xsmall);
+  height: var(--dl-layout-size-xsmall);
+}
+ 
+.app-ductwork-text2 {
+  display: inline-block;
+}
+ 
+.app-ductwork-text3 {
+  display: inline-block;
+}
+ 
+.app-ductworkroot-class-name {
+  top: var(--dl-layout-space-sixunits);
+  left: var(--dl-layout-space-sixunits);
+  position: fixed;
+}
+
+/* Add these styles to your respective component CSS files */
+
+/* Error state for inputs */
+.input-form.error {
+  border-color: #ff0000;
+  background-color: #fff5f5;
+}
+
+/* Error message styling */
+.error-message {
+  color: red;
+  font-size: 11px;
+  padding-left: 16px;
+  display: block;
+  margin-top: -8px;
+  margin-bottom: 8px;
+}
+
+/* Counter button styling */
+.app-ductwork-plus,
+.app-ductwork-minus,
+.app-piping-icon16,
+.app-piping-icon19,
+.app-conduits-icon16,
+.app-conduits-icon19,
+.app-cable-trays-icon5,
+.app-cable-trays-icon8 {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.app-ductwork-plus:hover,
+.app-piping-icon16:hover,
+.app-conduits-icon16:hover,
+.app-cable-trays-icon5:hover {
+  transform: scale(1.1);
+}
+
+.app-ductwork-minus:hover,
+.app-piping-icon19:hover,
+.app-conduits-icon19:hover,
+.app-cable-trays-icon8:hover {
+  transform: scale(1.1);
+}
+
+/* Dropdown selected state */
+.app-piping-dropdown-toggle1.selected,
+.app-conduits-dropdown-toggle1.selected,
+.app-cable-trays-dropdown-toggle1.selected {
+  color: #000;
+  font-weight: 500;
+}
+
+/* Search input in TierMEP */
+.app-tier-mep-textinput {
+  transition: 0.3s;
+}
+
+.app-tier-mep-textinput:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* MEP item hover state */
+.app-tier-mep-added-mep1:hover {
+  background-color: #f5f5f5;
+}
+
+/* Total items counter */
+.app-tier-mep-title {
+  align-items: center;
+  padding: 8px;
+}
+
+/* Input label styling for ductwork form */
+.input-label {
+  font-size: 14px;
+  font-weight: 500;
+  font-family: "Bricolage Grotesque", sans-serif;
+  color: #333;
+  margin-bottom: 6px;
+  display: block;
+  letter-spacing: 0.5px;
+}
+
+/* New Building Shell Properties consistent styling */
+.app-ductwork-title1,
+.app-ductwork-title2,
+.app-ductwork-title3,
+.app-ductwork-title4 {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: column;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+
+.app-ductwork-input1,
+.app-ductwork-input2,
+.app-ductwork-input3,
+.app-ductwork-input4 {
+  gap: var(--dl-layout-space-halfunit);
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  box-shadow: 0px 1px 0px 0px #ccc3c3;
+  align-items: flex-start;
+  padding-top: var(--dl-layout-space-halfunit);
+  padding-left: var(--dl-layout-space-unit);
+  padding-right: var(--dl-layout-space-unit);
+  flex-direction: row;
+  padding-bottom: var(--dl-layout-space-halfunit);
+}
+
+.app-ductwork-text13,
+.app-ductwork-text15,
+.app-ductwork-text16,
+.app-ductwork-text17 {
+  font-size: 12px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+}
+
+/* Specific styling for name input (no feet-inches input) */
+.app-ductwork-input1 {
+  flex-direction: column;
+}
+
+/* Error text styling to match Building Shell Properties */
+.error-text {
+  color: red;
+  font-size: 11px;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+  margin-top: 4px;
+}
