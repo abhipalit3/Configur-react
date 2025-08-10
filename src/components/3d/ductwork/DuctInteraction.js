@@ -384,7 +384,6 @@ export class DuctInteraction {
   saveDuctPosition() {
     if (!this.selectedDuct?.userData?.ductData) return
     
-    console.log('💾 Saving duct position after drag')
     
     try {
       const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
@@ -407,7 +406,6 @@ export class DuctInteraction {
             ...item, 
             position: currentPosition
           }
-          console.log('💾 Updated duct position:', currentPosition)
           return updatedItem
         }
         return item
@@ -443,7 +441,6 @@ export class DuctInteraction {
   updateDuctDimensions(newDimensions) {
     if (!this.selectedDuct) return
 
-    console.log('🔧 Updating duct dimensions:', newDimensions)
     
     // Update userData
     const oldDuctData = this.selectedDuct.userData.ductData
@@ -472,7 +469,6 @@ export class DuctInteraction {
         ductMesh.userData.customMaterial = newCustomMaterial
         ductMesh.material = newCustomMaterial
         
-        console.log(`🎨 Updated duct color to: ${newDimensions.color}`)
       }
     }
 
@@ -510,7 +506,6 @@ export class DuctInteraction {
     // Update measurements
     this.updateDuctMeasurements()
     
-    console.log('✅ Duct dimensions updated successfully')
   }
 
   dispose() {

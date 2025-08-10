@@ -13,65 +13,39 @@ export const logManifestToConsole = () => {
   const stats = getProjectStatistics()
   
   console.group('📋 Project Manifest')
-  console.log('Project ID:', manifest.projectId)
-  console.log('Version:', manifest.version)
-  console.log('Created:', new Date(manifest.createdAt).toLocaleString())
-  console.log('Last Updated:', new Date(manifest.lastUpdated).toLocaleString())
   
   console.group('📊 Statistics')
-  console.log('Trade Rack Configurations:', stats.totalComponents.tradeRacks)
-  console.log('MEP Items:', stats.totalComponents.mepItems)
-  console.log('Measurements:', stats.totalComponents.measurements)
-  console.log('Configurations Saved:', stats.configurationsSaved)
-  console.log('MEP Items Added:', stats.mepItemsAdded)
   console.groupEnd()
   
   console.group('🏗️ Current Building Shell')
   if (manifest.buildingShell.parameters) {
-    console.log('Parameters:', manifest.buildingShell.parameters)
-    console.log('Last Modified:', new Date(manifest.buildingShell.lastModified).toLocaleString())
   } else {
-    console.log('No building shell configured')
   }
   console.groupEnd()
   
   console.group('🔧 Current Trade Rack')
   if (manifest.tradeRacks.active) {
-    console.log('Active Configuration:', manifest.tradeRacks.active)
-    console.log('Saved Configurations:', manifest.tradeRacks.totalCount)
   } else {
-    console.log('No active trade rack configuration')
   }
   console.groupEnd()
   
   console.group('🚰 MEP Items')
-  console.log('Ductwork:', manifest.mepItems.ductwork.length)
-  console.log('Piping:', manifest.mepItems.piping.length)  
-  console.log('Conduits:', manifest.mepItems.conduits.length)
-  console.log('Cable Trays:', manifest.mepItems.cableTrays.length)
-  console.log('Total:', manifest.mepItems.totalCount)
   console.groupEnd()
   
   console.group('📏 Measurements')
-  console.log('Total Measurements:', manifest.measurements.totalCount)
   console.groupEnd()
   
   console.group('🎛️ UI State')
-  console.log('Active Panel:', manifest.uiState.activePanel)
-  console.log('Rack Properties Visible:', manifest.uiState.isRackPropertiesVisible)
-  console.log('Measurement Tool Active:', manifest.uiState.isMeasurementActive)
   console.groupEnd()
   
   console.group('📝 Recent Changes (Last 10)')
   manifest.changeHistory.slice(0, 10).forEach((change, index) => {
-    console.log(`${index + 1}. [${change.component}] ${change.action}`, {
       timestamp: new Date(change.timestamp).toLocaleString(),
       details: change.details
     })
   })
   console.groupEnd()
   
-  console.log('Full Manifest:', manifest)
   console.groupEnd()
   
   return manifest
@@ -108,7 +82,6 @@ export const downloadManifest = () => {
     
     URL.revokeObjectURL(url)
     
-    console.log(`✅ Manifest downloaded: ${filename}`)
     return { success: true, filename }
   } catch (error) {
     console.error('❌ Failed to download manifest:', error)
@@ -137,7 +110,6 @@ export const getManifestInfo = () => {
     storageKey: 'projectManifest'
   }
   
-  console.log('📊 Manifest Info:', info)
   return info
 }
 

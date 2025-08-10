@@ -164,11 +164,9 @@ scene.environment = new THREE.PMREMGenerator(renderer)
 
 /* ---------- camera logger ---------- */
 function logCamera () {
-  console.log(
     `camera.position.set(${camera.position.x.toFixed(3)}, ` +
     `${camera.position.y.toFixed(3)}, ${camera.position.z.toFixed(3)});`
   );
-  console.log(
     `controls.target.set(${controls.target.x.toFixed(3)}, ` +
     `${controls.target.y.toFixed(3)}, ${controls.target.z.toFixed(3)});` +
     ` controls.update();`

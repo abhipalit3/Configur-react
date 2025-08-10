@@ -46,7 +46,6 @@ const AppPage = (props) => {
     try {
       const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
       const savedUIState = manifest.uiState || {}
-      //console.log Restoring UI state from manifest:', savedUIState)
       return savedUIState
     } catch (error) {
       console.error('❌ Error loading UI state from manifest:', error)
@@ -88,7 +87,6 @@ const AppPage = (props) => {
     try {
       const savedItems = localStorage.getItem('configurMepItems')
       const parsedItems = savedItems ? JSON.parse(savedItems) : []
-      //console.log MEP items initialized from localStorage:', parsedItems.length, parsedItems)
       return parsedItems
     } catch (error) {
       console.error('❌ Error loading MEP items:', error)
@@ -105,19 +103,16 @@ const AppPage = (props) => {
     
     // Make measurement update function available globally for the measurement tool
     window.updateManifestMeasurements = (measurements) => {
-      console.log('📏 Updating manifest with measurements:', measurements.length)
       updateMeasurements(measurements)
     }
     
     // Make MEP items update function available globally for 3D scene
     window.updateMEPItemsManifest = (items) => {
-      console.log('🟢 Globally updating MEP items manifest:', items.length)
       updateMEPItems(items, 'all')
     }
     
     // Make MEP panel refresh function available globally
     window.refreshMepPanel = () => {
-      console.log('🔄 Refreshing MEP panel')
       // Force a re-render by updating the mepItems from localStorage
       try {
         const savedItems = localStorage.getItem('configurMepItems')
@@ -156,7 +151,6 @@ const AppPage = (props) => {
     try {
       localStorage.setItem('configurMepItems', JSON.stringify(mepItems))
       // Update manifest with current MEP items
-      //console.log Updating manifest with MEP items:', mepItems.length, mepItems)
       updateMEPItems(mepItems, 'all')
     } catch (error) {
       console.error('Error saving MEP items:', error)
@@ -206,7 +200,6 @@ const AppPage = (props) => {
   // Handler for removing MEP items
   const handleRemoveMepItem = (itemId) => {
     const itemToRemove = mepItems.find(item => item.id === itemId)
-    console.log('🗑️ Removing MEP item:', itemId, itemToRemove)
     setMepItems(mepItems.filter(item => item.id !== itemId))
     
     // Update manifest
@@ -218,7 +211,6 @@ const AppPage = (props) => {
   // Handler for clicking MEP items in the panel (for duct selection)
   const handleMepItemClick = (item) => {
     if (item.type === 'duct') {
-      console.log('🎯 Selecting duct from MEP panel:', item)
       
       // Find and select the duct in the 3D scene
       if (window.ductworkRendererInstance?.ductInteraction) {
@@ -239,7 +231,6 @@ const AppPage = (props) => {
         })
         
         if (targetDuct) {
-          console.log('🎯 Found target duct, selecting:', targetDuct)
           ductworkRenderer.ductInteraction.selectDuct(targetDuct)
         } else {
           console.warn('⚠️ Could not find duct to select:', item.id)
@@ -250,7 +241,6 @@ const AppPage = (props) => {
 
   // Handler for changing duct color from MEP panel
   const handleDuctColorChange = (ductId, newColor) => {
-    console.log('🎨 Changing duct color:', ductId, 'to', newColor)
     
     // Update the mepItems state
     const updatedItems = mepItems.map(item => {
@@ -305,7 +295,6 @@ const AppPage = (props) => {
 
   // Handler for building shell save
   const handleBuildingSave = (params) => {
-    console.log('🏗️ Saving building parameters:', params)
     setBuildingParams(params)
     
     // Update manifest with building shell data
@@ -330,7 +319,6 @@ const AppPage = (props) => {
 
   // Handler for trade rack save
   const handleRackSave = (params) => {
-    console.log('🏗️ Saving rack parameters:', params)
     setRackParams(params)
     
     // Switch building shell mode based on mount type
@@ -354,7 +342,6 @@ const AppPage = (props) => {
 
     // Update ductwork renderer with new rack parameters
     if (window.ductworkRendererInstance) {
-      console.log('🏭 Updating DuctworkRenderer from handleRackSave with params:', combinedParams)
       window.ductworkRendererInstance.updateRackParams(combinedParams)
     }
 
@@ -369,12 +356,10 @@ const AppPage = (props) => {
       }
       savedConfigs.push(newConfig)
       localStorage.setItem('tradeRackConfigurations', JSON.stringify(savedConfigs))
-      console.log('💾 Rack configuration saved:', newConfig.name)
       
       // Update manifest with new trade rack configuration (mark as new save)
       updateTradeRackConfiguration(combinedParams, true)
       
-      console.log('💾 Configuration saved and visible in saved configurations panel')
       
       // Trigger refresh of saved configurations panel
       setSavedConfigsRefresh(prev => prev + 1)
@@ -385,7 +370,6 @@ const AppPage = (props) => {
 
   // Handler for restoring saved rack configuration
   const handleRestoreConfiguration = (config) => {
-    console.log('🔄 Restoring rack configuration:', config.name)
     
     // Update rack parameters with saved config (excluding metadata)
     const { id, name, savedAt, importedAt, originalId, ...configParams } = config
@@ -414,7 +398,6 @@ const AppPage = (props) => {
     // Update manifest with restored configuration (not a new save)
     updateTradeRackConfiguration(combinedParams, false)
     
-    console.log('✅ Configuration restored successfully')
   }
 
 
@@ -434,19 +417,15 @@ const AppPage = (props) => {
   // Listen for MEP items updates from 3D scene
   React.useEffect(() => {
     const handleMepItemsUpdated = (event) => {
-      console.log('📡 Received MEP items update event:', event.detail)
       if (event.detail && event.detail.updatedItems) {
-        console.log('🔄 Updating mepItems state with:', event.detail.updatedItems)
         setMepItems(event.detail.updatedItems)
       }
     }
 
     const handleStorageChange = (event) => {
       if (event.key === 'configurMepItems') {
-        console.log('📡 Received storage change for MEP items')
         try {
           const updatedItems = JSON.parse(event.newValue || '[]')
-          console.log('🔄 Updating mepItems state from storage with:', updatedItems)
           setMepItems(updatedItems)
         } catch (error) {
           console.error('Error parsing updated MEP items from storage:', error)
@@ -477,7 +456,6 @@ const AppPage = (props) => {
             if (measurementTool.selectedMeasurements && measurementTool.selectedMeasurements.size > 0) {
               const selectedCount = measurementTool.selectedMeasurements.size
               measurementTool.deleteSelectedMeasurements()
-              console.log(`🎯 ${selectedCount} selected measurement(s) deleted via global shortcut`)
             }
             break
           case 'a':
@@ -485,14 +463,12 @@ const AppPage = (props) => {
               // Select all measurements
               event.preventDefault()
               measurementTool.selectAll()
-              console.log('🎯 All measurements selected via global shortcut')
             }
             break
           case 'escape':
             // Clear selection when tool is inactive
             if (measurementTool.selectedMeasurements && measurementTool.selectedMeasurements.size > 0) {
               measurementTool.clearSelection()
-              console.log('🎯 Selection cleared via global shortcut')
             }
             break
         }
@@ -637,7 +613,6 @@ const AppPage = (props) => {
           
           // Update ductwork renderer with actual rack parameters
           if (window.ductworkRendererInstance) {
-            console.log('🏭 Updating DuctworkRenderer from scene initialization with params:', initialRackParams)
             window.ductworkRendererInstance.updateRackParams(initialRackParams)
           }
         }}

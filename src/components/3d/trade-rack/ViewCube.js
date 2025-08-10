@@ -136,7 +136,6 @@ export class ViewCube extends THREE.Mesh {
     const config = this.viewConfigs[faceIndex];
     if (!config) return;
 
-    console.log(`Switching to ${config.name} view`);
 
     // Get bounding box of generated content and center orbit on it
     const center = this.centerOrbitOnContent();

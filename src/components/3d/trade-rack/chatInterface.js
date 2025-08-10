@@ -129,7 +129,6 @@ export function initChatInterface(params, rebuildScene, updateGUI) {
     // Capture current params snapshot
     const currentParams = JSON.stringify(params);
 
-    console.log('Sending to OpenAI:', {params});
 
     let aiRaw;
     try {

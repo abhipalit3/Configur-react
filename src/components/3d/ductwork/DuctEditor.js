@@ -27,7 +27,6 @@ export const DuctEditor = ({
   useEffect(() => {
     if (selectedDuct?.userData?.ductData) {
       const ductData = selectedDuct.userData.ductData
-      console.log('🔵 DuctEditor updating dimensions from selectedDuct:', ductData)
       setDimensions({
         width: ductData.width || 12,
         height: ductData.height || 8,
@@ -85,13 +84,10 @@ export const DuctEditor = ({
   }
 
   const handleKeyDown = (event) => {
-    console.log('🔵 DuctEditor keydown event:', event.key)
     if (event.key === 'Enter') {
-      console.log('🔵 Enter key pressed - calling handleSave')
       handleSave()
     }
     if (event.key === 'Escape') {
-      console.log('🔵 Escape key pressed - calling handleCancel')
       handleCancel()
     }
   }
@@ -130,7 +126,6 @@ export const DuctEditor = ({
         ductworkRenderer.ductInteraction.createDuctMeasurements()
       }
       
-      console.log(`🎯 Moved duct to tier ${tierValue} at Y position: ${newYPosition.toFixed(3)}`)
     }
   }
 
@@ -141,10 +136,7 @@ export const DuctEditor = ({
   }
 
   const handleSave = () => {
-    console.log('🔵 DuctEditor handleSave called with dimensions:', dimensions)
-    console.log('🔵 onSave callback exists:', !!onSave)
     if (onSave) {
-      console.log('🔵 Calling onSave callback...')
       onSave(dimensions)
     } else {
       console.error('❌ onSave callback not provided to DuctEditor')

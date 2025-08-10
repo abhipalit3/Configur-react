@@ -16,7 +16,6 @@ export function useSceneShell() {
   const setVisibility = useCallback((visible) => {
     if (currentGroupRef.current) {
       currentGroupRef.current.visible = visible;
-      console.log(`🏗️ Building shell visibility: ${visible ? 'shown' : 'hidden'}`);
     }
   }, []);
 
@@ -24,7 +23,6 @@ export function useSceneShell() {
     const scene = sceneRef.current;
     if (!group || !scene) return;
     
-    console.log('🧹 Disposing building shell group');
     scene.remove(group);
     group.traverse((child) => {
       if (child.isMesh && child.geometry) {
@@ -39,7 +37,6 @@ export function useSceneShell() {
     const snapPoints = snapPointsRef.current;
     
     if (!scene || !materials || !snapPoints) {
-      console.log('🏗️ Scene not ready yet, skipping build');
       return null;
     }
 
@@ -55,7 +52,6 @@ export function useSceneShell() {
           materials.floorMaterial,
           snapPoints
         );
-        console.log('🏗️ Floor-only shell built for floor-mounted rack');
       } else {
         shellGroup = buildShell(
           params,
@@ -80,7 +76,6 @@ export function useSceneShell() {
   }, []);
 
   const update = useCallback((params, floorOnly = false) => {
-    console.log(`🏗️ Updating building shell... (${floorOnly ? 'floor-only' : 'full'})`);
     
     if (currentGroupRef.current) {
       disposeGroup(currentGroupRef.current);
@@ -91,7 +86,6 @@ export function useSceneShell() {
   }, [build, disposeGroup]);
 
   const switchMode = useCallback((params, floorOnly) => {
-    console.log(`🏗️ Switching building shell mode to: ${floorOnly ? 'floor-only' : 'full'}`);
     return update(params, floorOnly);
   }, [update]);
 

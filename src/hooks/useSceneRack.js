@@ -19,7 +19,6 @@ export function useSceneRack() {
     const snapPoints = snapPointsRef.current;
     
     if (!scene || !materials) {
-      console.log('🏗️ Scene not ready yet, skipping rack build');
       return null;
     }
 
@@ -44,7 +43,6 @@ export function useSceneRack() {
   }, []);
 
   const update = useCallback((params) => {
-    console.log('🏗️ Updating trade rack...');
     
     // Remove previous rack snap points from global collection
     const snapPoints = snapPointsRef.current;

@@ -209,7 +209,6 @@ export const deleteTradeRackConfiguration = (configurationId) => {
     })
     
     saveProjectManifest(manifest)
-    console.log(`🗑️ Configuration deleted from manifest: ${configToDelete.name || configToDelete.id}`)
   } else {
     console.warn(`⚠️ Configuration ${configurationId} not found in manifest`)
   }

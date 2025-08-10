@@ -40,7 +40,6 @@ export const exportConfigurationsToFile = (configurations, filename = 'trade-rac
     // Clean up URL
     URL.revokeObjectURL(url)
 
-    console.log(`✅ Configurations exported successfully: ${filename}`)
     return { success: true, message: `Exported ${configurations.length} configurations to ${filename}` }
   } catch (error) {
     console.error('❌ Error exporting configurations:', error)
@@ -103,7 +102,6 @@ export const importConfigurationsFromFile = (file) => {
             originalId: config.id // Keep reference to original ID
           }))
 
-          console.log(`✅ Successfully imported ${importedConfigurations.length} configurations`)
           
           resolve({
             success: true,
@@ -144,7 +142,6 @@ export const saveConfigurationsToLocalStorage = (configurations) => {
     }
     
     localStorage.setItem('tradeRackConfigurationsBackup', JSON.stringify(backupData))
-    console.log('📦 Configurations backed up to localStorage')
     return { success: true }
   } catch (error) {
     console.error('❌ Error backing up to localStorage:', error)
@@ -161,7 +158,6 @@ export const loadConfigurationsFromLocalStorage = () => {
     const backupData = localStorage.getItem('tradeRackConfigurationsBackup')
     if (backupData) {
       const parsed = JSON.parse(backupData)
-      console.log(`📦 Loaded ${parsed.configurations?.length || 0} configurations from localStorage backup`)
       return parsed.configurations || []
     }
     return []

@@ -196,7 +196,6 @@ export class MeasurementTool {
     // Show cursor feedback
     this.domElement.style.cursor = 'crosshair'
     
-    console.log('🎯 Measurement tool enabled - Click two points to measure distance')
   }
 
   disable() {
@@ -218,7 +217,6 @@ export class MeasurementTool {
     // Clear current points
     this.points = []
     
-    console.log('🎯 Measurement tool disabled')
   }
 
   onKeyDown(event) {
@@ -230,10 +228,8 @@ export class MeasurementTool {
         if (this.points.length > 0) {
           this.points = []
           this.previewLine.visible = false
-          console.log('🎯 Measurement cancelled')
         } else if (this.selectedMeasurements.size > 0) {
           this.clearSelection()
-          console.log('🎯 Selection cleared')
         } else {
           // No active measurement or selection, deactivate the tool
           this.disable()
@@ -243,14 +239,12 @@ export class MeasurementTool {
             const event = new CustomEvent('measurementToolDeactivated')
             document.dispatchEvent(event)
           }
-          console.log('🎯 Measurement tool deactivated')
         }
         break
       case 'c':
         if (event.ctrlKey || event.metaKey) {
           // Clear all measurements
           this.clearAll()
-          console.log('🎯 All measurements cleared')
         }
         break
       case 'delete':
@@ -258,11 +252,9 @@ export class MeasurementTool {
         // Delete selected measurements, or last measurement if none selected
         if (this.selectedMeasurements.size > 0) {
           this.deleteSelectedMeasurements()
-          console.log(`🎯 ${this.selectedMeasurements.size} selected measurement(s) deleted`)
         } else if (this.measurements.length > 0) {
           const lastMeasurement = this.measurements[this.measurements.length - 1]
           this.removeMeasurement(lastMeasurement.id)
-          console.log('🎯 Last measurement deleted')
         }
         break
       case 'a':
@@ -270,7 +262,6 @@ export class MeasurementTool {
           // Select all measurements
           event.preventDefault()
           this.selectAll()
-          console.log('🎯 All measurements selected')
         }
         break
     }
@@ -319,7 +310,6 @@ export class MeasurementTool {
           } else if (type === 'edge' && dist < minEdgeDist) {
             minEdgeDist = dist
             closestEdge = { point: worldPoint.clone(), type: 'edge', dist }
-            // console.log('🎯 Found edge snap at distance:', dist, 'point:', worldPoint.toArray())
           }
         }
       }
@@ -373,11 +363,9 @@ export class MeasurementTool {
             this.updateMeasurementHighlight(clickedMeasurement.id, true)
           }
           
-          console.log(`🎯 Measurement ${clickedMeasurement.id} ${this.selectedMeasurements.has(clickedMeasurement.id) ? 'selected' : 'deselected'}`)
           return
         }
         
-        console.log('🎯 First point must snap to a snap point - no snap point found')
         return
       }
     } else {
@@ -393,7 +381,6 @@ export class MeasurementTool {
     }
     
     if (!point) {
-      console.log('🎯 Could not determine click position')
       return
     }
 
@@ -404,7 +391,6 @@ export class MeasurementTool {
     }
 
     this.points.push(point)
-    console.log(`🎯 Point ${this.points.length} selected:`, point.toArray())
 
     this.previewLine.visible = false
 
@@ -432,7 +418,6 @@ export class MeasurementTool {
         
         // Throttled debug logging (only log occasionally)
         if (!this.lastLogTime || Date.now() - this.lastLogTime > 1000) {
-          console.log('🔍 Hover detected:', snapType, 'at distance', snapResult.dist)
           this.lastLogTime = Date.now()
         }
       }
@@ -668,7 +653,6 @@ export class MeasurementTool {
       // Update manifest with new measurement
       this.updateManifestMeasurements()
       
-      console.log(`✅ Measurement created: ${distance.toFixed(3)}m`)
     } catch (error) {
       console.error('Error creating measurement:', error)
       this.scene.remove(measurementGroup)
@@ -881,7 +865,6 @@ export class MeasurementTool {
           this.updateMeasurementHighlight(measurementId, true)
         }
         
-        console.log(`🎯 Measurement ${measurementId} ${this.selectedMeasurements.has(measurementId) ? 'selected' : 'deselected'} via label click`)
       }
     })
     
@@ -1303,7 +1286,6 @@ export class MeasurementTool {
           })
         })
         
-        console.log('✅ Successfully restored', this.measurements.length, 'measurements')
       }
     } catch (error) {
       console.error('❌ Error restoring measurements from manifest:', error)

@@ -7,7 +7,6 @@ import { SnapLineManager, DuctGeometry, DuctInteraction } from '../ductwork'
  */
 export class DuctworkRenderer {
   constructor(scene, rackParams = {}) {
-    console.log('🏭 DuctworkRenderer constructor called', { scene: !!scene, rackParams })
     this.scene = scene
     this.rackParams = rackParams
     
@@ -18,13 +17,9 @@ export class DuctworkRenderer {
     
     // Initialize modular components
     try {
-      console.log('🏭 Creating SnapLineManager...')
       this.snapLineManager = new SnapLineManager(scene, rackParams)
-      console.log('🏭 SnapLineManager created successfully')
       
-      console.log('🏭 Creating DuctGeometry...')
       this.ductGeometry = new DuctGeometry()
-      console.log('🏭 DuctGeometry created successfully')
       
       this.ductInteraction = null // Will be set up in setupInteractions
     } catch (error) {
@@ -35,9 +30,7 @@ export class DuctworkRenderer {
     // Create initial persistent snap lines
     setTimeout(() => {
       try {
-        console.log('🏭 Calling createPersistentSnapLines...')
         this.snapLineManager.createPersistentSnapLines()
-        console.log('🏭 createPersistentSnapLines completed')
       } catch (error) {
         console.error('🏭 Error creating persistent snap lines:', error)
       }
@@ -75,7 +68,6 @@ export class DuctworkRenderer {
       const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
       const ductItems = storedMepItems.filter(item => item && item.type === 'duct')
       
-      console.log('🏭 Refreshing ductwork:', ductItems.length, 'ducts')
       
       if (ductItems.length > 0) {
         this.updateDuctwork(ductItems)
@@ -99,7 +91,6 @@ export class DuctworkRenderer {
       this.createDuct(duct)
     })
     
-    console.log('🏭 Created', this.ductworkGroup.children.length, 'duct groups')
   }
 
   /**
@@ -127,12 +118,10 @@ export class DuctworkRenderer {
         ductData.position.y,
         ductData.position.z
       )
-      console.log('🎯 Restoring duct to saved position:', ductPosition)
     } else {
       // Calculate default position within tier
       const yPos = this.calculateDuctYPosition(ductData, tier, position)
       ductPosition = new THREE.Vector3(0, yPos, 0)
-      console.log('🎯 Using calculated default position:', ductPosition)
     }
     
     // Create duct group using modular geometry
@@ -158,8 +147,6 @@ export class DuctworkRenderer {
       .filter(line => line.type === 'beam_top')
       .sort((a, b) => b.y - a.y) // Top to bottom (highest Y first)
     
-    console.log('🎯 Calculating duct position for tier', tier, 'position', position)
-    console.log('🎯 Available beam top surfaces (top to bottom):', beamTopSurfaces.map(b => b.y.toFixed(3)))
     
     if (beamTopSurfaces.length === 0) {
       console.warn('⚠️ No beam top surfaces found, using fallback position')
@@ -182,8 +169,6 @@ export class DuctworkRenderer {
       // Position duct so its bottom sits on the beam top surface
       const ductCenterY = tierBeamTop.y + (totalHeight / 2)
       
-      console.log(`🎯 Tier ${tier}: placing duct bottom on top of bottom beam at Y=${tierBeamTop.y.toFixed(3)}`)
-      console.log('🎯 Duct center Y position:', ductCenterY.toFixed(3))
       
       return ductCenterY
     }

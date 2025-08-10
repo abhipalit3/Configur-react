@@ -5,7 +5,6 @@ import * as THREE from 'three'
  */
 export class SnapLineManager {
   constructor(scene, rackParams = {}) {
-    console.log('🔧 SnapLineManager constructor called', { scene: !!scene, rackParams })
     this.scene = scene
     this.rackParams = rackParams
     
@@ -14,13 +13,11 @@ export class SnapLineManager {
     this.persistentSnapLines.name = 'PersistentSnapLines'
     this.persistentSnapLines.visible = true
     this.scene.add(this.persistentSnapLines)
-    console.log('🔧 Added PersistentSnapLines group to scene')
     
     this.snapGuides = new THREE.Group()
     this.snapGuides.name = 'SnapGuides'
     this.snapGuides.visible = true
     this.scene.add(this.snapGuides)
-    console.log('🔧 Added SnapGuides group to scene')
     
     // Materials
     this.materials = {
@@ -84,7 +81,6 @@ export class SnapLineManager {
     }
     
     // Find the rack group in the scene - let's see what groups exist
-    console.log('🔍 Looking for rack groups in scene...')
     let rackGroup = null
     let allGroups = []
     
@@ -101,30 +97,22 @@ export class SnapLineManager {
         if (child.userData.isGenerated || 
             child.name.toLowerCase().includes('rack') ||
             child.name.toLowerCase().includes('trade')) {
-          console.log('🎯 Potential rack group found:', child.name, child.userData, 'children:', child.children.length)
           
           // Prefer the group with the most children (likely the actual rack with geometry)
           if (!rackGroup || child.children.length > rackGroup.children.length) {
             rackGroup = child
-            console.log('🎯 Selected as best rack candidate')
           }
         }
       }
     })
     
-    console.log('🔍 All groups in scene:', allGroups)
     
     if (!rackGroup) {
       console.warn('❌ No rack found in scene for snap lines')
-      console.log('Available groups:', allGroups.map(g => g.name))
       return snapLines
     }
     
-    console.log('🔍 Selected rack group:', rackGroup.name, 'Position:', rackGroup.position, 'Children:', rackGroup.children.length)
-    console.log('🔍 Rack group matrix:', rackGroup.matrix.elements.slice(0, 16).map(v => v.toFixed(3)))
-    console.log('🔍 Direct children of selected rack group:')
     rackGroup.children.forEach((child, i) => {
-      console.log(`  ${i}: ${child.type} "${child.name}" - ${child.children ? child.children.length : 0} children`)
     })
     
     // Ensure world matrices are up to date
@@ -136,14 +124,12 @@ export class SnapLineManager {
     let meshCount = 0
     
     // First, let's see what's actually in the rack group
-    console.log('🔍 Analyzing rack group contents...')
     let totalChildren = 0
     let meshChildren = 0
     let geometryTypes = new Set()
     
     rackGroup.traverse((child) => {
       totalChildren++
-      console.log('🔍 Child found:', {
         type: child.type,
         name: child.name,
         isMesh: child.isMesh,
@@ -161,7 +147,6 @@ export class SnapLineManager {
       }
     })
     
-    console.log('🔍 Rack contents summary:', {
       totalChildren,
       meshChildren,
       geometryTypes: Array.from(geometryTypes)
@@ -182,7 +167,6 @@ export class SnapLineManager {
         const isLongZ = size.z > size.x && size.z > size.y && size.z > 0.3 // Long in Z direction
         
         // Debug all geometry found
-        console.log('📦 Geometry found:', {
           name: child.name,
           size: {
             x: size.x.toFixed(3),
@@ -204,7 +188,6 @@ export class SnapLineManager {
         if (isLongX || isLongZ) {
           // Horizontal beam
           beamYPositions.set(center.y, size.y)
-          console.log('📏 Beam found:', {
             localPos: child.position,
             worldCenter: center.y.toFixed(3),
             depth: size.y.toFixed(3),
@@ -216,7 +199,6 @@ export class SnapLineManager {
           postZExtents.min = Math.min(postZExtents.min, bbox.min.z)
           postZExtents.max = Math.max(postZExtents.max, bbox.max.z)  
           postZExtents.width = Math.max(postZExtents.width, size.z)
-          console.log('📏 Post found:', {
             localPos: child.position,
             worldZMin: bbox.min.z.toFixed(3),
             worldZMax: bbox.max.z.toFixed(3),
@@ -225,7 +207,6 @@ export class SnapLineManager {
           })
         } else {
           // Unclassified geometry - might still be useful
-          console.log('❓ Unclassified geometry:', {
             name: child.name,
             size: size,
             aspectRatios: {
@@ -241,7 +222,6 @@ export class SnapLineManager {
       }
     })
     
-    console.log('🔍 Rack analysis complete:', {
       totalMeshes: meshCount,
       rackPosition: rackGroup.position,
       beamCount: beamYPositions.size,
@@ -251,7 +231,6 @@ export class SnapLineManager {
 
     // No offset needed - rack geometry is already positioned correctly in the scene
     let yOffset = 0
-    console.log('✅ Using rack geometry positions as-is (no offset applied)')
 
     // Create horizontal snap lines from actual beam positions
     const sortedBeamY = Array.from(beamYPositions.keys()).sort((a, b) => b - a)
@@ -280,7 +259,6 @@ export class SnapLineManager {
     if (postZExtents.min < Infinity && postZExtents.max > -Infinity) {
       const postHalfWidth = (postZExtents.width * 2) / 2  // Double the post width for snap lines
       
-      console.log('📏 Post snap line calculation:', {
         postZMin: postZExtents.min.toFixed(3),
         postZMax: postZExtents.max.toFixed(3), 
         postWidth: postZExtents.width.toFixed(3),
@@ -303,7 +281,6 @@ export class SnapLineManager {
         description: 'Left post inner face'
       })
       
-      console.log('✅ Created vertical snap lines at Z:', 
         (postZExtents.min + postHalfWidth).toFixed(3), 
         'and', 
         (postZExtents.max - postHalfWidth).toFixed(3))
@@ -336,10 +313,8 @@ export class SnapLineManager {
    * Create persistent snap lines that are always visible
    */
   createPersistentSnapLines() {
-    console.log('🔧 createPersistentSnapLines called')
     this.clearPersistentSnapLines()
     
-    console.log('🔧 Creating persistent snap lines')
     
     const snapLines = this.getSnapLinesFromRackGeometry()
     const rackLength = this.ft2m(this.getRackLength()) + this.in2m(12)
@@ -354,7 +329,6 @@ export class SnapLineManager {
       this.createPersistentVerticalLine(line.z, rackLength, snapLines.horizontal)
     }
     
-    console.log('✅ Created', snapLines.horizontal.length, 'horizontal and', snapLines.vertical.length, 'vertical snap lines')
   }
 
   createPersistentHorizontalLine(y, length) {
@@ -375,7 +349,6 @@ export class SnapLineManager {
     line.visible = true
     
     this.persistentSnapLines.add(line)
-    console.log('🔧 Created horizontal snap line at Y:', y.toFixed(3), 'with', points.length, 'points')
   }
 
   createPersistentVerticalLine(z, length, horizontalLines) {
@@ -396,7 +369,6 @@ export class SnapLineManager {
     line.visible = true
     
     this.persistentSnapLines.add(line)
-    console.log('🔧 Created vertical snap line at Z:', z.toFixed(3), 'with', points.length, 'points')
   }
 
   clearPersistentSnapLines() {

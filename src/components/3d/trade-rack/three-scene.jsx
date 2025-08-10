@@ -139,8 +139,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
 
     // Camera Logger
     const logCamera = () => {
-      console.log(`camera.position.set(${camera.position.x.toFixed(3)}, ${camera.position.y.toFixed(3)}, ${camera.position.z.toFixed(3)});`)
-      console.log(`controls.target.set(${controls.target.x.toFixed(3)}, ${controls.target.y.toFixed(3)}, ${controls.target.z.toFixed(3)}); controls.update();`)
     }
     const onLog = (e) => { if (e.code === 'KeyL') logCamera() }
     window.addEventListener('keydown', onLog)
@@ -287,7 +285,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
     const pollSelection = setInterval(handleDuctSelection, 100)
     
     const handleDuctEditorSave = (newDimensions) => {
-      console.log('💾 Saving duct dimensions:', newDimensions)
       
       if (ductworkRenderer.ductInteraction) {
         // Update the 3D duct
@@ -308,7 +305,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
             })
             
             localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-            console.log('💾 Updated MEP items in localStorage')
             
             // Trigger refresh of MEP panel if callback exists
             if (window.refreshMepPanel) {
@@ -392,7 +388,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
 
       if (intersects.length > 0) {
         const faceIndex = intersects[0].face.materialIndex
-        console.log(`Clicked face index: ${faceIndex}, Face: ${viewCube.viewConfigs[faceIndex]?.name}`)
         viewCube.animateToView(faceIndex)
       }
     }
@@ -481,13 +476,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
   // Update ductwork when MEP items change
   useEffect(() => {
     if (skipDuctRecreation) {
-      console.log('🚫 Skipping duct recreation to prevent overwriting direct updates')
       setSkipDuctRecreation(false)
       return
     }
     
     if (ductworkRendererRef.current && mepItems) {
-      console.log('🔄 Updating ductwork from mepItems change')
       ductworkRendererRef.current.updateDuctwork(mepItems)
     }
   }, [mepItems, skipDuctRecreation])
@@ -606,10 +599,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
           visible={showDuctEditor}
           rackParams={rackParams}
           onSave={(dimensions) => {
-            console.log('🟢 ThreeScene onSave called with dimensions:', dimensions)
-            console.log('🟢 selectedDuct:', selectedDuct)
-            console.log('🟢 ductworkRendererRef.current exists:', !!ductworkRendererRef.current)
-            console.log('🟢 ductInteraction exists:', !!ductworkRendererRef.current?.ductInteraction)
             
             // Set flag to prevent duct recreation
             setSkipDuctRecreation(true)
@@ -621,7 +610,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
                   ...selectedDuct.userData.ductData,
                   ...dimensions
                 }
-                console.log('🟢 Updated selectedDuct userData:', selectedDuct.userData.ductData)
               }
               
               // Update the 3D duct
@@ -633,18 +621,13 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
                 const selectedDuctData = selectedDuct?.userData?.ductData
                 
                 if (selectedDuctData) {
-                  console.log('🟢 Updating localStorage item with ID:', selectedDuctData.id)
-                  console.log('🟢 Original selectedDuctData:', selectedDuctData)
-                  console.log('🟢 New dimensions:', dimensions)
                   
                   // Find and update the matching item
                   // Handle ID matching - selectedDuctData.id might have _0, _1 suffix for multiple ducts
                   const baseId = selectedDuctData.id.toString().split('_')[0]
-                  console.log('🟢 Looking for baseId:', baseId, 'from selectedDuctData.id:', selectedDuctData.id)
                   
                   const updatedItems = storedMepItems.map(item => {
                     const itemBaseId = item.id.toString().split('_')[0]
-                    console.log('🟢 Comparing item.id:', item.id, 'itemBaseId:', itemBaseId, 'matches:', itemBaseId === baseId)
                     
                     if (itemBaseId === baseId) {
                       // Include current duct position in the update
@@ -659,18 +642,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
                         ...dimensions,
                         position: currentPosition
                       }
-                      console.log('🟢 FOUND MATCH! Updated item with position:', updatedItem)
                       return updatedItem
                     }
                     return item
                   })
                   
                   localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-                  console.log('💾 Updated MEP items in localStorage')
                   
                   // IMPORTANT: Also update the manifest to ensure consistency
                   if (window.updateMEPItemsManifest) {
-                    console.log('🟢 Updating manifest with updated items')
                     window.updateMEPItemsManifest(updatedItems)
                   } else {
                     console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
