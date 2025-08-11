@@ -24,9 +24,18 @@ export const logManifestToConsole = () => {
   console.groupEnd()
   
   console.group('🔧 Current Trade Rack')
-  if (manifest.tradeRacks.active) {
+  if (manifest.tradeRacks.activeConfigurationId) {
+    console.log('Active Configuration ID:', manifest.tradeRacks.activeConfigurationId)
+    const activeConfig = manifest.tradeRacks.configurations.find(
+      c => c.id === manifest.tradeRacks.activeConfigurationId
+    )
+    if (activeConfig) {
+      console.log('Active Configuration:', activeConfig)
+    }
   } else {
+    console.log('No active configuration selected')
   }
+  console.log('Total Configurations:', manifest.tradeRacks.totalCount)
   console.groupEnd()
   
   console.group('🚰 MEP Items')
@@ -40,6 +49,7 @@ export const logManifestToConsole = () => {
   
   console.group('📝 Recent Changes (Last 10)')
   manifest.changeHistory.slice(0, 10).forEach((change, index) => {
+    console.log({
       timestamp: new Date(change.timestamp).toLocaleString(),
       details: change.details
     })

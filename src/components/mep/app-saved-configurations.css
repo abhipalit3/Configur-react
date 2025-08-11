@@ -99,6 +99,17 @@
   box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.1);
 }
 
+.app-saved-configurations-card.active {
+  background-color: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.4);
+  box-shadow: 0px 2px 4px 0px rgba(76, 175, 80, 0.2);
+}
+
+.app-saved-configurations-card.active:hover {
+  background-color: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
 .app-saved-configurations-card-header {
   display: flex;
   align-items: center;

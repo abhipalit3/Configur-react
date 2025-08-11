@@ -34,6 +34,7 @@ import {
   updateUIState,
   updateMeasurements,
   syncManifestWithLocalStorage,
+  setActiveConfiguration,
   syncMEPItemsWithLocalStorage
 } from '../utils/projectManifest'
 // Import manifest debugging tools (available in browser console)
@@ -69,12 +70,46 @@ const AppPage = (props) => {
   const [isMeasurementActive, setIsMeasurementActive] = useState(
     initialUIState.isMeasurementActive || false
   )
+  // State to track AppAddMEP visibility - restore from manifest, default to false (closed)
+  const [isAddMEPVisible, setIsAddMEPVisible] = useState(
+    initialUIState.isAddMEPVisible ?? false
+  )
   
   // State for building shell parameters
   const [buildingParams, setBuildingParams] = useState(buildingShellDefaults)
   
   // State for trade rack parameters
-  const [rackParams, setRackParams] = useState(tradeRackDefaults)
+  const [rackParams, setRackParams] = useState(() => {
+    // First, try to load from active configuration
+    try {
+      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+      const activeConfigId = manifest.tradeRacks?.activeConfigurationId
+      
+      if (activeConfigId) {
+        const savedConfigs = JSON.parse(localStorage.getItem('tradeRackConfigurations') || '[]')
+        const activeConfig = savedConfigs.find(config => config.id === activeConfigId)
+        
+        if (activeConfig) {
+          const { id, name, savedAt, importedAt, originalId, ...configParams } = activeConfig
+          // Store in localStorage for tier calculations
+          localStorage.setItem('rackParameters', JSON.stringify(configParams))
+          return configParams
+        }
+      }
+      
+      // Fallback to saved rack parameters
+      const saved = localStorage.getItem('rackParameters')
+      if (saved) {
+        return JSON.parse(saved)
+      }
+    } catch (error) {
+      console.error('Error loading rack parameters:', error)
+    }
+    
+    // Fall back to defaults and save them
+    localStorage.setItem('rackParameters', JSON.stringify(tradeRackDefaults))
+    return tradeRackDefaults
+  })
   
   // Building shell controller
   const buildingShell = useSceneShell()
@@ -123,6 +158,13 @@ const AppPage = (props) => {
       }
     }
     
+    // Make tier update function available globally
+    window.updateDuctTierInfo = () => {
+      if (window.ductworkRendererInstance?.ductInteraction) {
+        window.ductworkRendererInstance.ductInteraction.updateAllDuctTierInfo()
+      }
+    }
+    
     // Cleanup function to remove global reference
     return () => {
       if (window.updateManifestMeasurements) {
@@ -134,6 +176,9 @@ const AppPage = (props) => {
       if (window.refreshMepPanel) {
         delete window.refreshMepPanel
       }
+      if (window.updateDuctTierInfo) {
+        delete window.updateDuctTierInfo
+      }
     }
   }, [])
 
@@ -142,9 +187,50 @@ const AppPage = (props) => {
     updateUIState({
       activePanel: activePanel,
       isRackPropertiesVisible: isRackPropertiesVisible,
-      isMeasurementActive: isMeasurementActive
+      isMeasurementActive: isMeasurementActive,
+      isAddMEPVisible: isAddMEPVisible
     })
-  }, [activePanel, isRackPropertiesVisible, isMeasurementActive])
+  }, [activePanel, isRackPropertiesVisible, isMeasurementActive, isAddMEPVisible])
+
+  // Apply loaded rack configuration to 3D scene on mount
+  React.useEffect(() => {
+    if (rackParams && (tradeRack.update || window.ductworkRendererInstance)) {
+      // Small delay to ensure 3D components are ready
+      setTimeout(() => {
+        // Switch building shell mode based on mount type
+        if (buildingShell.switchMode) {
+          const isFloorMounted = rackParams.mountType === 'floor'
+          buildingShell.switchMode(buildingParams, isFloorMounted)
+        }
+        
+        // Combine rack params with building shell context
+        const combinedParams = {
+          ...rackParams,
+          buildingContext: {
+            corridorHeight: buildingParams.corridorHeight,
+            beamDepth: buildingParams.beamDepth
+          }
+        }
+        
+        // Update 3D trade rack
+        if (tradeRack.update) {
+          tradeRack.update(combinedParams)
+        }
+
+        // Update ductwork renderer with loaded rack parameters
+        if (window.ductworkRendererInstance) {
+          window.ductworkRendererInstance.updateRackParams(combinedParams)
+          
+          // Trigger recalculation of tier info for all ducts with a small delay
+          setTimeout(() => {
+            if (window.ductworkRendererInstance) {
+              window.ductworkRendererInstance.recalculateTierInfo()
+            }
+          }, 200)
+        }
+      }, 100)
+    }
+  }, []) // Only run once on mount
   
   // Save to localStorage and update manifest whenever mepItems changes
   React.useEffect(() => {
@@ -206,6 +292,25 @@ const AppPage = (props) => {
     if (itemToRemove) {
       removeMEPItem(itemId, itemToRemove.type)
     }
+  }
+
+  // Handler for deleting all MEP items
+  const handleDeleteAllMepItems = () => {
+    // Clear all MEP items from state
+    setMepItems([])
+    
+    // Clear from localStorage
+    localStorage.setItem('configurMepItems', JSON.stringify([]))
+    
+    // Update manifest with empty array
+    updateMEPItems([], 'all')
+    
+    // Trigger refresh of 3D scene to remove all MEP elements
+    if (window.ductworkRendererInstance) {
+      window.ductworkRendererInstance.updateDuctwork([])
+    }
+    
+    console.log('🗑️ All MEP elements deleted')
   }
 
   // Handler for clicking MEP items in the panel (for duct selection)
@@ -292,6 +397,12 @@ const AppPage = (props) => {
       updateMeasurements([])
     }
   }
+  
+  // Handler for toggling AppAddMEP visibility
+  const handleToggleAddMEP = () => {
+    setIsAddMEPVisible(!isAddMEPVisible)
+    // UI state will be automatically saved by the useEffect
+  }
 
   // Handler for building shell save
   const handleBuildingSave = (params) => {
@@ -321,6 +432,9 @@ const AppPage = (props) => {
   const handleRackSave = (params) => {
     setRackParams(params)
     
+    // Store current rack parameters in localStorage for tier calculations
+    localStorage.setItem('rackParameters', JSON.stringify(params))
+    
     // Switch building shell mode based on mount type
     if (buildingShell.switchMode) {
       const isFloorMounted = params.mountType === 'floor'
@@ -343,6 +457,13 @@ const AppPage = (props) => {
     // Update ductwork renderer with new rack parameters
     if (window.ductworkRendererInstance) {
       window.ductworkRendererInstance.updateRackParams(combinedParams)
+      
+      // Trigger recalculation of tier info for all ducts with a small delay
+      setTimeout(() => {
+        if (window.ductworkRendererInstance) {
+          window.ductworkRendererInstance.recalculateTierInfo()
+        }
+      }, 200)
     }
 
     // Save configuration to localStorage
@@ -375,6 +496,14 @@ const AppPage = (props) => {
     const { id, name, savedAt, importedAt, originalId, ...configParams } = config
     setRackParams(configParams)
     
+    // Store current rack parameters in localStorage for tier calculations
+    localStorage.setItem('rackParameters', JSON.stringify(configParams))
+    
+    // Set this as the active configuration in the manifest
+    if (id) {
+      setActiveConfiguration(id)
+    }
+    
     // Apply the configuration to the 3D scene WITHOUT saving a new copy
     // Switch building shell mode based on mount type
     if (buildingShell.switchMode) {
@@ -393,6 +522,18 @@ const AppPage = (props) => {
     
     if (tradeRack.update) {
       tradeRack.update(combinedParams)
+    }
+    
+    // Update ductwork renderer with restored rack parameters
+    if (window.ductworkRendererInstance) {
+      window.ductworkRendererInstance.updateRackParams(combinedParams)
+      
+      // Trigger recalculation of tier info for all ducts with a small delay
+      setTimeout(() => {
+        if (window.ductworkRendererInstance) {
+          window.ductworkRendererInstance.recalculateTierInfo()
+        }
+      }, 200)
     }
     
     // Update manifest with restored configuration (not a new save)
@@ -481,6 +622,99 @@ const AppPage = (props) => {
       document.removeEventListener('keydown', handleGlobalKeyDown)
     }
   }, [isMeasurementActive])
+
+  // Handle click-outside to close AppAddMEP panel
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!isAddMEPVisible) return
+
+      // Check if the click is on the plus icon that toggles the panel
+      const plusIcon = event.target.closest('.app-tier-mep-icon10')
+      if (plusIcon) return // Don't close if clicking the toggle button
+
+      // Check if the click is inside the AppAddMEP panel
+      const addMEPPanel = event.target.closest('.app-add-mep-container')
+      if (addMEPPanel) return // Don't close if clicking inside the panel
+
+      // Close the panel if clicking anywhere else
+      setIsAddMEPVisible(false)
+    }
+
+    if (isAddMEPVisible) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [isAddMEPVisible])
+
+  // Handle click-outside to close left-side panels (MEP panels, building, etc.)
+  React.useEffect(() => {
+    const handleClickOutsidePanels = (event) => {
+      if (!activePanel) return // No panel is active
+
+      // List of all left-side panel types and their corresponding container class names
+      const leftPanels = [
+        { type: 'ductwork', className: 'app-ductwork-container' },
+        { type: 'piping', className: 'app-piping-container1' },
+        { type: 'conduits', className: 'app-conduits-container1' },
+        { type: 'cableTrays', className: 'app-cable-trays-container1' },
+        { type: 'building', className: 'app-manual-building-container' },
+        { type: 'aiChat', className: 'app-ai-chat-panel-container1' }
+      ]
+
+      // Check if current active panel is one of the left panels
+      const currentPanel = leftPanels.find(panel => panel.type === activePanel)
+      if (!currentPanel) return // Not a left panel, don't handle
+
+      // Check if the click is inside the current panel
+      const panelElement = event.target.closest(`.${currentPanel.className}`)
+      if (panelElement) return // Don't close if clicking inside the panel
+
+      // Check if the click is on the AppAddMEP buttons that might open these panels
+      const addMEPPanel = event.target.closest('.app-add-mep-container')
+      if (addMEPPanel) return // Don't close if clicking MEP buttons (they handle closing)
+
+      // Check if the click is on the AI Chat button that toggles this panel
+      const aiChatButton = event.target.closest('#AI_ChatButton')
+      if (aiChatButton && currentPanel.type === 'aiChat') return // Don't close if clicking the AI Chat toggle button
+
+      // Close the panel if clicking anywhere else
+      setActivePanel(null)
+    }
+
+    if (activePanel) {
+      document.addEventListener('mousedown', handleClickOutsidePanels)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutsidePanels)
+      }
+    }
+  }, [activePanel])
+
+  // Handle click-outside to close rack properties panel
+  React.useEffect(() => {
+    const handleClickOutsideRackProperties = (event) => {
+      if (!isRackPropertiesVisible) return // Rack properties is not visible
+
+      // Check if the click is inside the rack properties panel
+      const rackPropertiesPanel = event.target.closest('.app-rack-properties-container')
+      if (rackPropertiesPanel) return // Don't close if clicking inside the panel
+
+      // Check if the click is on the trade rack button that toggles this panel
+      const tradeRackButton = event.target.closest('#TradeRackPropButton')
+      if (tradeRackButton) return // Don't close if clicking the toggle button
+
+      // Close the panel if clicking anywhere else
+      setIsRackPropertiesVisible(false)
+    }
+
+    if (isRackPropertiesVisible) {
+      document.addEventListener('mousedown', handleClickOutsideRackProperties)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutsideRackProperties)
+      }
+    }
+  }, [isRackPropertiesVisible])
   
   return (
     <div className="app-page-container">
@@ -526,8 +760,30 @@ const AppPage = (props) => {
           onRemoveItem={handleRemoveMepItem}
           onItemClick={handleMepItemClick}
           onColorChange={handleDuctColorChange}
+          onToggleAddMEP={handleToggleAddMEP}
+          onDeleteAll={handleDeleteAllMepItems}
         />
-        <AppAddMEP rootClassName="app-add-me-proot-class-name" />
+        {isAddMEPVisible && (
+          <AppAddMEP 
+            rootClassName="app-add-me-proot-class-name"
+            onDuctworkClick={() => {
+              handlePanelClick('ductwork')
+              setIsAddMEPVisible(false)
+            }}
+            onPipingClick={() => {
+              handlePanelClick('piping')
+              setIsAddMEPVisible(false)
+            }}
+            onConduitsClick={() => {
+              handlePanelClick('conduits')
+              setIsAddMEPVisible(false)
+            }}
+            onCableTraysClick={() => {
+              handlePanelClick('cableTrays')
+              setIsAddMEPVisible(false)
+            }}
+          />
+        )}
       </div>
       
       {/* Conditionally render panels based on activePanel state */}

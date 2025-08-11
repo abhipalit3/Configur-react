@@ -61,6 +61,16 @@ export class DuctworkRenderer {
   }
 
   /**
+   * Recalculate tier information for all ducts based on their current 3D positions
+   */
+  recalculateTierInfo() {
+    if (!this.ductInteraction) return
+    
+    // Use the new comprehensive tier update method
+    this.ductInteraction.updateAllDuctTierInfo()
+  }
+
+  /**
    * Refresh all ductwork
    */
   refreshDuctwork() {
@@ -109,6 +119,7 @@ export class DuctworkRenderer {
     const ductLength = this.snapLineManager.ft2m(rackLengthFt) + this.snapLineManager.in2m(12)
 
     let ductPosition
+    let calculatedTierInfo = null
     
     // Check if this duct has a saved position
     if (ductData.position && typeof ductData.position === 'object' && ductData.position.x !== undefined) {
@@ -118,10 +129,40 @@ export class DuctworkRenderer {
         ductData.position.y,
         ductData.position.z
       )
+      
+      // Calculate tier info based on Y position if not already present
+      if (!ductData.tierName && this.ductInteraction) {
+        calculatedTierInfo = this.ductInteraction.calculateDuctTier(ductData.position.y)
+      }
     } else {
       // Calculate default position within tier
       const yPos = this.calculateDuctYPosition(ductData, tier, position)
       ductPosition = new THREE.Vector3(0, yPos, 0)
+      
+      // Calculate tier info for new position
+      if (this.ductInteraction) {
+        calculatedTierInfo = this.ductInteraction.calculateDuctTier(yPos)
+      }
+    }
+    
+    // Update duct data with tier info if calculated
+    if (calculatedTierInfo && !ductData.tierName) {
+      ductData.tier = calculatedTierInfo.tier
+      ductData.tierName = calculatedTierInfo.tierName
+      
+      // Update in localStorage too
+      try {
+        const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+        const updatedItems = storedMepItems.map(item => {
+          if (item.id === ductData.id) {
+            return { ...item, tier: calculatedTierInfo.tier, tierName: calculatedTierInfo.tierName }
+          }
+          return item
+        })
+        localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      } catch (error) {
+        console.error('Error updating tier info:', error)
+      }
     }
     
     // Create duct group using modular geometry

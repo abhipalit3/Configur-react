@@ -40,7 +40,7 @@
 
 .app-tier-mep-container2 {
   width: 100%;
-  height: var(--dl-layout-size-xlarge);
+  height: 280px; /* Reduced height to be more reasonable */
   display: flex;
   overflow: auto;
   box-shadow: 1px 1px 1px 0px #d4d4d4;
@@ -49,6 +49,7 @@
   scroll-padding-top: var(--dl-layout-space-halfunit);
   scroll-padding-right: var(--dl-layout-space-halfunit);
   scroll-padding-bottom: var(--dl-layout-space-halfunit);
+  padding: 0; /* Remove any padding that might interfere with full-width lines */
 }
  
 .app-tier-mep-added-mep1 {
@@ -58,11 +59,12 @@
   display: flex;
   box-shadow: -1px 1px 1px 0px #d4d4d4;
   padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
+  padding-left: 0px; /* Override to remove default padding */
+  padding-right: 0px; /* Override to remove default padding */
   flex-direction: row;
   padding-bottom: 0px;
   justify-content: flex-start;
+  box-sizing: border-box;
 }
  
 .app-tier-mep-text10 {
@@ -420,4 +422,97 @@
 .app-tier-mep-title {
   align-items: center;
   padding: 8px;
+}
+
+/* Ensure all tier section elements extend full width */
+.tier-section {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.tier-section-header {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.tier-section-content {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Plus button styling to match AppAddMEP buttons */
+.app-tier-mep-plus-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  padding: 0px;
+  border: none;
+  position: relative;
+  transition: 0.3s;
+  align-items: center;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: center;
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.app-tier-mep-plus-button:hover {
+  background-color: #5c5c5c;
+}
+
+.app-tier-mep-plus-button:active {
+  background-color: #5c5c5c;
+}
+
+.app-tier-mep-plus-icon {
+  width: 100%;
+  height: 100%;
+  padding: var(--dl-layout-space-halfunit);
+  transition: 0.3s;
+}
+
+.app-tier-mep-plus-button:hover .app-tier-mep-plus-icon {
+  color: white;
+}
+
+.app-tier-mep-plus-button:active .app-tier-mep-plus-icon {
+  color: white;
+}
+
+/* Delete all button styling - matches plus button but with red hover */
+.app-tier-mep-delete-all-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  padding: 0px;
+  border: none;
+  position: relative;
+  transition: 0.3s;
+  align-items: center;
+  border-radius: var(--dl-layout-radius-radius8);
+  flex-direction: row;
+  justify-content: center;
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.app-tier-mep-delete-all-button:hover {
+  background-color: #ff4444;
+}
+
+.app-tier-mep-delete-all-button:active {
+  background-color: #ff4444;
+}
+
+.app-tier-mep-delete-all-icon {
+  transition: 0.3s;
+}
+
+.app-tier-mep-delete-all-button:hover .app-tier-mep-delete-all-icon {
+  color: white;
+}
+
+.app-tier-mep-delete-all-button:active .app-tier-mep-delete-all-icon {
+  color: white;
 }

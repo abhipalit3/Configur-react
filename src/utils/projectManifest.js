@@ -34,6 +34,7 @@ export const createInitialManifest = () => ({
   // Trade rack configurations
   tradeRacks: {
     active: null, // Currently active configuration
+    activeConfigurationId: null, // ID of the currently selected/active configuration
     configurations: [], // All saved configurations
     lastModified: null,
     totalCount: 0
@@ -213,6 +214,23 @@ export const deleteTradeRackConfiguration = (configurationId) => {
     console.warn(`⚠️ Configuration ${configurationId} not found in manifest`)
   }
   
+  return manifest
+}
+
+/**
+ * Set the active configuration ID
+ */
+export const setActiveConfiguration = (configurationId) => {
+  const manifest = getProjectManifest()
+  
+  manifest.tradeRacks.activeConfigurationId = configurationId
+  manifest.tradeRacks.lastModified = new Date().toISOString()
+  
+  addChangeToHistory(manifest, 'tradeRacks', 'configuration_activated', {
+    configurationId: configurationId
+  })
+  
+  saveProjectManifest(manifest)
   return manifest
 }
 

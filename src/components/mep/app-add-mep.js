@@ -5,12 +5,15 @@ import PropTypes from 'prop-types'
 import './app-add-mep.css'
 
 const AppAddMEP = (props) => {
+  const { onDuctworkClick, onPipingClick, onConduitsClick, onCableTraysClick } = props
+  
   return (
     <div className={`app-add-mep-container ${props.rootClassName} `}>
       <button
         id="AddDuct"
         type="button"
         className="app-add-mep-add-duct-button button-icon2"
+        onClick={() => onDuctworkClick && onDuctworkClick()}
       >
         <svg
           id="AddDuctIcon"
@@ -29,6 +32,7 @@ const AppAddMEP = (props) => {
         id="AddPipingButton"
         type="button"
         className="app-add-mep-add-piping button-icon2"
+        onClick={() => onPipingClick && onPipingClick()}
       >
         <svg
           id="AddPipingIcon"
@@ -47,6 +51,7 @@ const AppAddMEP = (props) => {
         id="AddConduitButton"
         type="button"
         className="app-add-mep-add-conduit button-icon2"
+        onClick={() => onConduitsClick && onConduitsClick()}
       >
         <svg
           id="AddConduitIcon"
@@ -65,6 +70,7 @@ const AppAddMEP = (props) => {
         id="AddCableTrayButton"
         type="button"
         className="app-add-mep-add-cable-tray thq-button-icon"
+        onClick={() => onCableTraysClick && onCableTraysClick()}
       >
         <svg
           id="AddCableTrayIcon"
@@ -85,10 +91,18 @@ const AppAddMEP = (props) => {
 
 AppAddMEP.defaultProps = {
   rootClassName: '',
+  onDuctworkClick: () => {},
+  onPipingClick: () => {},
+  onConduitsClick: () => {},
+  onCableTraysClick: () => {},
 }
 
 AppAddMEP.propTypes = {
   rootClassName: PropTypes.string,
+  onDuctworkClick: PropTypes.func,
+  onPipingClick: PropTypes.func,
+  onConduitsClick: PropTypes.func,
+  onCableTraysClick: PropTypes.func,
 }
 
 export default AppAddMEP

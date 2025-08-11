@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { deleteTradeRackConfiguration, syncManifestWithLocalStorage } from '../../utils/projectManifest'
+import { deleteTradeRackConfiguration, syncManifestWithLocalStorage, getProjectManifest } from '../../utils/projectManifest'
 import './app-saved-configurations.css'
 
 const AppSavedConfigurations = (props) => {
   const [savedConfigs, setSavedConfigs] = useState([])
+  const [activeConfigId, setActiveConfigId] = useState(null)
 
   // Load saved configurations from localStorage on mount and when refreshTrigger changes
   useEffect(() => {
@@ -15,6 +16,10 @@ const AppSavedConfigurations = (props) => {
       } else {
         setSavedConfigs([])
       }
+      
+      // Get active configuration ID from manifest
+      const manifest = getProjectManifest()
+      setActiveConfigId(manifest.tradeRacks.activeConfigurationId)
     } catch (error) {
       console.error('Error loading saved configurations:', error)
       setSavedConfigs([])
@@ -24,6 +29,7 @@ const AppSavedConfigurations = (props) => {
   const handleConfigClick = (config) => {
     if (props.onRestoreConfiguration) {
       props.onRestoreConfiguration(config)
+      setActiveConfigId(config.id) // Update local state immediately for better UX
     }
   }
 
@@ -51,6 +57,23 @@ const AppSavedConfigurations = (props) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString()
+  }
+
+  // Generate a color for each configuration based on its index
+  const getConfigColor = (index) => {
+    const colors = [
+      '#4CAF50', // Green
+      '#2196F3', // Blue
+      '#FF9800', // Orange
+      '#9C27B0', // Purple
+      '#F44336', // Red
+      '#00BCD4', // Cyan
+      '#FFEB3B', // Yellow
+      '#795548', // Brown
+      '#607D8B', // Blue Grey
+      '#E91E63'  // Pink
+    ]
+    return colors[index % colors.length]
   }
 
   return (
@@ -81,10 +104,10 @@ const AppSavedConfigurations = (props) => {
           </div>
         ) : (
           <div className="app-saved-configurations-list">
-            {savedConfigs.map((config) => (
+            {savedConfigs.map((config, index) => (
               <div
                 key={config.id}
-                className="app-saved-configurations-card"
+                className={`app-saved-configurations-card ${activeConfigId === config.id ? 'active' : ''}`}
                 onClick={() => handleConfigClick(config)}
               >
                 <div className="app-saved-configurations-card-header">
@@ -92,17 +115,32 @@ const AppSavedConfigurations = (props) => {
                     {config.name || `Rack Configuration ${config.id}`}
                   </h3>
                   <div className="app-saved-configurations-card-status">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      className="app-saved-configurations-status-icon"
+                    <div 
+                      className="app-saved-configurations-status-circle"
+                      style={{ 
+                        backgroundColor: getConfigColor(index),
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
                     >
-                      <path
-                        d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                        fill="#4CAF50"
-                      />
-                    </svg>
+                      {activeConfigId === config.id && (
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          className="app-saved-configurations-tick-icon"
+                        >
+                          <path
+                            d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                            fill="white"
+                          />
+                        </svg>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -136,8 +174,8 @@ const AppSavedConfigurations = (props) => {
                     title="Delete configuration"
                   >
                     <svg
-                      width="14"
-                      height="14"
+                      width="18"
+                      height="18"
                       viewBox="0 0 24 24"
                       fill="currentColor"
                     >

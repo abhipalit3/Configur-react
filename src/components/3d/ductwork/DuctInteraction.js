@@ -50,7 +50,7 @@ export class DuctInteraction {
 
     this.transformControls.setMode('translate')
     this.transformControls.setSpace('world')
-    this.transformControls.setSize(2.0)
+    this.transformControls.setSize(0.8)
     this.transformControls.showX = false
     this.transformControls.showY = true
     this.transformControls.showZ = true
@@ -379,6 +379,224 @@ export class DuctInteraction {
   }
 
   /**
+   * Calculate which tier a duct is in based on its Y position using snap line geometry
+   */
+  calculateDuctTier(yPosition) {
+    try {
+      // Use the snap line manager to get actual tier spaces from geometry
+      const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
+      
+      // Use the same tier space detection logic as DuctEditor
+      const allHorizontalLines = snapLines.horizontal.sort((a, b) => b.y - a.y)
+      const allBeamPositions = [...allHorizontalLines].map(b => b.y).sort((a, b) => b - a)
+      
+      // Find tier spaces
+      const tierSpaces = []
+      const minTierHeight = 0.3 // Minimum 30cm tier height in meters
+      
+      for (let i = 0; i < allBeamPositions.length - 1; i++) {
+        const topY = allBeamPositions[i]
+        const bottomY = allBeamPositions[i + 1]
+        const gap = topY - bottomY
+        
+        if (gap >= minTierHeight) {
+          tierSpaces.push({
+            tierIndex: tierSpaces.length + 1,
+            top: topY,
+            bottom: bottomY,
+            height: gap,
+            centerY: (topY + bottomY) / 2
+          })
+        }
+      }
+      
+      // Find which tier space the duct Y position falls into
+      // Add tolerance based on duct height - if within half duct height of tier space, consider it in that tier
+      const ductData = this.selectedDuct?.userData?.ductData
+      const ductHeightM = ductData ? (ductData.height || 8) * 0.0254 : 0.2 // Convert inches to meters, fallback 20cm
+      const tolerance = ductHeightM / 2 // Half duct height tolerance
+      
+      for (const tierSpace of tierSpaces) {
+        // Check if duct position is within the tier space bounds + tolerance
+        const tierBottom = tierSpace.bottom - tolerance
+        const tierTop = tierSpace.top + tolerance
+        
+        if (yPosition >= tierBottom && yPosition <= tierTop) {
+          return {
+            tier: tierSpace.tierIndex,
+            tierName: `Tier ${tierSpace.tierIndex}`
+          }
+        }
+      }
+      
+      // Check if duct is close to any tier space (within tolerance)
+      for (const tierSpace of tierSpaces) {
+        const distanceToCenter = Math.abs(yPosition - tierSpace.centerY)
+        if (distanceToCenter <= tolerance) {
+          return {
+            tier: tierSpace.tierIndex,
+            tierName: `Tier ${tierSpace.tierIndex}`
+          }
+        }
+      }
+      
+      // Duct is not within any tier tolerance
+      if (tierSpaces.length > 0) {
+        const topTier = tierSpaces[0]
+        const bottomTier = tierSpaces[tierSpaces.length - 1]
+        
+        if (yPosition > topTier.top + tolerance) {
+          return { tier: null, tierName: 'Above Rack' }
+        } else if (yPosition < bottomTier.bottom - tolerance) {
+          return { tier: null, tierName: 'Below Rack' }
+        }
+      }
+      
+      return { tier: null, tierName: 'No Tier' }
+      
+    } catch (error) {
+      console.error('Error calculating tier from geometry:', error)
+      return { tier: null, tierName: 'No Tier' }
+    }
+  }
+
+  /**
+   * Update tier information for all ducts in MEP items based on their current positions
+   */
+  updateAllDuctTierInfo() {
+    try {
+      const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      let updated = false
+      
+      // Get all duct groups from the scene to access their current positions
+      const ductGroups = []
+      if (window.ductworkRendererInstance?.ductworkGroup) {
+        const ductworkGroup = window.ductworkRendererInstance.ductworkGroup
+        ductworkGroup.children.forEach(ductGroup => {
+          if (ductGroup.userData?.ductData) {
+            ductGroups.push(ductGroup)
+          }
+        })
+      }
+      
+      const updatedItems = storedMepItems.map(item => {
+        if (item.type === 'duct') {
+          // Find the corresponding 3D duct group
+          const baseId = item.id.toString().split('_')[0]
+          const ductGroup = ductGroups.find(group => {
+            const groupBaseId = group.userData.ductData.id.toString().split('_')[0]
+            return groupBaseId === baseId || group.userData.ductData.id === item.id
+          })
+          
+          if (ductGroup) {
+            // Calculate tier info based on current 3D position
+            const currentYPosition = ductGroup.position.y
+            const tierInfo = this.calculateDuctTierFromPosition(currentYPosition, item.height || 8)
+            
+            if (item.tier !== tierInfo.tier || item.tierName !== tierInfo.tierName) {
+              updated = true
+              return {
+                ...item,
+                tier: tierInfo.tier,
+                tierName: tierInfo.tierName,
+                position: {
+                  x: ductGroup.position.x,
+                  y: ductGroup.position.y,
+                  z: ductGroup.position.z
+                }
+              }
+            }
+          }
+        }
+        return item
+      })
+      
+      if (updated) {
+        localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+        
+        // Update manifest if function available
+        if (window.updateMEPItemsManifest) {
+          window.updateMEPItemsManifest(updatedItems)
+        }
+        
+        // Dispatch events to update MEP panel
+        window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+          detail: { updatedItems }
+        }))
+        
+        console.log('📊 Updated tier information for all ducts')
+      }
+    } catch (error) {
+      console.error('Error updating all duct tier info:', error)
+    }
+  }
+
+  /**
+   * Calculate tier info for a given Y position and duct height (utility version)
+   */
+  calculateDuctTierFromPosition(yPosition, ductHeightInches) {
+    try {
+      const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
+      const allHorizontalLines = snapLines.horizontal.sort((a, b) => b.y - a.y)
+      const allBeamPositions = [...allHorizontalLines].map(b => b.y).sort((a, b) => b - a)
+      
+      // Find tier spaces
+      const tierSpaces = []
+      const minTierHeight = 0.3
+      
+      for (let i = 0; i < allBeamPositions.length - 1; i++) {
+        const topY = allBeamPositions[i]
+        const bottomY = allBeamPositions[i + 1]
+        const gap = topY - bottomY
+        
+        if (gap >= minTierHeight) {
+          tierSpaces.push({
+            tierIndex: tierSpaces.length + 1,
+            top: topY,
+            bottom: bottomY,
+            height: gap,
+            centerY: (topY + bottomY) / 2
+          })
+        }
+      }
+      
+      // Calculate tolerance based on duct height
+      const ductHeightM = (ductHeightInches || 8) * 0.0254
+      const tolerance = ductHeightM / 2
+      
+      // Find which tier space contains this Y position
+      for (const tierSpace of tierSpaces) {
+        const tierBottom = tierSpace.bottom - tolerance
+        const tierTop = tierSpace.top + tolerance
+        
+        if (yPosition >= tierBottom && yPosition <= tierTop) {
+          return {
+            tier: tierSpace.tierIndex,
+            tierName: `Tier ${tierSpace.tierIndex}`
+          }
+        }
+      }
+      
+      // Check distance to tier centers
+      for (const tierSpace of tierSpaces) {
+        const distanceToCenter = Math.abs(yPosition - tierSpace.centerY)
+        if (distanceToCenter <= tolerance) {
+          return {
+            tier: tierSpace.tierIndex,
+            tierName: `Tier ${tierSpace.tierIndex}`
+          }
+        }
+      }
+      
+      return { tier: null, tierName: 'No Tier' }
+      
+    } catch (error) {
+      console.error('Error calculating tier from position:', error)
+      return { tier: null, tierName: 'No Tier' }
+    }
+  }
+
+  /**
    * Save duct position to localStorage and manifest
    */
   saveDuctPosition() {
@@ -389,6 +607,9 @@ export class DuctInteraction {
       const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
       const selectedDuctData = this.selectedDuct.userData.ductData
       
+      // Calculate which tier the duct is in
+      const tierInfo = this.calculateDuctTier(this.selectedDuct.position.y)
+      
       // Handle ID matching - selectedDuctData.id might have _0, _1 suffix
       const baseId = selectedDuctData.id.toString().split('_')[0]
       
@@ -396,15 +617,15 @@ export class DuctInteraction {
         const itemBaseId = item.id.toString().split('_')[0]
         
         if (itemBaseId === baseId) {
-          const currentPosition = {
-            x: this.selectedDuct.position.x,
-            y: this.selectedDuct.position.y,
-            z: this.selectedDuct.position.z
-          }
-          
           const updatedItem = { 
             ...item, 
-            position: currentPosition
+            position: {
+              x: this.selectedDuct.position.x,
+              y: this.selectedDuct.position.y,
+              z: this.selectedDuct.position.z
+            },
+            tier: tierInfo.tier,
+            tierName: tierInfo.tierName
           }
           return updatedItem
         }

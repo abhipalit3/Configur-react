@@ -130,14 +130,6 @@ export class SnapLineManager {
     
     rackGroup.traverse((child) => {
       totalChildren++
-        type: child.type,
-        name: child.name,
-        isMesh: child.isMesh,
-        isGroup: child.isGroup,
-        geometryType: child.geometry?.type || 'no geometry',
-        position: child.position,
-        children: child.children.length
-      })
       
       if (child.isMesh) {
         meshChildren++
@@ -145,11 +137,6 @@ export class SnapLineManager {
           geometryTypes.add(child.geometry.type)
         }
       }
-    })
-    
-      totalChildren,
-      meshChildren,
-      geometryTypes: Array.from(geometryTypes)
     })
     
     // Now traverse specifically for BoxGeometry meshes
@@ -167,66 +154,19 @@ export class SnapLineManager {
         const isLongZ = size.z > size.x && size.z > size.y && size.z > 0.3 // Long in Z direction
         
         // Debug all geometry found
-          name: child.name,
-          size: {
-            x: size.x.toFixed(3),
-            y: size.y.toFixed(3), 
-            z: size.z.toFixed(3)
-          },
-          center: {
-            x: center.x.toFixed(3),
-            y: center.y.toFixed(3),
-            z: center.z.toFixed(3)
-          },
-          classification: {
-            isLongX,
-            isLongY,
-            isLongZ
-          }
-        })
         
         if (isLongX || isLongZ) {
           // Horizontal beam
           beamYPositions.set(center.y, size.y)
-            localPos: child.position,
-            worldCenter: center.y.toFixed(3),
-            depth: size.y.toFixed(3),
-            bbox: `Y: ${bbox.min.y.toFixed(3)} to ${bbox.max.y.toFixed(3)}`,
-            type: isLongX ? 'longitudinal' : 'transverse'
-          })
         } else if (isLongY) {
           // Vertical post  
           postZExtents.min = Math.min(postZExtents.min, bbox.min.z)
           postZExtents.max = Math.max(postZExtents.max, bbox.max.z)  
           postZExtents.width = Math.max(postZExtents.width, size.z)
-            localPos: child.position,
-            worldZMin: bbox.min.z.toFixed(3),
-            worldZMax: bbox.max.z.toFixed(3),
-            width: size.z.toFixed(3),
-            bbox: `Z: ${bbox.min.z.toFixed(3)} to ${bbox.max.z.toFixed(3)}`
-          })
         } else {
           // Unclassified geometry - might still be useful
-            name: child.name,
-            size: size,
-            aspectRatios: {
-              'x/y': (size.x / size.y).toFixed(2),
-              'y/x': (size.y / size.x).toFixed(2),
-              'x/z': (size.x / size.z).toFixed(2),
-              'z/x': (size.z / size.x).toFixed(2),
-              'y/z': (size.y / size.z).toFixed(2),
-              'z/y': (size.z / size.y).toFixed(2)
-            }
-          })
         }
       }
-    })
-    
-      totalMeshes: meshCount,
-      rackPosition: rackGroup.position,
-      beamCount: beamYPositions.size,
-      postWidth: postZExtents.width.toFixed(3),
-      postZRange: [postZExtents.min.toFixed(3), postZExtents.max.toFixed(3)]
     })
 
     // No offset needed - rack geometry is already positioned correctly in the scene
@@ -259,14 +199,6 @@ export class SnapLineManager {
     if (postZExtents.min < Infinity && postZExtents.max > -Infinity) {
       const postHalfWidth = (postZExtents.width * 2) / 2  // Double the post width for snap lines
       
-        postZMin: postZExtents.min.toFixed(3),
-        postZMax: postZExtents.max.toFixed(3), 
-        postWidth: postZExtents.width.toFixed(3),
-        postHalfWidth: postHalfWidth.toFixed(3),
-        rightInnerFace: (postZExtents.min + postHalfWidth).toFixed(3),
-        leftInnerFace: (postZExtents.max - postHalfWidth).toFixed(3)
-      })
-      
       snapLines.vertical.push({
         z: postZExtents.min + postHalfWidth,
         type: 'post_inner',
@@ -280,10 +212,6 @@ export class SnapLineManager {
         side: 'left', 
         description: 'Left post inner face'
       })
-      
-        (postZExtents.min + postHalfWidth).toFixed(3), 
-        'and', 
-        (postZExtents.max - postHalfWidth).toFixed(3))
     }
     
     return snapLines

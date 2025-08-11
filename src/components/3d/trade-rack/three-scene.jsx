@@ -284,6 +284,13 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
     // Poll for duct selection changes
     const pollSelection = setInterval(handleDuctSelection, 100)
     
+    // Periodically update tier information for all ducts
+    const pollTierInfo = setInterval(() => {
+      if (ductworkRenderer.ductInteraction && mepItems.length > 0) {
+        ductworkRenderer.ductInteraction.updateAllDuctTierInfo()
+      }
+    }, 5000) // Update every 5 seconds
+    
     const handleDuctEditorSave = (newDimensions) => {
       
       if (ductworkRenderer.ductInteraction) {
@@ -432,6 +439,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
       // Cleanup selection polling
       if (pollSelection) {
         clearInterval(pollSelection)
+      }
+      
+      // Cleanup tier info polling
+      if (pollTierInfo) {
+        clearInterval(pollTierInfo)
       }
       
       if (measurementToolRef.current) {
