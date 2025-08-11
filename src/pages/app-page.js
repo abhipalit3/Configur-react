@@ -131,10 +131,22 @@ const AppPage = (props) => {
 
   // Initialize project manifest on component mount
   React.useEffect(() => {
-    initializeProject()
+    console.log('🔧 AppPage: Starting initialization...')
+    
+    // Initialize project and check if we need to seed data
+    const manifest = initializeProject()
+    
     // Sync manifest with localStorage to ensure consistency
     syncManifestWithLocalStorage()
     syncMEPItemsWithLocalStorage()
+    
+    // Debug: Check localStorage contents
+    console.log('📊 LocalStorage Debug:', {
+      projectManifest: localStorage.getItem('projectManifest') ? 'exists' : 'missing',
+      configurMepItems: localStorage.getItem('configurMepItems') ? 'exists' : 'missing', 
+      rackParameters: localStorage.getItem('rackParameters') ? 'exists' : 'missing',
+      tradeRackConfigurations: localStorage.getItem('tradeRackConfigurations') ? 'exists' : 'missing'
+    })
     
     // Make measurement update function available globally for the measurement tool
     window.updateManifestMeasurements = (measurements) => {

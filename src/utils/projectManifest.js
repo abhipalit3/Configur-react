@@ -541,16 +541,28 @@ export const getProjectStatistics = () => {
  * Initialize project manifest on app start
  */
 export const initializeProject = () => {
-  // Project manifest system initialized
-  const manifest = getProjectManifest()
+  console.log('🚀 Initializing project manifest system...')
   
-  // Update session statistics
-  manifest.statistics.lastSession = new Date().toISOString()
-  
-  addChangeToHistory(manifest, 'system', 'session_started', {
-    sessionId: getSessionId()
-  })
-  
-  saveProjectManifest(manifest)
-  return manifest
+  try {
+    // Project manifest system initialized
+    const manifest = getProjectManifest()
+    
+    // Update session statistics
+    manifest.statistics.lastSession = new Date().toISOString()
+    
+    // Save updated manifest
+    saveProjectManifest(manifest)
+    
+    console.log('✅ Project manifest initialized successfully:', {
+      projectId: manifest.projectId,
+      version: manifest.version,
+      mepItemsCount: manifest.mepItems.totalCount,
+      configurationsCount: manifest.tradeRacks.totalCount
+    })
+    
+    return manifest
+  } catch (error) {
+    console.error('❌ Failed to initialize project manifest:', error)
+    throw error
+  }
 }
