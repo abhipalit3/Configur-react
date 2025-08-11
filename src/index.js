@@ -20,7 +20,7 @@ import {
 
 const App = () => {
   return (
-    <Router>
+    <Router basename="/Configur-react">
       <Switch>
         <Route component={ProjectDashboard} exact path="/project-dashboard" />
         <Route component={Projects} exact path="/projects" />
