@@ -397,15 +397,22 @@ export class DuctInteraction {
       for (let i = 0; i < allBeamPositions.length - 1; i++) {
         const topY = allBeamPositions[i]
         const bottomY = allBeamPositions[i + 1]
+        
+        // Validate beam positions
+        if (!isFinite(topY) || !isFinite(bottomY)) {
+          console.warn('❌ Invalid beam position:', { topY, bottomY })
+          continue
+        }
+        
         const gap = topY - bottomY
         
-        if (gap >= minTierHeight) {
+        if (gap >= minTierHeight && isFinite(gap)) {
           tierSpaces.push({
             tierIndex: tierSpaces.length + 1,
             top: topY,
             bottom: bottomY,
             height: gap,
-            centerY: (topY + bottomY) / 2
+            centerY: isFinite(topY + bottomY) ? (topY + bottomY) / 2 : topY
           })
         }
       }
@@ -413,8 +420,21 @@ export class DuctInteraction {
       // Find which tier space the duct Y position falls into
       // Add tolerance based on duct height - if within half duct height of tier space, consider it in that tier
       const ductData = this.selectedDuct?.userData?.ductData
-      const ductHeightM = ductData ? (ductData.height || 8) * 0.0254 : 0.2 // Convert inches to meters, fallback 20cm
-      const tolerance = ductHeightM / 2 // Half duct height tolerance
+      let ductHeight = ductData?.height || 8
+      
+      // Validate duct height
+      if (!isFinite(ductHeight) || ductHeight <= 0) {
+        console.warn('⚠️ Invalid duct height, using fallback:', ductHeight)
+        ductHeight = 8
+      }
+      
+      const ductHeightM = ductHeight * 0.0254 // Convert inches to meters
+      let tolerance = ductHeightM / 2 // Half duct height tolerance
+      
+      if (!isFinite(tolerance)) {
+        console.warn('⚠️ Invalid tolerance, using fallback')
+        tolerance = 0.1 // 10cm fallback
+      }
       
       for (const tierSpace of tierSpaces) {
         // Check if duct position is within the tier space bounds + tolerance

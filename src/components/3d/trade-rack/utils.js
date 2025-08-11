@@ -1,12 +1,33 @@
 import * as THREE from 'three';
 import { extractSnapPoints } from './extractGeometrySnapPoints.js'
 
-/* ---------- unit helpers ---------- */
+/* ---------- unit helpers with validation ---------- */
 const FT2M = 0.3048;
 const IN2M = 0.0254;
-export const ft2m  = ft   => ft   * FT2M;
-export const in2m  = inch => inch * IN2M;
-export const ft2in = ft   => ft   * 12;
+
+export const ft2m  = ft   => {
+  if (!isFinite(ft)) {
+    console.warn('❌ Invalid feet value for conversion:', ft)
+    return 0
+  }
+  return ft * FT2M
+};
+
+export const in2m  = inch => {
+  if (!isFinite(inch)) {
+    console.warn('❌ Invalid inches value for conversion:', inch)
+    return 0
+  }
+  return inch * IN2M
+};
+
+export const ft2in = ft   => {
+  if (!isFinite(ft)) {
+    console.warn('❌ Invalid feet value for conversion:', ft)
+    return 0
+  }
+  return ft * 12
+};
 export const dispose = g => g.traverse(o => o.isMesh && o.geometry?.dispose());
 
 function addEdges(mesh, color = 0x333333, lineWidth = 0.5, opacity = 0.5) {
@@ -57,26 +78,75 @@ export function buildRack(p, steelMat, snapPoints = []){
   const mat   = p.material ?? steelMat;
   const g     = new THREE.Group();
 
-  // Import convertToFeet utility
+  // Import convertToFeet utility with safety checks
   const convertToFeet = (feetInches) => {
-    if (typeof feetInches === 'number') return feetInches; // backwards compatibility
-    return feetInches.feet + (feetInches.inches / 12);
+    if (typeof feetInches === 'number') {
+      if (!isFinite(feetInches)) {
+        console.warn('❌ Invalid numeric feet value:', feetInches)
+        return 0
+      }
+      return feetInches; // backwards compatibility
+    }
+    
+    if (!feetInches || typeof feetInches !== 'object') {
+      console.warn('❌ Invalid feetInches object:', feetInches)
+      return 0
+    }
+    
+    const feet = feetInches.feet || 0
+    const inches = feetInches.inches || 0
+    
+    if (!isFinite(feet) || !isFinite(inches)) {
+      console.warn('❌ Invalid feet/inches values:', { feet, inches })
+      return 0
+    }
+    
+    return feet + (inches / 12);
   };
 
   // Calculate bay configuration from total length and standard bay width
   const totalLengthFeet = p.rackLength ? convertToFeet(p.rackLength) : (p.totalLength || (p.bayCount * p.bayWidth)); // backwards compatibility
   const standardBayFeet = p.bayWidth ? convertToFeet(p.bayWidth) : (p.standardBayWidth || p.bayWidth || 3);
   
+  // Validate dimensions before calculations
+  if (!isFinite(totalLengthFeet) || totalLengthFeet <= 0) {
+    console.error('❌ Invalid total length:', totalLengthFeet)
+    return new THREE.Group() // Return empty group
+  }
+  
+  if (!isFinite(standardBayFeet) || standardBayFeet <= 0) {
+    console.error('❌ Invalid standard bay width:', standardBayFeet)
+    return new THREE.Group()
+  }
+  
   const fullBays = Math.floor(totalLengthFeet / standardBayFeet);
   const remainder = totalLengthFeet - (fullBays * standardBayFeet);
   const bayCount = remainder > 0.1 ? fullBays + 1 : fullBays; // if remainder > ~1 inch, add extra bay
   const lastBayWidth = remainder > 0.1 ? remainder : standardBayFeet;
+  
+  // Validate calculated values
+  if (!isFinite(bayCount) || bayCount <= 0) {
+    console.error('❌ Invalid bay count:', bayCount)
+    return new THREE.Group()
+  }
 
   // Rack configuration calculated
 
-  /* -- pre‑compute common metric dimensions -- */
+  /* -- pre‑compute common metric dimensions with validation -- */
   const lenM   = ft2m(totalLengthFeet);           // overall length (m)
-  const depthM = ft2m(p.rackWidth ? convertToFeet(p.rackWidth) : (p.depth || 4));  // overall depth  (m)
+  const depthFeet = p.rackWidth ? convertToFeet(p.rackWidth) : (p.depth || 4)
+  const depthM = ft2m(depthFeet);  // overall depth  (m)
+  
+  // Validate metric dimensions
+  if (!isFinite(lenM) || lenM <= 0) {
+    console.error('❌ Invalid rack length (meters):', lenM)
+    return new THREE.Group()
+  }
+  
+  if (!isFinite(depthM) || depthM <= 0) {
+    console.error('❌ Invalid rack depth (meters):', depthM)
+    return new THREE.Group()
+  }
   
   // Get column and beam sizes based on type selection
   const columnSize = p.columnSizes && p.columnType ? p.columnSizes[p.columnType] : (p.columnSize || p.postSize || 3);

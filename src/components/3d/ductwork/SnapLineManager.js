@@ -42,17 +42,42 @@ export class SnapLineManager {
     }
   }
 
-  // Utility functions
+  // Utility functions with validation
   convertToFeet(value) {
-    if (typeof value === 'number') return value
+    if (typeof value === 'number') {
+      if (!isFinite(value)) {
+        console.warn('❌ Invalid numeric feet value:', value)
+        return 2 // Default fallback
+      }
+      return value
+    }
     if (typeof value === 'object' && value !== null) {
-      return (value.feet || 0) + (value.inches || 0) / 12
+      const feet = value.feet || 0
+      const inches = value.inches || 0
+      if (!isFinite(feet) || !isFinite(inches)) {
+        console.warn('❌ Invalid feet/inches values:', { feet, inches })
+        return 2
+      }
+      return feet + (inches / 12)
     }
     return 2
   }
 
-  ft2m(feet) { return feet * 0.3048 }
-  in2m(inches) { return inches * 0.0254 }
+  ft2m(feet) { 
+    if (!isFinite(feet)) {
+      console.warn('❌ Invalid feet for conversion:', feet)
+      return 0
+    }
+    return feet * 0.3048 
+  }
+  
+  in2m(inches) { 
+    if (!isFinite(inches)) {
+      console.warn('❌ Invalid inches for conversion:', inches)
+      return 0
+    }
+    return inches * 0.0254 
+  }
 
   getRackLength() {
     try {
@@ -143,28 +168,45 @@ export class SnapLineManager {
     rackGroup.traverse((child) => {
       if (child.isMesh && child.geometry && child.geometry.type === 'BoxGeometry') {
         meshCount++
-        // Get world bounding box
-        const bbox = new THREE.Box3().setFromObject(child)
-        const size = bbox.getSize(new THREE.Vector3())
-        const center = bbox.getCenter(new THREE.Vector3())
-        
-        // Classify by dimensions - more lenient detection
-        const isLongX = size.x > size.y && size.x > size.z && size.x > 0.5 // Long in X direction
-        const isLongY = size.y > size.x && size.y > size.z && size.y > 0.5 // Long in Y direction  
-        const isLongZ = size.z > size.x && size.z > size.y && size.z > 0.3 // Long in Z direction
-        
-        // Debug all geometry found
-        
-        if (isLongX || isLongZ) {
-          // Horizontal beam
-          beamYPositions.set(center.y, size.y)
-        } else if (isLongY) {
-          // Vertical post  
-          postZExtents.min = Math.min(postZExtents.min, bbox.min.z)
-          postZExtents.max = Math.max(postZExtents.max, bbox.max.z)  
-          postZExtents.width = Math.max(postZExtents.width, size.z)
-        } else {
-          // Unclassified geometry - might still be useful
+        try {
+          // Get world bounding box
+          const bbox = new THREE.Box3().setFromObject(child)
+          const size = bbox.getSize(new THREE.Vector3())
+          const center = bbox.getCenter(new THREE.Vector3())
+          
+          // Validate bounding box calculations
+          if (!isFinite(size.x) || !isFinite(size.y) || !isFinite(size.z) ||
+              !isFinite(center.x) || !isFinite(center.y) || !isFinite(center.z)) {
+            console.warn('❌ Invalid bounding box for mesh:', child.name)
+            return // Skip this mesh
+          }
+          
+          // Classify by dimensions - more lenient detection
+          const isLongX = size.x > size.y && size.x > size.z && size.x > 0.5 // Long in X direction
+          const isLongY = size.y > size.x && size.y > size.z && size.y > 0.5 // Long in Y direction  
+          const isLongZ = size.z > size.x && size.z > size.y && size.z > 0.3 // Long in Z direction
+          
+          if (isLongX || isLongZ) {
+            // Horizontal beam
+            if (isFinite(center.y) && isFinite(size.y)) {
+              beamYPositions.set(center.y, size.y)
+            } else {
+              console.warn('❌ Invalid beam geometry:', { centerY: center.y, sizeY: size.y })
+            }
+          } else if (isLongY) {
+            // Vertical post  
+            if (isFinite(bbox.min.z) && isFinite(bbox.max.z) && isFinite(size.z)) {
+              postZExtents.min = Math.min(postZExtents.min, bbox.min.z)
+              postZExtents.max = Math.max(postZExtents.max, bbox.max.z)  
+              postZExtents.width = Math.max(postZExtents.width, size.z)
+            } else {
+              console.warn('❌ Invalid post geometry:', { minZ: bbox.min.z, maxZ: bbox.max.z, sizeZ: size.z })
+            }
+          } else {
+            // Unclassified geometry - might still be useful
+          }
+        } catch (error) {
+          console.error('❌ Error processing mesh geometry:', child.name, error)
         }
       }
     })
@@ -173,10 +215,18 @@ export class SnapLineManager {
     let yOffset = 0
 
     // Create horizontal snap lines from actual beam positions
-    const sortedBeamY = Array.from(beamYPositions.keys()).sort((a, b) => b - a)
+    const validBeamPositions = Array.from(beamYPositions.keys()).filter(y => isFinite(y))
+    const sortedBeamY = validBeamPositions.sort((a, b) => b - a)
     
     sortedBeamY.forEach((beamCenterY, index) => {
       const beamDepth = beamYPositions.get(beamCenterY) || 0.1
+      
+      // Validate beam depth
+      if (!isFinite(beamDepth) || beamDepth <= 0) {
+        console.warn('❌ Invalid beam depth:', beamDepth)
+        return
+      }
+      
       const beamHalf = beamDepth / 2
       
       // Use exact geometry position (no offset needed)

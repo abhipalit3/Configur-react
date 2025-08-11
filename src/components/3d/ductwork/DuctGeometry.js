@@ -75,6 +75,27 @@ export class DuctGeometry {
       color = '#d05e8f'
     } = ductData
 
+    // Validate input parameters
+    if (!isFinite(width) || width <= 0) {
+      console.error('❌ Invalid duct width:', width)
+      return new THREE.Group() // Return empty group
+    }
+    
+    if (!isFinite(height) || height <= 0) {
+      console.error('❌ Invalid duct height:', height)
+      return new THREE.Group()
+    }
+    
+    if (!isFinite(insulation) || insulation < 0) {
+      console.warn('⚠️ Invalid insulation value, using 0:', insulation)
+      insulation = 0
+    }
+    
+    if (!isFinite(ductLength) || ductLength <= 0) {
+      console.error('❌ Invalid duct length:', ductLength)
+      return new THREE.Group()
+    }
+
     const widthM = this.in2m(width)
     const heightM = this.in2m(height)
     const insulationM = this.in2m(insulation)
@@ -88,11 +109,26 @@ export class DuctGeometry {
       position: position || 'bottom'
     }
 
-    ductGroup.position.copy(position || new THREE.Vector3(0, 0, 0))
+    // Safely set position with validation
+    if (position && position.x !== undefined && position.y !== undefined && position.z !== undefined) {
+      if (isFinite(position.x) && isFinite(position.y) && isFinite(position.z)) {
+        ductGroup.position.copy(position)
+      } else {
+        console.warn('⚠️ Invalid position values, using default:', position)
+        ductGroup.position.set(0, 0, 0)
+      }
+    } else {
+      ductGroup.position.set(0, 0, 0)
+    }
 
-    // Calculate total dimensions
+    // Calculate total dimensions with safety checks
     const totalWidth = widthM + (2 * insulationM)
     const totalHeight = heightM + (2 * insulationM)
+    
+    if (!isFinite(totalWidth) || !isFinite(totalHeight)) {
+      console.error('❌ Invalid total dimensions:', { totalWidth, totalHeight })
+      return new THREE.Group()
+    }
 
     // Create custom materials for this duct using the specified color
     const customDuctMaterial = new THREE.MeshLambertMaterial({

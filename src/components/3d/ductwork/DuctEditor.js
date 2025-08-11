@@ -42,28 +42,69 @@ export const DuctEditor = ({
     if (!selectedDuct || !camera || !renderer || !visible) return
 
     const updatePosition = () => {
-      // Get duct position in world coordinates
-      const ductWorldPos = new THREE.Vector3()
-      selectedDuct.getWorldPosition(ductWorldPos)
-      
-      // Offset below the duct
-      const ductData = selectedDuct.userData.ductData
-      const heightM = (ductData.height || 8) * 0.0254 // Convert inches to meters
-      const insulationM = (ductData.insulation || 0) * 0.0254
-      const totalHeight = heightM + (2 * insulationM)
-      
-      ductWorldPos.y -= (totalHeight / 2) + 0.3 // Position below duct with some margin
-      
-      // Project to screen coordinates
-      const screenPos = ductWorldPos.clone().project(camera)
-      const canvas = renderer.domElement
-      
-      const x = (screenPos.x * 0.5 + 0.5) * canvas.clientWidth
-      const y = (-screenPos.y * 0.5 + 0.5) * canvas.clientHeight
-      
-      // Only update state if component is still mounted
-      if (mountedRef.current) {
-        setPosition({ x, y })
+      try {
+        // Get duct position in world coordinates
+        const ductWorldPos = new THREE.Vector3()
+        selectedDuct.getWorldPosition(ductWorldPos)
+        
+        // Validate world position
+        if (!isFinite(ductWorldPos.x) || !isFinite(ductWorldPos.y) || !isFinite(ductWorldPos.z)) {
+          console.warn('⚠️ Invalid duct world position:', ductWorldPos)
+          return
+        }
+        
+        // Offset below the duct
+        const ductData = selectedDuct.userData.ductData
+        const height = ductData.height || 8
+        const insulation = ductData.insulation || 0
+        
+        // Validate dimensions
+        if (!isFinite(height) || !isFinite(insulation)) {
+          console.warn('⚠️ Invalid duct dimensions:', { height, insulation })
+          return
+        }
+        
+        const heightM = height * 0.0254 // Convert inches to meters
+        const insulationM = insulation * 0.0254
+        const totalHeight = heightM + (2 * insulationM)
+        
+        if (!isFinite(totalHeight)) {
+          console.warn('⚠️ Invalid total height:', totalHeight)
+          return
+        }
+        
+        ductWorldPos.y -= (totalHeight / 2) + 0.3 // Position below duct with some margin
+        
+        // Project to screen coordinates
+        const screenPos = ductWorldPos.clone().project(camera)
+        
+        // Validate projection
+        if (!isFinite(screenPos.x) || !isFinite(screenPos.y) || !isFinite(screenPos.z)) {
+          console.warn('⚠️ Invalid screen projection:', screenPos)
+          return
+        }
+        
+        const canvas = renderer.domElement
+        if (!canvas || !canvas.clientWidth || !canvas.clientHeight) {
+          console.warn('⚠️ Invalid canvas dimensions')
+          return
+        }
+        
+        const x = (screenPos.x * 0.5 + 0.5) * canvas.clientWidth
+        const y = (-screenPos.y * 0.5 + 0.5) * canvas.clientHeight
+        
+        // Validate final screen coordinates
+        if (!isFinite(x) || !isFinite(y)) {
+          console.warn('⚠️ Invalid screen coordinates:', { x, y })
+          return
+        }
+        
+        // Only update state if component is still mounted
+        if (mountedRef.current) {
+          setPosition({ x, y })
+        }
+      } catch (error) {
+        console.error('❌ Error updating duct editor position:', error)
       }
     }
 
@@ -99,10 +140,18 @@ export const DuctEditor = ({
 
 
   const handleDimensionChange = (field, value) => {
-    const numValue = parseFloat(value) || 0
+    const numValue = parseFloat(value)
+    if (isNaN(numValue) || !isFinite(numValue)) {
+      console.warn(`❌ Invalid ${field} value: ${value}`)
+      return // Don't update with invalid values
+    }
+    
+    // Ensure positive values for dimensions
+    const validValue = field === 'tier' ? Math.max(1, Math.floor(numValue)) : Math.max(0, numValue)
+    
     setDimensions(prev => ({
       ...prev,
-      [field]: numValue
+      [field]: validValue
     }))
   }
 
@@ -117,6 +166,11 @@ export const DuctEditor = ({
 
   const handleTierChange = (newTier) => {
     const tierValue = parseInt(newTier)
+    if (isNaN(tierValue) || tierValue < 1) {
+      console.warn(`❌ Invalid tier value: ${newTier}`)
+      return
+    }
+    
     setDimensions(prev => ({
       ...prev,
       tier: tierValue
@@ -141,15 +195,22 @@ export const DuctEditor = ({
         for (let i = 0; i < allBeamPositions.length - 1; i++) {
           const topY = allBeamPositions[i]
           const bottomY = allBeamPositions[i + 1]
+          
+          // Validate beam positions
+          if (!isFinite(topY) || !isFinite(bottomY)) {
+            console.warn('❌ Invalid beam position:', { topY, bottomY })
+            continue
+          }
+          
           const gap = topY - bottomY
           
-          if (gap >= minTierHeight) {
+          if (gap >= minTierHeight && isFinite(gap)) {
             tierSpaces.push({
               tierIndex: tierSpaces.length + 1,
               top: topY,
               bottom: bottomY,
               height: gap,
-              centerY: (topY + bottomY) / 2
+              centerY: isFinite(topY + bottomY) ? (topY + bottomY) / 2 : topY
             })
           }
         }
