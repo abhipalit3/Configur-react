@@ -326,7 +326,7 @@ const AppPage = (props) => {
     console.log('🗑️ All MEP elements deleted')
   }
 
-  // Handler for clicking MEP items in the panel (for duct selection)
+  // Handler for clicking MEP items in the panel (for duct and pipe selection)
   const handleMepItemClick = (item) => {
     if (item.type === 'duct') {
       
@@ -354,43 +354,105 @@ const AppPage = (props) => {
           console.warn('⚠️ Could not find duct to select:', item.id)
         }
       }
+    } else if (item.type === 'pipe') {
+      
+      // Find and select the pipe in the 3D scene
+      if (window.pipingRendererInstance?.pipeInteraction) {
+        const pipingRenderer = window.pipingRendererInstance
+        const pipingGroup = pipingRenderer.getPipingGroup()
+        
+        // Find the pipe group by ID (handle both base ID and instance ID formats)
+        let targetPipe = null
+        pipingGroup.children.forEach(pipeGroup => {
+          const pipeData = pipeGroup.userData?.pipeData
+          if (pipeData) {
+            const baseId = pipeData.id.toString().split('_')[0]
+            const itemBaseId = item.id.toString().split('_')[0]
+            if (baseId === itemBaseId || pipeData.id === item.id) {
+              targetPipe = pipeGroup
+            }
+          }
+        })
+        
+        if (targetPipe) {
+          pipingRenderer.pipeInteraction.selectPipe(targetPipe)
+        } else {
+          console.warn('⚠️ Could not find pipe to select:', item.id)
+        }
+      }
     }
   }
 
-  // Handler for changing duct color from MEP panel
-  const handleDuctColorChange = (ductId, newColor) => {
+  // Handler for changing duct and pipe color from MEP panel
+  const handleDuctColorChange = (itemId, newColor) => {
     
     // Update the mepItems state
     const updatedItems = mepItems.map(item => {
       const baseId = item.id.toString().split('_')[0]
-      const ductBaseId = ductId.toString().split('_')[0]
-      if (baseId === ductBaseId || item.id === ductId) {
+      const itemBaseId = itemId.toString().split('_')[0]
+      if (baseId === itemBaseId || item.id === itemId) {
         return { ...item, color: newColor }
       }
       return item
     })
     setMepItems(updatedItems)
     
-    // Update the 3D duct color
-    if (window.ductworkRendererInstance?.ductInteraction) {
-      const ductworkRenderer = window.ductworkRendererInstance
-      const ductworkGroup = ductworkRenderer.getDuctworkGroup()
-      
-      // Find the duct group by ID
-      ductworkGroup.children.forEach(ductGroup => {
-        const ductData = ductGroup.userData?.ductData
-        if (ductData) {
-          const baseId = ductData.id.toString().split('_')[0]
-          const ductBaseId = ductId.toString().split('_')[0]
-          if (baseId === ductBaseId || ductData.id === ductId) {
-            // Update duct color using the interaction system
-            if (ductworkRenderer.ductInteraction.updateDuctDimensions) {
-              ductworkRenderer.ductInteraction.updateDuctDimensions({ color: newColor })
+    // Find the item to determine its type
+    const targetItem = updatedItems.find(item => {
+      const baseId = item.id.toString().split('_')[0]
+      const itemBaseId = itemId.toString().split('_')[0]
+      return baseId === itemBaseId || item.id === itemId
+    })
+    
+    if (targetItem?.type === 'duct') {
+      // Update the 3D duct color
+      if (window.ductworkRendererInstance?.ductInteraction) {
+        const ductworkRenderer = window.ductworkRendererInstance
+        const ductworkGroup = ductworkRenderer.getDuctworkGroup()
+        
+        // Find the duct group by ID
+        ductworkGroup.children.forEach(ductGroup => {
+          const ductData = ductGroup.userData?.ductData
+          if (ductData) {
+            const baseId = ductData.id.toString().split('_')[0]
+            const ductBaseId = itemId.toString().split('_')[0]
+            if (baseId === ductBaseId || ductData.id === itemId) {
+              // Update duct color using the interaction system
+              if (ductworkRenderer.ductInteraction.updateDuctDimensions) {
+                ductworkRenderer.ductInteraction.updateDuctDimensions({ color: newColor })
+              }
             }
           }
-        }
-      })
+        })
+      }
+    } else if (targetItem?.type === 'pipe') {
+      // Update the 3D pipe color
+      if (window.pipingRendererInstance?.pipeInteraction) {
+        const pipingRenderer = window.pipingRendererInstance
+        const pipingGroup = pipingRenderer.getPipingGroup()
+        
+        // Find the pipe group by ID
+        pipingGroup.children.forEach(pipeGroup => {
+          const pipeData = pipeGroup.userData?.pipeData
+          if (pipeData) {
+            const baseId = pipeData.id.toString().split('_')[0]
+            const pipeBaseId = itemId.toString().split('_')[0]
+            if (baseId === pipeBaseId || pipeData.id === itemId) {
+              // Update pipe color using the interaction system
+              if (pipingRenderer.pipeInteraction.updatePipeDimensions) {
+                pipingRenderer.pipeInteraction.updatePipeDimensions({ color: newColor })
+              }
+            }
+          }
+        })
+      }
     }
+    
+    // Update localStorage with new color
+    localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+    
+    // Update manifest
+    updateMEPItems(updatedItems, 'color_change')
   }
   
   // Handler for measurement tool toggle

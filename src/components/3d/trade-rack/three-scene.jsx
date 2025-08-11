@@ -8,7 +8,9 @@ import { ViewCube } from './ViewCube.js'
 import {buildRackScene} from './buildRack.js'
 import { MeasurementTool } from './MeasurementTool.js'
 import { DuctworkRenderer } from './DuctworkRenderer.js'
+import { PipingRenderer } from '../piping'
 import { DuctEditor } from '../ductwork'
+import { PipeEditor } from '../piping'
 import './hypar-measurement-styles.css'
 
 
@@ -16,6 +18,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
   const mountRef = useRef(null)
   const measurementToolRef = useRef(null)
   const ductworkRendererRef = useRef(null)
+  const pipingRendererRef = useRef(null)
   const cameraRef = useRef(null)
   const rendererRef = useRef(null)
   
@@ -30,6 +33,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
   const [selectedDuct, setSelectedDuct] = useState(null)
   const [showDuctEditor, setShowDuctEditor] = useState(false)
   const [skipDuctRecreation, setSkipDuctRecreation] = useState(false)
+  
+  // State for pipe editor
+  const [selectedPipe, setSelectedPipe] = useState(null)
+  const [showPipeEditor, setShowPipeEditor] = useState(false)
+  const [skipPipeRecreation, setSkipPipeRecreation] = useState(false)
   
   // State for rack parameters (to access in render)
   const [rackParams, setRackParams] = useState({
@@ -271,8 +279,37 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
     // Make ductwork renderer globally accessible
     window.ductworkRendererInstance = ductworkRenderer
     
+    // Initialize piping renderer with the same parameters
+    const pipingRenderer = new PipingRenderer(
+      scene,
+      camera, 
+      renderer,
+      controls,
+      ductworkRenderer.snapLineManager // Share snap line manager with ductwork
+    )
+    pipingRendererRef.current = pipingRenderer
+    
+    // Make piping renderer globally accessible
+    window.pipingRendererInstance = pipingRenderer
+    
+    // Update piping renderer with rack parameters
+    pipingRenderer.updateRackParams({
+      bayCount: params.bayCount,
+      bayWidth: params.bayWidth,
+      depth: params.depth,
+      rackWidth: params.depth,
+      tierCount: params.tierCount,
+      tierHeights: params.tierHeights,
+      topClearance: params.topClearance,
+      beamSize: params.beamSize,
+      postSize: params.postSize
+    })
+    
     // Setup ductwork interactions
     ductworkRenderer.setupInteractions(camera, renderer, controls)
+    
+    // Setup piping interactions
+    pipingRenderer.setupInteractions(camera, renderer, controls)
     
     // Setup duct editor callbacks
     const handleDuctSelection = () => {
@@ -281,8 +318,18 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
       setShowDuctEditor(!!selected)
     }
     
-    // Poll for duct selection changes
-    const pollSelection = setInterval(handleDuctSelection, 100)
+    // Setup pipe editor callbacks
+    const handlePipeSelection = () => {
+      const selected = pipingRenderer.pipeInteraction?.selectedPipe
+      setSelectedPipe(selected)
+      setShowPipeEditor(!!selected)
+    }
+    
+    // Poll for duct and pipe selection changes
+    const pollSelection = setInterval(() => {
+      handleDuctSelection()
+      handlePipeSelection()
+    }, 100)
     
     // Periodically update tier information for all ducts
     const pollTierInfo = setInterval(() => {
@@ -330,6 +377,82 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
       setShowDuctEditor(false)
     }
     
+    // Pipe editor handlers
+    const handlePipeEditorSave = (newDimensions) => {
+      
+      if (pipingRenderer.pipeInteraction) {
+        // Update the 3D pipe
+        pipingRenderer.pipeInteraction.updatePipeDimensions(newDimensions)
+        
+        // Update localStorage (MEP panel data)
+        try {
+          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+          const selectedPipeData = selectedPipe?.userData?.pipeData
+          
+          if (selectedPipeData) {
+            // Find and update the matching item
+            // Handle ID matching - selectedPipeData.id might have _0, _1 suffix for multiple pipes
+            const baseId = selectedPipeData.id.toString().split('_')[0]
+            
+            const updatedItems = storedMepItems.map(item => {
+              const itemBaseId = item.id.toString().split('_')[0]
+              
+              if (itemBaseId === baseId && item.type === 'pipe') {
+                // Include current pipe position in the update
+                const currentPosition = {
+                  x: selectedPipe.position.x,
+                  y: selectedPipe.position.y, 
+                  z: selectedPipe.position.z
+                }
+                
+                const updatedItem = { 
+                  ...item, 
+                  ...newDimensions,
+                  position: currentPosition
+                }
+                return updatedItem
+              }
+              return item
+            })
+            
+            localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+            
+            // IMPORTANT: Also update the manifest to ensure consistency
+            if (window.updateMEPItemsManifest) {
+              window.updateMEPItemsManifest(updatedItems)
+            } else {
+              console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
+            }
+            
+            // Dispatch custom event to notify MEP panel of changes
+            window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+              detail: { updatedItems, updatedPipeId: selectedPipeData.id }
+            }))
+            
+            // Also try multiple refresh methods
+            if (window.refreshMepPanel) {
+              window.refreshMepPanel()
+            }
+            
+            // Force re-render by dispatching storage event
+            window.dispatchEvent(new StorageEvent('storage', {
+              key: 'configurMepItems',
+              newValue: JSON.stringify(updatedItems),
+              storageArea: localStorage
+            }))
+          }
+        } catch (error) {
+          console.error('Error updating MEP pipe items:', error)
+        }
+      }
+      
+      setShowPipeEditor(false)
+    }
+    
+    const handlePipeEditorCancel = () => {
+      setShowPipeEditor(false)
+    }
+    
     // Set callbacks on duct interaction
     if (ductworkRenderer.ductInteraction) {
       ductworkRenderer.ductInteraction.setDuctEditorCallbacks(
@@ -338,10 +461,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
       )
     }
     
-    // Initial ductwork update
+    // Initial ductwork and piping update
     setTimeout(() => {
       if (mepItems && mepItems.length > 0) {
         ductworkRenderer.updateDuctwork(mepItems)
+        pipingRenderer.updatePiping(mepItems)
       }
     }, 200) // Small delay to ensure everything is ready
 
@@ -485,17 +609,26 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
     }
   }, [axisLock])
 
-  // Update ductwork when MEP items change
+  // Update ductwork and piping when MEP items change
   useEffect(() => {
     if (skipDuctRecreation) {
       setSkipDuctRecreation(false)
       return
     }
     
+    if (skipPipeRecreation) {
+      setSkipPipeRecreation(false)
+      return
+    }
+    
     if (ductworkRendererRef.current && mepItems) {
       ductworkRendererRef.current.updateDuctwork(mepItems)
     }
-  }, [mepItems, skipDuctRecreation])
+    
+    if (pipingRendererRef.current && mepItems) {
+      pipingRendererRef.current.updatePiping(mepItems)
+    }
+  }, [mepItems, skipDuctRecreation, skipPipeRecreation])
 
   const handleAxisToggle = (axis) => {
     setAxisLock(prev => {
@@ -695,6 +828,103 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
           }}
           onCancel={() => {
             setShowDuctEditor(false)
+          }}
+        />
+      )}
+      
+      {/* Pipe Editor */}
+      {showPipeEditor && selectedPipe && cameraRef.current && rendererRef.current && (
+        <PipeEditor
+          selectedPipe={selectedPipe}
+          camera={cameraRef.current}
+          renderer={rendererRef.current}
+          visible={showPipeEditor}
+          rackParams={rackParams}
+          onSave={(dimensions) => {
+            
+            // Set flag to prevent pipe recreation
+            setSkipPipeRecreation(true)
+            
+            if (pipingRendererRef.current?.pipeInteraction) {
+              // First update the selected pipe's userData to ensure consistency
+              if (selectedPipe?.userData?.pipeData) {
+                selectedPipe.userData.pipeData = {
+                  ...selectedPipe.userData.pipeData,
+                  ...dimensions
+                }
+              }
+              
+              // Update the 3D pipe
+              pipingRendererRef.current.pipeInteraction.updatePipeDimensions(dimensions)
+              
+              // Update localStorage (MEP panel data)
+              try {
+                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+                const selectedPipeData = selectedPipe?.userData?.pipeData
+                
+                if (selectedPipeData) {
+                  
+                  // Find and update the matching item
+                  // Handle ID matching - selectedPipeData.id might have _0, _1 suffix for multiple pipes
+                  const baseId = selectedPipeData.id.toString().split('_')[0]
+                  
+                  const updatedItems = storedMepItems.map(item => {
+                    const itemBaseId = item.id.toString().split('_')[0]
+                    
+                    if (itemBaseId === baseId && item.type === 'pipe') {
+                      // Include current pipe position in the update
+                      const currentPosition = {
+                        x: selectedPipe.position.x,
+                        y: selectedPipe.position.y, 
+                        z: selectedPipe.position.z
+                      }
+                      
+                      const updatedItem = { 
+                        ...item, 
+                        ...dimensions,
+                        position: currentPosition
+                      }
+                      return updatedItem
+                    }
+                    return item
+                  })
+                  
+                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+                  
+                  // IMPORTANT: Also update the manifest to ensure consistency
+                  if (window.updateMEPItemsManifest) {
+                    window.updateMEPItemsManifest(updatedItems)
+                  } else {
+                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
+                  }
+                  
+                  // Dispatch custom event to notify MEP panel of changes
+                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+                    detail: { updatedItems, updatedPipeId: selectedPipeData.id }
+                  }))
+                  
+                  // Also try multiple refresh methods
+                  if (window.refreshMepPanel) {
+                    window.refreshMepPanel()
+                  }
+                  
+                  // Force re-render by dispatching storage event
+                  window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'configurMepItems',
+                    newValue: JSON.stringify(updatedItems),
+                    storageArea: localStorage
+                  }))
+                }
+              } catch (error) {
+                console.error('Error updating MEP pipe items:', error)
+              }
+            }
+            
+            // Don't close the editor immediately - let user click away or edit another pipe
+            // setShowPipeEditor(false)
+          }}
+          onCancel={() => {
+            setShowPipeEditor(false)
           }}
         />
       )}

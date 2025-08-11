@@ -144,7 +144,7 @@ const AppTierMEP = (props) => {
       }
       
       // Group by tier
-      if (item.type === 'duct') {
+      if (item.type === 'duct' || item.type === 'pipe') {
         const tierKey = item.tierName || 'No Tier'
         if (tierGroups[tierKey]) {
           tierGroups[tierKey].push(item)
@@ -153,7 +153,7 @@ const AppTierMEP = (props) => {
           tierGroups['No Tier'].push(item)
         }
       } else {
-        // Non-duct items go to a general section
+        // Non-duct/pipe items go to a general section
         if (!tierGroups['Other MEP']) {
           tierGroups['Other MEP'] = []
         }
@@ -259,7 +259,7 @@ const AppTierMEP = (props) => {
                         key={item.id} 
                         className="app-tier-mep-added-mep1"
                         style={{
-                          cursor: item.type === 'duct' ? 'pointer' : 'default',
+                          cursor: (item.type === 'duct' || item.type === 'pipe') ? 'pointer' : 'default',
                           display: 'flex',
                           alignItems: 'center',
                           position: 'relative',
@@ -269,12 +269,12 @@ const AppTierMEP = (props) => {
                           boxSizing: 'border-box'
                         }}
                         onMouseEnter={(e) => {
-                          if (item.type === 'duct') {
+                          if (item.type === 'duct' || item.type === 'pipe') {
                             e.currentTarget.style.backgroundColor = '#f0f8ff'
                           }
                         }}
                         onMouseLeave={(e) => {
-                          if (item.type === 'duct') {
+                          if (item.type === 'duct' || item.type === 'pipe') {
                             e.currentTarget.style.backgroundColor = 'transparent'
                           }
                         }}
@@ -344,16 +344,83 @@ const AppTierMEP = (props) => {
                           </div>
                         )}
 
+                        {/* Color Picker for Pipes */}
+                        {item.type === 'pipe' && (
+                          <div className="color-picker-container" style={{ position: 'relative', marginRight: '8px' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setShowColorPicker(showColorPicker === item.id ? null : item.id)
+                              }}
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                border: '1px solid #ccc',
+                                background: item.color || (item.pipeType === 'copper' ? '#B87333' : item.pipeType === 'pvc' ? '#F5F5F5' : '#708090'),
+                                cursor: 'pointer',
+                                position: 'relative',
+                                minWidth: '16px',
+                                flexShrink: 0
+                              }}
+                              title="Change pipe color"
+                            />
+                            
+                            {showColorPicker === item.id && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '20px',
+                                left: '0',
+                                background: 'white',
+                                border: '1px solid #ccc',
+                                borderRadius: '4px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                padding: '8px',
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gap: '4px',
+                                zIndex: 1001,
+                                minWidth: '120px'
+                              }}>
+                                {colorPalette.map((color, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (onColorChange) {
+                                        onColorChange(item.id, color.value)
+                                      }
+                                      setShowColorPicker(null)
+                                    }}
+                                    style={{
+                                      width: '24px',
+                                      height: '24px',
+                                      border: '1px solid #ccc',
+                                      borderRadius: '2px',
+                                      background: color.value,
+                                      cursor: 'pointer',
+                                      fontSize: '0'
+                                    }}
+                                    title={color.name}
+                                  >
+                                    {color.name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <span 
                           className="app-tier-mep-text10" 
                           onClick={() => {
-                            if (item.type === 'duct' && onItemClick) {
+                            if ((item.type === 'duct' || item.type === 'pipe') && onItemClick) {
                               onItemClick(item)
                             }
                           }}
                           style={{ 
                             flex: 1, 
-                            cursor: item.type === 'duct' ? 'pointer' : 'default',
+                            cursor: (item.type === 'duct' || item.type === 'pipe') ? 'pointer' : 'default',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
