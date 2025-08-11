@@ -32,7 +32,7 @@ const AppManualBuilding = (props) => {
     if (corridorWidthTotal <= 0) newErrors.corridorWidth = 'Must be greater than 0'
     if (corridorHeightTotal <= 0) newErrors.corridorHeight = 'Must be greater than 0'
     if (ceilingHeightTotal <= 0) newErrors.ceilingHeight = 'Must be greater than 0'
-    if (beamDepthTotal <= 0) newErrors.beamDepth = 'Must be greater than 0'
+    if (beamDepthTotal < 0) newErrors.beamDepth = 'Cannot be negative' // Allow zero beam depth
     if (ceilingHeightTotal > corridorHeightTotal) {
       newErrors.ceilingHeight = 'Cannot exceed corridor height'
     }
@@ -61,7 +61,7 @@ const AppManualBuilding = (props) => {
     if (corridorWidthTotal <= 0) newErrors.corridorWidth = 'Must be greater than 0'
     if (corridorHeightTotal <= 0) newErrors.corridorHeight = 'Must be greater than 0'
     if (ceilingHeightTotal <= 0) newErrors.ceilingHeight = 'Must be greater than 0'
-    if (beamDepthTotal <= 0) newErrors.beamDepth = 'Must be greater than 0'
+    if (beamDepthTotal < 0) newErrors.beamDepth = 'Cannot be negative' // Allow zero beam depth
     if (ceilingHeightTotal > corridorHeightTotal) {
       newErrors.ceilingHeight = 'Cannot exceed corridor height'
     }

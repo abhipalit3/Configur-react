@@ -3,8 +3,8 @@ export const buildingShellDefaults = {
   corridorWidth: { feet: 10, inches: 0 },
   corridorHeight: { feet: 15, inches: 0 },
   ceilingHeight: { feet: 9, inches: 0 },
-  // Beam depth - stored as feet and inches
-  beamDepth: { feet: 1, inches: 2 },
+  // Beam depth - stored as feet and inches (can be zero to skip beam)
+  beamDepth: { feet: 0, inches: 0 },
   // Thickness dimensions - stored in inches only
   slabDepth: 8, // inches
   ceilingDepth: 4, // inches - thickness of the intermediate ceiling slab
