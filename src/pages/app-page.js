@@ -37,6 +37,7 @@ import {
   setActiveConfiguration,
   syncMEPItemsWithLocalStorage
 } from '../utils/projectManifest'
+import { calculateTotalHeight } from '../types/tradeRack'
 // Import manifest debugging tools (available in browser console)
 import '../utils/manifestExporter'
 import './app-page.css'
@@ -485,6 +486,7 @@ const AppPage = (props) => {
         id: Date.now(),
         name: `Rack Configuration ${savedConfigs.length + 1}`,
         ...params,
+        totalHeight: calculateTotalHeight(params),
         savedAt: new Date().toISOString()
       }
       savedConfigs.push(newConfig)

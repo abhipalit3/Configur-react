@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { deleteTradeRackConfiguration, syncManifestWithLocalStorage, getProjectManifest } from '../../utils/projectManifest'
+import { calculateTotalHeight } from '../../types/tradeRack'
 import './app-saved-configurations.css'
 
 const AppSavedConfigurations = (props) => {
@@ -152,7 +153,7 @@ const AppSavedConfigurations = (props) => {
                   </div>
                   <div className="app-saved-configurations-detail-row">
                     <span className="app-saved-configurations-detail-label">
-                      Total height: {config.totalHeight || 'N/A'}
+                      Total height: {config.totalHeight || calculateTotalHeight(config)}
                     </span>
                   </div>
                 </div>

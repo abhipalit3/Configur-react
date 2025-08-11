@@ -37,6 +37,52 @@ export const convertToFeet = (feetInches) => {
   return feetInches.feet + (feetInches.inches / 12);
 };
 
+// Calculate total rack height from tier configuration and beam sizes
+export const calculateTotalHeight = (config) => {
+  try {
+    // Get tier heights array
+    const tierHeights = config.tierHeights || []
+    if (tierHeights.length === 0) {
+      return 'N/A'
+    }
+    
+    // Sum all tier heights (convert to feet)
+    let totalTierHeight = 0
+    tierHeights.forEach(tierHeight => {
+      totalTierHeight += convertToFeet(tierHeight)
+    })
+    
+    // Get beam size (convert inches to feet)
+    const beamSize = config.beamSizes && config.beamType 
+      ? config.beamSizes[config.beamType] || 3
+      : (config.beamSize || 3)
+    const beamSizeInFeet = beamSize / 12 // Convert inches to feet
+    
+    // Total height = tier heights + (tier count + 1) * beam size
+    // Structure: bottom beam + tier + intermediate beam + tier + ... + tier + top beam
+    // So for N tiers, we have N+1 beams
+    const tierCount = config.tierCount || tierHeights.length
+    const totalBeamHeight = (tierCount + 1) * beamSizeInFeet
+    
+    const totalHeight = totalTierHeight + totalBeamHeight
+    
+    // Format as feet and inches
+    const feet = Math.floor(totalHeight)
+    const inches = Math.round((totalHeight - feet) * 12)
+    
+    if (inches === 0) {
+      return `${feet}'0"`
+    } else if (inches === 12) {
+      return `${feet + 1}'0"`
+    } else {
+      return `${feet}'${inches}"`
+    }
+  } catch (error) {
+    console.error('Error calculating total height:', error)
+    return 'N/A'
+  }
+}
+
 // Calculate number of bays and last bay width from total length and standard bay width
 export const calculateBayConfiguration = (totalLength, standardBayWidth) => {
   const totalLengthFeet = convertToFeet(totalLength);
