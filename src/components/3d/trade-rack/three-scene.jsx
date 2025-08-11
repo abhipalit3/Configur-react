@@ -44,7 +44,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
 
   useEffect(() => {
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.toneMapping = THREE.ACESFilmicToneMapping
@@ -55,7 +55,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], onScene
 
     // Scene & Lights
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0xdbefff)
+    scene.background = null // Transparent background
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.5)
     scene.add(ambient)
