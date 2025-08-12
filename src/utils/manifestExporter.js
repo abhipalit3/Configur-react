@@ -1,4 +1,10 @@
 /**
+ * Copyright (c) 2024 DPR Construction. All rights reserved.
+ * This software is proprietary and confidential.
+ * Unauthorized copying or distribution is strictly prohibited.
+ */
+
+/**
  * Manifest Exporter - Utility for debugging and data migration
  * Use in browser console: window.exportManifest()
  */

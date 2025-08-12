@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024 DPR Construction. All rights reserved.
+ * This software is proprietary and confidential.
+ * Unauthorized copying or distribution is strictly prohibited.
+ */
+
 import React, { Fragment, useState } from 'react'
 
 import PropTypes from 'prop-types'

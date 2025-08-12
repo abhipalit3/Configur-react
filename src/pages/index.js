@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024 DPR Construction. All rights reserved.
+ * This software is proprietary and confidential.
+ * Unauthorized copying or distribution is strictly prohibited.
+ */
+
 export { default as AppPage } from './app-page'
 export { default as Home } from './home'
 export { default as Login } from './login'

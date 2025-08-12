@@ -1,4 +1,10 @@
 /**
+ * Copyright (c) 2024 DPR Construction. All rights reserved.
+ * This software is proprietary and confidential.
+ * Unauthorized copying or distribution is strictly prohibited.
+ */
+
+/**
  * File operations utility for saving/loading trade rack configurations
  * This will be replaced with Azure database operations later
  */

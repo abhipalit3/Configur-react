@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024 DPR Construction. All rights reserved.
+ * This software is proprietary and confidential.
+ * Unauthorized copying or distribution is strictly prohibited.
+ */
+
 // chatInterface.js
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';

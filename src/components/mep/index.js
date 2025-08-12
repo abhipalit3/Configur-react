@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024 DPR Construction. All rights reserved.
+ * This software is proprietary and confidential.
+ * Unauthorized copying or distribution is strictly prohibited.
+ */
+
 export { default as AppDuctwork } from './app-ductwork'
 export { default as AppPiping } from './app-piping'
 export { default as AppConduits } from './app-conduits'

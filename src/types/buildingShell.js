@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024 DPR Construction. All rights reserved.
+ * This software is proprietary and confidential.
+ * Unauthorized copying or distribution is strictly prohibited.
+ */
+
 export const buildingShellDefaults = {
   // Length dimensions - stored as separate feet and inches
   corridorWidth: { feet: 10, inches: 0 },
