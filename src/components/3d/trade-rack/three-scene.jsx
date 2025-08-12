@@ -11,6 +11,7 @@ import { DuctworkRenderer } from './DuctworkRenderer.js'
 import { PipingRenderer } from '../piping'
 import { DuctEditor } from '../ductwork'
 import { PipeEditor } from '../piping'
+import { createMaterials, loadTextures, disposeMaterials } from '../../../types/materials'
 import './hypar-measurement-styles.css'
 
 
@@ -173,21 +174,19 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     window.addEventListener('keydown', onLog)
 
     // Materials
-    const texLoader = new THREE.TextureLoader()
-    const floorAlbedo = texLoader.load(process.env.PUBLIC_URL + '/textures/Floor-Roof/Wood066_1K-JPG_Color.jpg')
-    const floorNormal = texLoader.load(process.env.PUBLIC_URL + '/textures/Floor-Roof/Wood066_1K-JPG_NormalGL.jpg')
-    const floorRough  = texLoader.load(process.env.PUBLIC_URL + '/textures/Floor-Roof/Wood066_1K-JPG_Roughness.jpg')
-    ;[floorAlbedo, floorNormal, floorRough].forEach(tex => {
-      tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-      tex.repeat.set(8, 8)
-    })
-
-    const floorMaterial    = new THREE.MeshStandardMaterial({ map: floorAlbedo, normalMap: floorNormal, roughnessMap: floorRough, metalness: 0.2, roughness: 1.0 })
-    const steelMat         = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 1, roughness: 0.25 })
-    const wallMaterial     = new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.1, roughness: 0.7, transparent: true, opacity: 0.4 })
-    const ceilingMaterial  = new THREE.MeshStandardMaterial({ color: '#f5f5f5', metalness: 0.2, roughness: 0.6, transparent: true, opacity: 0.4 })
-    const roofMaterial     = new THREE.MeshStandardMaterial({ color: '#bdbdbd', metalness: 0.3, roughness: 0.4, transparent: true, opacity: 0.4 })
-    const ductMat          = new THREE.MeshStandardMaterial({ color: '#d05e8f', metalness: 0.5, roughness: 0.9, transparent: true, opacity: 1 })
+    const textures = loadTextures()
+    const materials = createMaterials(textures)
+    const {
+      floorMaterial,
+      postMaterial,
+      longBeamMaterial,
+      transBeamMaterial,
+      wallMaterial,
+      ceilingMaterial,
+      roofMaterial,
+      shellBeamMaterial,
+      ductMat
+    } = materials
 
     /* ---------- parameters ---------- */
     // Use passed rack and building parameters, with defaults as fallback
@@ -235,11 +234,14 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     };
 
     const mats = {
-        steelMat,
+        postMaterial,
+        longBeamMaterial,
+        transBeamMaterial,
         wallMaterial,
         ceilingMaterial,
         floorMaterial,
         roofMaterial,
+        shellBeamMaterial,
         ductMat
         };
     
@@ -893,6 +895,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         delete window.sceneFitViewHandler
       }
       dispose(scene)
+      disposeMaterials(materials)
       renderer.dispose()
       viewCubeRenderer.dispose()
       if (mountRef.current) {

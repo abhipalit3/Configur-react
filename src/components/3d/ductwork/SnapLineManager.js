@@ -293,6 +293,8 @@ export class SnapLineManager {
   createPersistentSnapLines() {
     this.clearPersistentSnapLines()
     
+    // Snap lines disabled - return early without creating any lines
+    return
     
     const snapLines = this.getSnapLinesFromRackGeometry()
     const rackLength = this.ft2m(this.getRackLength()) + this.in2m(12)

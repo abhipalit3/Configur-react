@@ -62,8 +62,8 @@ export function setupGUI(scene, params, camera, controls, mats) {
     });
 
     // rack + shell
-    const rack  = buildRack(params, mats.steelMat);
-    const shell = buildShell(params, mats.wallMaterial, mats.ceilingMaterial, mats.floorMaterial, mats.roofMaterial);
+    const rack  = buildRack(params, mats.postMaterial, mats.longBeamMaterial, mats.transBeamMaterial);
+    const shell = buildShell(params, mats.wallMaterial, mats.ceilingMaterial, mats.floorMaterial, mats.roofMaterial, mats.shellBeamMaterial);
     [rack, shell].forEach(g => { g.userData.isGenerated = true; scene.add(g); });
 
     // ducts

@@ -59,6 +59,7 @@ export function useSceneShell() {
           materials.ceilingMaterial,
           materials.floorMaterial,
           materials.roofMaterial,
+          materials.shellBeamMaterial,
           snapPoints
         );
       }

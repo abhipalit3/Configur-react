@@ -43,7 +43,7 @@ function syncArrays(p) {
  * Rebuilds the rack, shell, ducts, and pipes in the scene based on params
  * @param {THREE.Scene} scene
  * @param {Object} params
- * @param {Object} mats  { steelMat, wallMaterial, ceilingMaterial, floorMaterial, roofMaterial, ductMat }
+ * @param {Object} mats  { postMaterial, longBeamMaterial, transBeamMaterial, wallMaterial, ceilingMaterial, floorMaterial, roofMaterial, ductMat }
  */
 export function buildRackScene(scene, params, mats) {
   ensureArrays(params)
@@ -60,7 +60,7 @@ export function buildRackScene(scene, params, mats) {
   const snapPoints = []
 
   // rack only - shell will be managed separately
-  const rack = buildRack(params, mats.steelMat, snapPoints)
+  const rack = buildRack(params, mats.postMaterial, mats.longBeamMaterial, mats.transBeamMaterial, snapPoints)
   rack.userData.isGenerated = true
   scene.add(rack)
 

@@ -74,8 +74,7 @@ function addEdges(mesh, color = 0x333333, lineWidth = 0.5, opacity = 0.5) {
  *                        the rack.  Child meshes share the material
  *                        `p.material || steelMat`.
  */
-export function buildRack(p, steelMat, snapPoints = []){
-  const mat   = p.material ?? steelMat;
+export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, snapPoints = []){
   const g     = new THREE.Group();
 
   // Import convertToFeet utility with safety checks
@@ -193,23 +192,27 @@ export function buildRack(p, steelMat, snapPoints = []){
   const dx = lenM/2, dz = depthM/2;               // half‑extents
 
   /* -- reusable geometries ------------------------------------------------- */
-  const postGeom = new THREE.BoxGeometry(postM, totalH, postM);
+  const postGeom = new THREE.BoxGeometry(postM, totalH - beamM, postM);
   // Longitudinal beams should be reduced by post width to fit between inset posts
-  const longGeom = new THREE.BoxGeometry(lenM - postM, beamM, beamM);       // X beams between inset posts
-  const tranGeom = new THREE.BoxGeometry(beamM, beamM, depthM - postM);     // Z beams between inset posts
+  const longGeom = new THREE.BoxGeometry(lenM , beamM, beamM);       // X beams between inset posts
+  const tranGeom = new THREE.BoxGeometry(beamM, beamM, depthM - postM*2);     // Z beams between inset posts
 
   /* -- vertical posts ---------------------------------------------------- */
   /* There are (bayCount + 1) frames along X and two frames (front/back) along Z. */
   const zRows = [-dz + postM/2,  dz - postM/2];   // back row, front row (posts inside rack boundary)
   // Calculate post positions with variable bay widths
   // Start at left edge, inset by half post width so edge aligns with rack boundary
-  let currentX = -dx + postM/2;  // Start at left edge (post center inset by half post width)
+  let currentX = -dx + postM;  // Start at left edge (post center inset by half post width)
   for (let bay = 0; bay <= bayCount; bay++) {    // walk bays left ➜ right
+    // Adjust the last post position to end at dx - postM
+    if (bay === bayCount) {
+      currentX = dx;  // Force last post to this position
+    }
     for (const z of zRows) {                       // place back & front posts
-      const post = new THREE.Mesh(postGeom, mat);
+      const post = new THREE.Mesh(postGeom, postMaterial);
       post.position.set(
         currentX,              // length direction
-        rackBaseY + totalH / 2,    // centre‑Y based on mount type
+        rackBaseY + totalH / 2 - beamM/2,    // centre‑Y based on mount type
         z                      // depth direction (back / front)
       );
       g.add(post);
@@ -271,8 +274,8 @@ const bottomLevel = Math.min(...levelList);  // lowest  beam elevation
 [topLevel, bottomLevel].forEach(y => {
   // Position beams at the same Z as posts (inside rack boundary)
   [dz - postM/2, -dz + postM/2].forEach(z => {
-    const rail = new THREE.Mesh(longGeom, mat);
-    rail.position.set(0, y, z);
+    const rail = new THREE.Mesh(longGeom, longBeamMaterial);
+    rail.position.set(postM/2, y, z);
     g.add(rail);
     addEdges(rail);
     rail.updateMatrixWorld(true)
@@ -291,9 +294,14 @@ const bottomLevel = Math.min(...levelList);  // lowest  beam elevation
 /* ---------- transverse beams: at every level --------------------------- */
 levelList.forEach(y => {
   // Use the same post positions for transverse beams (inset to align with posts)
-  let currentX = -dx + postM/2;
+  let currentX = -dx + postM;
   for (let i = 0; i <= bayCount; i++) {
-    const tr = new THREE.Mesh(tranGeom, mat);
+
+    if (i === bayCount) {
+      currentX = dx;  // Force last beam to align with last post
+    }
+
+    const tr = new THREE.Mesh(tranGeom, transBeamMaterial);
     tr.position.set(currentX, y, 0);
     g.add(tr);
     addEdges(tr);
@@ -427,7 +435,7 @@ function createIBeamGeometry(depth, length) {
  *  * floor, ceiling, roof slabs (XY‑planes)  
  *  * front & back walls   (XZ‑planes)
  */
-export function buildShell(p, wallMaterial, ceilingMaterial, floorMaterial, roofMaterial, snapPoints = []){
+export function buildShell(p, wallMaterial, ceilingMaterial, floorMaterial, roofMaterial, shellBeamMaterial, snapPoints = []){
   const s   = new THREE.Group();
 
   // Import convertToFeet utility
@@ -468,7 +476,7 @@ export function buildShell(p, wallMaterial, ceilingMaterial, floorMaterial, roof
 
   const ceiling = new THREE.Mesh(ceilingGeom, ceilingMaterial);
   ceiling.rotation.x = -Math.PI/2;
-  ceiling.position.y = ceilM - in2m(p.ceilingDepth)/2; // ceiling at Y=ceilM
+  ceiling.position.y = ceilM + in2m(p.ceilingDepth)/2; // ceiling at Y=ceilM
   s.add(ceiling);
   addEdges(ceiling, 0x333333, 0.5, 0.1);
   // Add snap points for ceiling
@@ -540,14 +548,7 @@ export function buildShell(p, wallMaterial, ceilingMaterial, floorMaterial, roof
     const beamDepthTotal = convertToFeet(p.beamDepth);
     
     if (beamDepthTotal > 0) {
-      // Create steel I-beam material with metallic appearance
-      const beamMaterial = new THREE.MeshStandardMaterial({
-        color: '#8B8680', // Steel gray color
-        metalness: 0.7,
-        roughness: 0.3,
-        opacity: 0.9, // Similar opacity to roof
-        transparent: true
-      });
+      // Use the passed shell beam material
       
       // Create I-beam geometry - length should span the entire slab width (Z direction - perpendicular to corridor)
       const beamDepthInches = beamDepthTotal * 12; // Convert feet to inches for geometry function
@@ -559,7 +560,7 @@ export function buildShell(p, wallMaterial, ceilingMaterial, floorMaterial, roof
       const beamY = heightM - ft2m(beamDepthTotal) / 2 - 0.001; // Just below the roof with small offset
       
       // Single I-beam positioned at center, running perpendicular to corridor (Z direction)
-      const iBeam = new THREE.Mesh(iBeamGeom, beamMaterial);
+      const iBeam = new THREE.Mesh(iBeamGeom, shellBeamMaterial);
       iBeam.position.set(0, beamY, 0); // Centered in X and Z
       iBeam.rotation.y = Math.PI / 2; // Rotate 90 degrees to align with Z-axis (perpendicular to corridor)
       s.add(iBeam);
