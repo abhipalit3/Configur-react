@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react';
-import { buildShell, buildFloorOnly } from '../components/3d/trade-rack/utils';
+import { buildShell, buildFloorOnly } from '../components/3d/core/utils';
 
 export function useSceneShell() {
   const currentGroupRef = useRef(null);

@@ -4,7 +4,7 @@ import {
   buildRack,
   buildShell,
   buildPipesFlexible
-} from './utils.js'
+} from '../core/utils.js'
 
 // Ensure arrays exist even if user omitted them
 function ensureArrays(p) {

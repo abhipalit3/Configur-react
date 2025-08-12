@@ -1,5 +1,4 @@
 export { default as AppButtonLeftMenu } from './app-button-left-menu'
-export { default as AppNavbar } from './app-navbar'
 export { default as Navbar } from './navbar'
 export { default as ProjectsNavbar } from './projects-navbar'
 export { default as ProjectDashboardNavbar } from './project-dashboard-navbar'

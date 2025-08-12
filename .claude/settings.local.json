@@ -5,7 +5,9 @@
       "Bash(node:*)",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

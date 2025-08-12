@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { extractSnapPoints } from '../trade-rack/extractGeometrySnapPoints.js'
+import { extractSnapPoints } from '../core/extractGeometrySnapPoints.js'
 
 /**
  * PipeGeometry - Handles creation of 3D pipe geometries and materials

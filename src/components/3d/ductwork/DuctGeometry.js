@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { extractSnapPoints } from '../trade-rack/extractGeometrySnapPoints.js'
+import { extractSnapPoints } from '../core/extractGeometrySnapPoints.js'
 
 /**
  * DuctGeometry - Handles creation of 3D duct geometries and materials
