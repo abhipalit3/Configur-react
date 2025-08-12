@@ -2,6 +2,7 @@
   "name": "configur",
   "version": "1.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "dependencies": {
     "@craco/craco": "^7.1.0",
     "gh-pages": "^6.3.0",
