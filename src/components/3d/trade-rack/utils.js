@@ -194,14 +194,16 @@ export function buildRack(p, steelMat, snapPoints = []){
 
   /* -- reusable geometries ------------------------------------------------- */
   const postGeom = new THREE.BoxGeometry(postM, totalH, postM);
-  const longGeom = new THREE.BoxGeometry(lenM, beamM, beamM);       // X beams to match rack length exactly
-  const tranGeom = new THREE.BoxGeometry(beamM, beamM, depthM - postM);     // Z beams
+  // Longitudinal beams should be reduced by post width to fit between inset posts
+  const longGeom = new THREE.BoxGeometry(lenM - postM, beamM, beamM);       // X beams between inset posts
+  const tranGeom = new THREE.BoxGeometry(beamM, beamM, depthM - postM);     // Z beams between inset posts
 
   /* -- vertical posts ---------------------------------------------------- */
   /* There are (bayCount + 1) frames along X and two frames (front/back) along Z. */
-  const zRows = [-dz,  dz];                        // back row, front row
+  const zRows = [-dz + postM/2,  dz - postM/2];   // back row, front row (posts inside rack boundary)
   // Calculate post positions with variable bay widths
-  let currentX = -dx;  // Start at left end
+  // Start at left edge, inset by half post width so edge aligns with rack boundary
+  let currentX = -dx + postM/2;  // Start at left edge (post center inset by half post width)
   for (let bay = 0; bay <= bayCount; bay++) {    // walk bays left ➜ right
     for (const z of zRows) {                       // place back & front posts
       const post = new THREE.Mesh(postGeom, mat);
@@ -267,7 +269,8 @@ const bottomLevel = Math.min(...levelList);  // lowest  beam elevation
 
 /* ---------- longitudinal beams: ONLY at top & bottom ------------------- */
 [topLevel, bottomLevel].forEach(y => {
-  [dz, -dz].forEach(z => {
+  // Position beams at the same Z as posts (inside rack boundary)
+  [dz - postM/2, -dz + postM/2].forEach(z => {
     const rail = new THREE.Mesh(longGeom, mat);
     rail.position.set(0, y, z);
     g.add(rail);
@@ -287,8 +290,8 @@ const bottomLevel = Math.min(...levelList);  // lowest  beam elevation
 
 /* ---------- transverse beams: at every level --------------------------- */
 levelList.forEach(y => {
-  // Use the same post positions for transverse beams
-  let currentX = -dx;
+  // Use the same post positions for transverse beams (inset to align with posts)
+  let currentX = -dx + postM/2;
   for (let i = 0; i <= bayCount; i++) {
     const tr = new THREE.Mesh(tranGeom, mat);
     tr.position.set(currentX, y, 0);
