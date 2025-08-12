@@ -18,6 +18,7 @@ export class PipeInteraction {
     this.raycaster = new THREE.Raycaster()
     this.mouse = new THREE.Vector2()
     this.domElement = renderer.domElement
+    this.pipeMeasurementIds = []
     
     this.setupTransformControls()
     this.setupEventListeners()
@@ -40,6 +41,8 @@ export class PipeInteraction {
           this.snapLineManager.clearSnapGuides()
         }
         this.savePipePosition()
+        // Update measurements after transform ends
+        this.updatePipeMeasurements()
       }
     })
 
@@ -65,7 +68,7 @@ export class PipeInteraction {
     this.updateMousePosition(event)
     this.raycaster.setFromCamera(this.mouse, this.camera)
 
-    // Find piping group in scene
+    // Handle pipe selection/deselection (measurement clicks are handled by global handler with event capture)
     let pipingGroup = null
     this.scene.traverse((child) => {
       if (child.isGroup && child.name === 'PipingGroup') {
@@ -161,6 +164,9 @@ export class PipeInteraction {
     // Calculate and update tier information
     this.updatePipeTierInfo()
 
+    // Create measurement lines
+    this.createPipeMeasurements()
+
     const pipeData = pipeGroup.userData.pipeData
     console.log('🔧 Pipe selected:', pipeData)
   }
@@ -171,6 +177,9 @@ export class PipeInteraction {
       this.pipeGeometry.updatePipeAppearance(this.selectedPipe, 'normal')
       this.selectedPipe = null
     }
+
+    // Clear measurement lines
+    this.clearPipeMeasurements()
 
     // Detach transform controls
     this.transformControls.detach()
@@ -326,7 +335,9 @@ export class PipeInteraction {
               x: newPosition.x,
               y: newPosition.y,
               z: newPosition.z
-            }
+            },
+            tier: this.selectedPipe.userData.tier,
+            tierName: this.selectedPipe.userData.tierName
           }
         }
         return item
@@ -552,6 +563,74 @@ export class PipeInteraction {
     } catch (error) {
       console.error('❌ Error updating pipe dimensions:', error)
     }
+  }
+
+  createPipeMeasurements() {
+    if (!this.selectedPipe) return
+    
+    const measurementTool = window.measurementToolInstance
+    if (!measurementTool) return
+
+    
+    const pipeData = this.selectedPipe.userData.pipeData
+    const pipePos = this.selectedPipe.position
+    
+    const pipeDiameter = this.snapLineManager.in2m(pipeData.diameter || 2)
+    const insulation = this.snapLineManager.in2m(pipeData.insulation || 0)
+    const totalDiameter = pipeDiameter + (2 * insulation)
+    const radius = totalDiameter / 2
+    
+    // Get post positions from snap lines
+    const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
+    const rightPost = snapLines.vertical.find(line => line.side === 'right')
+    const leftPost = snapLines.vertical.find(line => line.side === 'left')
+    
+    if (!rightPost || !leftPost) return
+    
+    const pipeLeft = pipePos.z - radius
+    const pipeRight = pipePos.z + radius
+    
+    const dimY = pipePos.y
+    const dimX = pipePos.x
+    
+    this.pipeMeasurementIds = []
+    
+    // Right side measurement (from left edge of pipe to right post) - same as duct logic
+    const rightP1 = new THREE.Vector3(dimX, dimY, pipeLeft)
+    const rightP2 = new THREE.Vector3(dimX, dimY, rightPost.z)
+    measurementTool.drawMeasurement(rightP1, rightP2)
+    const rightMeasurementId = measurementTool.measurementId
+    this.pipeMeasurementIds.push(rightMeasurementId)
+    
+    // Left side measurement (from right edge of pipe to left post) - same as duct logic
+    const leftP1 = new THREE.Vector3(dimX, dimY, pipeRight)
+    const leftP2 = new THREE.Vector3(dimX, dimY, leftPost.z)
+    measurementTool.drawMeasurement(leftP1, leftP2)
+    const leftMeasurementId = measurementTool.measurementId
+    this.pipeMeasurementIds.push(leftMeasurementId)
+
+  }
+
+  clearPipeMeasurements() {
+    const measurementTool = window.measurementToolInstance
+    if (!measurementTool || !this.pipeMeasurementIds) return
+    
+    this.pipeMeasurementIds.forEach(id => {
+      measurementTool.removeMeasurement(id)
+    })
+    this.pipeMeasurementIds = []
+  }
+
+  updatePipeMeasurements() {
+    if (!this.selectedPipe || !this.pipeMeasurementIds?.length) return
+    
+    this.clearPipeMeasurements()
+    this.createPipeMeasurements()
+  }
+
+
+  getSelectedPipe() {
+    return this.selectedPipe
   }
 
   dispose() {

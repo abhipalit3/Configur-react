@@ -114,9 +114,9 @@ export class DuctworkRenderer {
       position = 'bottom'
     } = ductData
 
-    // Calculate duct length
+    // Use rack length parameter directly to match user input
     const rackLengthFt = this.snapLineManager.getRackLength()
-    const ductLength = this.snapLineManager.ft2m(rackLengthFt) + this.snapLineManager.in2m(12)
+    const ductLength = this.snapLineManager.ft2m(rackLengthFt)
 
     let ductPosition
     let calculatedTierInfo = null

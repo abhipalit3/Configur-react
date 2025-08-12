@@ -71,7 +71,7 @@ export class DuctInteraction {
     this.updateMousePosition(event)
     this.raycaster.setFromCamera(this.mouse, this.camera)
 
-    // Find ductwork group in scene
+    // Handle duct selection/deselection (measurement clicks are handled by global handler with event capture)
     let ductworkGroup = null
     this.scene.traverse((child) => {
       if (child.isGroup && child.name === 'DuctworkGroup') {
@@ -242,6 +242,7 @@ export class DuctInteraction {
     
     const measurementTool = window.measurementToolInstance
     if (!measurementTool) return
+
     
     const ductData = this.selectedDuct.userData.ductData
     const ductPos = this.selectedDuct.position
@@ -269,13 +270,16 @@ export class DuctInteraction {
     const rightP1 = new THREE.Vector3(dimX, dimY, ductLeft)
     const rightP2 = new THREE.Vector3(dimX, dimY, rightPost.z)
     measurementTool.drawMeasurement(rightP1, rightP2)
-    this.ductMeasurementIds.push(measurementTool.measurementId)
+    const rightMeasurementId = measurementTool.measurementId
+    this.ductMeasurementIds.push(rightMeasurementId)
     
     // Left side measurement
     const leftP1 = new THREE.Vector3(dimX, dimY, ductRight)
     const leftP2 = new THREE.Vector3(dimX, dimY, leftPost.z)
     measurementTool.drawMeasurement(leftP1, leftP2)
-    this.ductMeasurementIds.push(measurementTool.measurementId)
+    const leftMeasurementId = measurementTool.measurementId
+    this.ductMeasurementIds.push(leftMeasurementId)
+
   }
 
   clearDuctMeasurements() {
@@ -295,6 +299,7 @@ export class DuctInteraction {
     this.clearDuctMeasurements()
     this.createDuctMeasurements()
   }
+
 
   handleHover() {
     this.raycaster.setFromCamera(this.mouse, this.camera)

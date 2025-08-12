@@ -105,8 +105,8 @@ export function buildRack(p, steelMat, snapPoints = []){
   };
 
   // Calculate bay configuration from total length and standard bay width
-  const totalLengthFeet = p.rackLength ? convertToFeet(p.rackLength) : (p.totalLength || (p.bayCount * p.bayWidth)); // backwards compatibility
-  const standardBayFeet = p.bayWidth ? convertToFeet(p.bayWidth) : (p.standardBayWidth || p.bayWidth || 3);
+  const totalLengthFeet = p.rackLength ? convertToFeet(p.rackLength) : (p.totalLength || (isFinite(p.bayCount) && isFinite(p.bayWidth) ? (p.bayCount * p.bayWidth) : 12)); // backwards compatibility
+  const standardBayFeet = p.bayWidth ? convertToFeet(p.bayWidth) : (p.standardBayWidth || 3);
   
   // Validate dimensions before calculations
   if (!isFinite(totalLengthFeet) || totalLengthFeet <= 0) {
@@ -168,11 +168,18 @@ export function buildRack(p, steelMat, snapPoints = []){
   
   if (mountType === 'deck') {
     // Deck mounted: rack hangs from the ceiling/beam
-    if (p.buildingContext && p.buildingContext.corridorHeight && p.buildingContext.beamDepth) {
+    // PRIORITY: Building shell context takes precedence over stored topClearance
+    if (p.buildingContext && p.buildingContext.corridorHeight && p.buildingContext.beamDepth !== undefined) {
       const corridorHeightFt = convertToFeet(p.buildingContext.corridorHeight);
       const beamDepthFt = convertToFeet(p.buildingContext.beamDepth);
-      topClearanceFt = corridorHeightFt - beamDepthFt;
-      // Deck mounted configuration calculated
+      
+      // Validate beam depth to avoid NaN issues
+      if (isFinite(corridorHeightFt) && isFinite(beamDepthFt) && corridorHeightFt > 0) {
+        topClearanceFt = corridorHeightFt - beamDepthFt;
+        console.log(`📐 Deck mounted rack positioned: corridor=${corridorHeightFt}ft, beam=${beamDepthFt}ft, clearance=${topClearanceFt}ft`)
+      } else {
+        console.warn('❌ Invalid building context values, using default topClearance')
+      }
     }
     rackBaseY = ft2m(topClearanceFt) - tiersM.reduce((s,h)=>s+h,0) - (p.tierCount || tiersM.length) * beamM;
   } else {
@@ -187,7 +194,7 @@ export function buildRack(p, steelMat, snapPoints = []){
 
   /* -- reusable geometries ------------------------------------------------- */
   const postGeom = new THREE.BoxGeometry(postM, totalH, postM);
-  const longGeom = new THREE.BoxGeometry(lenM + postM, beamM, beamM);       // X beams
+  const longGeom = new THREE.BoxGeometry(lenM, beamM, beamM);       // X beams to match rack length exactly
   const tranGeom = new THREE.BoxGeometry(beamM, beamM, depthM - postM);     // Z beams
 
   /* -- vertical posts ---------------------------------------------------- */
@@ -663,7 +670,13 @@ export function buildPipesFlexible(p, tierIdx, pipes, pipeMat, snapPoints = []) 
 
   pipes = pipes.map(normalise);
 
-  const lenM  = ft2m(p.bayCount * p.bayWidth) + in2m(12); // pipe length (X-axis) with slight overhang
+  // Use rack length parameter directly to match user input
+  const convertToFeet = (feetInches) => {
+    if (typeof feetInches === 'number') return feetInches;
+    return feetInches.feet + (feetInches.inches / 12);
+  };
+  const totalLengthFeet = p.rackLength ? convertToFeet(p.rackLength) : (p.totalLength || (p.bayCount * p.bayWidth));
+  const lenM  = ft2m(totalLengthFeet); // pipe length (X-axis) to match user input
   const beamM = in2m(p.beamSize);
 
   const g = new THREE.Group();

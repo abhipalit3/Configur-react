@@ -1,11 +1,19 @@
-import React, { Fragment } from 'react'
+import React, { Fragment, useState } from 'react'
 
 import PropTypes from 'prop-types'
 
 import './app-bottom-options.css'
 
 const AppBottomOptions = (props) => {
-  const { onMeasurementClick, isMeasurementActive, onClearMeasurements } = props
+  const { onMeasurementClick, isMeasurementActive, onClearMeasurements, onViewModeChange, onFitView, initialViewMode = '3D' } = props
+  const [viewMode, setViewMode] = useState(initialViewMode) // Use passed initial view mode
+  
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode)
+    if (onViewModeChange) {
+      onViewModeChange(mode)
+    }
+  }
   
   return (
     <div className={`app-bottom-options-wrapper ${props.rootClassName}`}>
@@ -39,7 +47,8 @@ const AppBottomOptions = (props) => {
         <button
         id="2DViewButton"
         type="button"
-        className="app-bottom-options-two-d-view-buton button-icon2"
+        className={`app-bottom-options-two-d-view-buton button-icon2 ${viewMode === '2D' ? 'active' : ''}`}
+        onClick={() => handleViewModeChange('2D')}
       >
         <span className="app-bottom-options-text1">
           {props.text1 ?? (
@@ -50,9 +59,10 @@ const AppBottomOptions = (props) => {
         </span>
       </button>
       <button
-        id="BuildingPropButton"
+        id="3DViewButton"
         type="button"
-        className="app-bottom-options-three-d-view-button button-icon2"
+        className={`app-bottom-options-three-d-view-button button-icon2 ${viewMode === '3D' ? 'active' : ''}`}
+        onClick={() => handleViewModeChange('3D')}
       >
         <span className="app-bottom-options-text2">
           {props.text11 ?? (
@@ -63,9 +73,10 @@ const AppBottomOptions = (props) => {
         </span>
       </button>
       <button
-        id="BuildingPropButton"
+        id="FitViewButton"
         type="button"
         className="app-bottom-options-fit-view-button button-icon2"
+        onClick={onFitView}
       >
         <svg
           width="24"
@@ -117,6 +128,9 @@ AppBottomOptions.defaultProps = {
   onMeasurementClick: () => {},
   isMeasurementActive: false,
   onClearMeasurements: () => {},
+  onViewModeChange: () => {},
+  onFitView: () => {},
+  initialViewMode: '3D',
 }
 
 AppBottomOptions.propTypes = {
@@ -126,6 +140,9 @@ AppBottomOptions.propTypes = {
   onMeasurementClick: PropTypes.func,
   isMeasurementActive: PropTypes.bool,
   onClearMeasurements: PropTypes.func,
+  onViewModeChange: PropTypes.func,
+  onFitView: PropTypes.func,
+  initialViewMode: PropTypes.string,
 }
 
 export default AppBottomOptions

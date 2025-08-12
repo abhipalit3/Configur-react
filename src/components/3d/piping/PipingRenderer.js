@@ -95,9 +95,9 @@ export class PipingRenderer {
 
       console.log('🔧 Creating pipes:', { diameter, insulation, spacing, count, pipeType })
 
-      // Calculate pipe length based on rack dimensions (same as ducts)
+      // Use rack length parameter directly to match user input
       const rackLength = this.calculateRackLength()
-      const pipeLength = rackLength * 12 + 12 // Convert feet to inches + 12" extension like ducts
+      const pipeLength = rackLength * 12 // Convert feet to inches
 
       // Create multiple pipes based on count
       for (let i = 0; i < count; i++) {

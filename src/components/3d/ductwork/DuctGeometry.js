@@ -1,10 +1,12 @@
 import * as THREE from 'three'
+import { extractSnapPoints } from '../trade-rack/extractGeometrySnapPoints.js'
 
 /**
  * DuctGeometry - Handles creation of 3D duct geometries and materials
  */
 export class DuctGeometry {
   constructor() {
+    this.snapPoints = null // Will be set by three-scene
     this.materials = {
       duct: new THREE.MeshLambertMaterial({
         color: 0xd05e8f, // Pink color for duct
@@ -24,17 +26,17 @@ export class DuctGeometry {
         opacity: 0.8,
         side: THREE.DoubleSide
       }),
-      insulation: new THREE.MeshBasicMaterial({
-        color: 0xCCCCCC, // Light gray wireframe
-        wireframe: true,
+      insulation: new THREE.MeshLambertMaterial({
+        color: 0xCCCCCC, // Light gray surface
         transparent: true,
-        opacity: 0.6
+        opacity: 0.3,
+        side: THREE.DoubleSide
       }),
-      insulationSelected: new THREE.MeshBasicMaterial({
-        color: 0x4A90E2, // Blue wireframe when selected
-        wireframe: true,
+      insulationSelected: new THREE.MeshLambertMaterial({
+        color: 0x4A90E2, // Blue surface when selected
         transparent: true,
-        opacity: 0.8
+        opacity: 0.4,
+        side: THREE.DoubleSide
       }),
       wireframe: new THREE.MeshBasicMaterial({
         color: 0x333333,
@@ -49,6 +51,11 @@ export class DuctGeometry {
         opacity: 0.6
       })
     }
+  }
+
+  // Set reference to snap points array from measurement tool
+  setSnapPoints(snapPoints) {
+    this.snapPoints = snapPoints
   }
 
   // Utility functions
@@ -154,8 +161,9 @@ export class DuctGeometry {
       coreMesh.userData.customSelectedMaterial = customDuctSelectedMaterial
       ductGroup.add(coreMesh)
       
-      // Create insulation shell (outer) as wireframe outline
-      const insulationGeometry = this.createRectangularDuctGeometry(ductLength, totalHeight, totalWidth)
+      // Create insulation shell (outer) - full length to be flush with rack boundaries
+      const insulationLength = ductLength // Full length, flush with rack
+      const insulationGeometry = this.createRectangularDuctGeometry(insulationLength, totalHeight, totalWidth)
       const insulationMesh = new THREE.Mesh(insulationGeometry, this.materials.insulation)
       insulationMesh.name = 'DuctInsulation'
       ductGroup.add(insulationMesh)
@@ -169,11 +177,28 @@ export class DuctGeometry {
       ductGroup.add(ductMesh)
     }
 
-    // Wireframe outline
-    const wireframeGeometry = this.createRectangularDuctGeometry(ductLength, totalHeight, totalWidth)
+    // Wireframe outline - full length to match insulation
+    const wireframeLength = ductLength
+    const wireframeGeometry = this.createRectangularDuctGeometry(wireframeLength, totalHeight, totalWidth)
     const wireframeMesh = new THREE.Mesh(wireframeGeometry, this.materials.wireframe)
     wireframeMesh.name = 'DuctWireframe'
     ductGroup.add(wireframeMesh)
+
+    // Add snap points for measurement tool if available
+    if (this.snapPoints) {
+      ductGroup.updateMatrixWorld(true)
+      const { corners, edges } = extractSnapPoints(wireframeGeometry, ductGroup.matrixWorld)
+      
+      // Add corners as vertex snap points
+      this.snapPoints.push(...corners.map(p => ({ point: p, type: 'vertex' })))
+      
+      // Add edges as edge snap points
+      this.snapPoints.push(...edges.map(line => ({ 
+        start: line.start, 
+        end: line.end, 
+        type: 'edge' 
+      })))
+    }
 
     return ductGroup
   }

@@ -1291,4 +1291,5 @@ export class MeasurementTool {
       console.error('❌ Error restoring measurements from manifest:', error)
     }
   }
+
 }

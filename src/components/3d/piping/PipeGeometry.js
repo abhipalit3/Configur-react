@@ -1,10 +1,12 @@
 import * as THREE from 'three'
+import { extractSnapPoints } from '../trade-rack/extractGeometrySnapPoints.js'
 
 /**
  * PipeGeometry - Handles creation of 3D pipe geometries and materials
  */
 export class PipeGeometry {
   constructor() {
+    this.snapPoints = null // Will be set by three-scene
     this.materials = {
       // Copper pipes - reddish-brown color
       copper: new THREE.MeshLambertMaterial({
@@ -84,6 +86,11 @@ export class PipeGeometry {
         side: THREE.DoubleSide
       })
     }
+  }
+
+  // Set reference to snap points array from measurement tool
+  setSnapPoints(snapPoints) {
+    this.snapPoints = snapPoints
   }
 
   // Utility functions
@@ -189,11 +196,162 @@ export class PipeGeometry {
 
     // Add insulation if specified
     if (insulation > 0) {
-      const insulationGeometry = this.createPipeGeometry(lengthM, diameterM + 2 * insulationM)
+      // Make insulation full length to be flush with rack boundaries
+      const insulationLength = lengthM // Full length, flush with rack
+      const insulationGeometry = this.createPipeGeometry(insulationLength, diameterM + 2 * insulationM)
       const insulationMesh = new THREE.Mesh(insulationGeometry, this.materials.insulation)
       insulationMesh.name = 'Insulation'
       insulationMesh.rotation.z = Math.PI / 2 // Rotate to align with X-axis
       pipeGroup.add(insulationMesh)
+    }
+
+    // Add snap points for measurement tool if available
+    if (this.snapPoints) {
+      pipeGroup.updateMatrixWorld(true)
+      
+      // Get the pipe's world position
+      const worldPosition = new THREE.Vector3()
+      pipeGroup.getWorldPosition(worldPosition)
+      
+      const halfLength = lengthM / 2
+      const pipeRadius = diameterM / 2
+      
+      // === MAIN PIPE SNAP POINTS ===
+      // Center points (front and back ends) - pipe centerline
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z), 
+        type: 'vertex' 
+      })
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z), 
+        type: 'vertex' 
+      })
+      
+      // Top points of main pipe (front and back)
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y + pipeRadius, worldPosition.z), 
+        type: 'vertex' 
+      })
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y + pipeRadius, worldPosition.z), 
+        type: 'vertex' 
+      })
+      
+      // Bottom points of main pipe (front and back)
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y - pipeRadius, worldPosition.z), 
+        type: 'vertex' 
+      })
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y - pipeRadius, worldPosition.z), 
+        type: 'vertex' 
+      })
+      
+      // Side points of main pipe (front and back)
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z + pipeRadius), 
+        type: 'vertex' 
+      })
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z + pipeRadius), 
+        type: 'vertex' 
+      })
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z - pipeRadius), 
+        type: 'vertex' 
+      })
+      this.snapPoints.push({ 
+        point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z - pipeRadius), 
+        type: 'vertex' 
+      })
+      
+      // Edge lines for main pipe
+      this.snapPoints.push({
+        start: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y + pipeRadius, worldPosition.z),
+        end: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y + pipeRadius, worldPosition.z),
+        type: 'edge'
+      })
+      this.snapPoints.push({
+        start: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y - pipeRadius, worldPosition.z),
+        end: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y - pipeRadius, worldPosition.z),
+        type: 'edge'
+      })
+      this.snapPoints.push({
+        start: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z + pipeRadius),
+        end: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z + pipeRadius),
+        type: 'edge'
+      })
+      this.snapPoints.push({
+        start: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z - pipeRadius),
+        end: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z - pipeRadius),
+        type: 'edge'
+      })
+      
+      // === INSULATION SNAP POINTS (if insulation exists) ===
+      if (insulation > 0) {
+        const insulationRadius = totalRadius
+        const insulationHalfLength = lengthM / 2 // Full insulation length
+        
+        // Top points of insulation (front and back)
+        this.snapPoints.push({ 
+          point: new THREE.Vector3(worldPosition.x - insulationHalfLength, worldPosition.y + insulationRadius, worldPosition.z), 
+          type: 'vertex' 
+        })
+        this.snapPoints.push({ 
+          point: new THREE.Vector3(worldPosition.x + insulationHalfLength, worldPosition.y + insulationRadius, worldPosition.z), 
+          type: 'vertex' 
+        })
+        
+        // Bottom points of insulation (front and back)
+        this.snapPoints.push({ 
+          point: new THREE.Vector3(worldPosition.x - insulationHalfLength, worldPosition.y - insulationRadius, worldPosition.z), 
+          type: 'vertex' 
+        })
+        this.snapPoints.push({ 
+          point: new THREE.Vector3(worldPosition.x + insulationHalfLength, worldPosition.y - insulationRadius, worldPosition.z), 
+          type: 'vertex' 
+        })
+        
+        // Side points of insulation (front and back)
+        this.snapPoints.push({ 
+          point: new THREE.Vector3(worldPosition.x - insulationHalfLength, worldPosition.y, worldPosition.z + insulationRadius), 
+          type: 'vertex' 
+        })
+        this.snapPoints.push({ 
+          point: new THREE.Vector3(worldPosition.x + insulationHalfLength, worldPosition.y, worldPosition.z + insulationRadius), 
+          type: 'vertex' 
+        })
+        this.snapPoints.push({ 
+          point: new THREE.Vector3(worldPosition.x - insulationHalfLength, worldPosition.y, worldPosition.z - insulationRadius), 
+          type: 'vertex' 
+        })
+        this.snapPoints.push({ 
+          point: new THREE.Vector3(worldPosition.x + insulationHalfLength, worldPosition.y, worldPosition.z - insulationRadius), 
+          type: 'vertex' 
+        })
+        
+        // Edge lines for insulation
+        this.snapPoints.push({
+          start: new THREE.Vector3(worldPosition.x - insulationHalfLength, worldPosition.y + insulationRadius, worldPosition.z),
+          end: new THREE.Vector3(worldPosition.x + insulationHalfLength, worldPosition.y + insulationRadius, worldPosition.z),
+          type: 'edge'
+        })
+        this.snapPoints.push({
+          start: new THREE.Vector3(worldPosition.x - insulationHalfLength, worldPosition.y - insulationRadius, worldPosition.z),
+          end: new THREE.Vector3(worldPosition.x + insulationHalfLength, worldPosition.y - insulationRadius, worldPosition.z),
+          type: 'edge'
+        })
+        this.snapPoints.push({
+          start: new THREE.Vector3(worldPosition.x - insulationHalfLength, worldPosition.y, worldPosition.z + insulationRadius),
+          end: new THREE.Vector3(worldPosition.x + insulationHalfLength, worldPosition.y, worldPosition.z + insulationRadius),
+          type: 'edge'
+        })
+        this.snapPoints.push({
+          start: new THREE.Vector3(worldPosition.x - insulationHalfLength, worldPosition.y, worldPosition.z - insulationRadius),
+          end: new THREE.Vector3(worldPosition.x + insulationHalfLength, worldPosition.y, worldPosition.z - insulationRadius),
+          type: 'edge'
+        })
+      }
     }
 
     return pipeGroup

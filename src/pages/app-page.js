@@ -71,13 +71,37 @@ const AppPage = (props) => {
   const [isMeasurementActive, setIsMeasurementActive] = useState(
     initialUIState.isMeasurementActive || false
   )
+  // State to track view mode (2D/3D) - restore from manifest
+  const [viewMode, setViewMode] = useState(
+    initialUIState.viewMode || '3D'
+  )
+  // State to track if configuration is fully loaded
+  const [isConfigLoaded, setIsConfigLoaded] = useState(false)
   // State to track AppAddMEP visibility - restore from manifest, default to false (closed)
   const [isAddMEPVisible, setIsAddMEPVisible] = useState(
     initialUIState.isAddMEPVisible ?? false
   )
   
-  // State for building shell parameters
-  const [buildingParams, setBuildingParams] = useState(buildingShellDefaults)
+  // State for building shell parameters - initialize from saved data
+  const [buildingParams, setBuildingParams] = useState(() => {
+    try {
+      // Try to load building shell parameters from manifest
+      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+      const savedBuildingShell = manifest.buildingShell?.parameters
+      
+      if (savedBuildingShell) {
+        console.log('🏢 Loading saved building shell parameters:', savedBuildingShell)
+        return savedBuildingShell
+      }
+      
+      // Fall back to defaults
+      console.log('🏢 Using default building shell parameters')
+      return buildingShellDefaults
+    } catch (error) {
+      console.error('❌ Error loading building shell parameters:', error)
+      return buildingShellDefaults
+    }
+  })
   
   // State for trade rack parameters
   const [rackParams, setRackParams] = useState(() => {
@@ -91,9 +115,13 @@ const AppPage = (props) => {
         const activeConfig = savedConfigs.find(config => config.id === activeConfigId)
         
         if (activeConfig) {
-          const { id, name, savedAt, importedAt, originalId, ...configParams } = activeConfig
+          const { id, name, savedAt, importedAt, originalId, buildingShellParams, ...configParams } = activeConfig
           // Store in localStorage for tier calculations
           localStorage.setItem('rackParameters', JSON.stringify(configParams))
+          
+          // If there are saved building shell parameters, we should use them during initialization
+          // They will be loaded separately through the buildingParams useState initialization
+          
           return configParams
         }
       }
@@ -195,15 +223,27 @@ const AppPage = (props) => {
     }
   }, [])
 
+  // Mark configuration as loaded after initial render
+  React.useEffect(() => {
+    // Wait a brief moment to ensure all initialization is complete
+    const timer = setTimeout(() => {
+      console.log('🔧 Configuration marked as loaded')
+      setIsConfigLoaded(true)
+    }, 50) // Very short delay to ensure state initialization is complete
+    
+    return () => clearTimeout(timer)
+  }, [])
+
   // Save UI state whenever it changes
   React.useEffect(() => {
     updateUIState({
       activePanel: activePanel,
       isRackPropertiesVisible: isRackPropertiesVisible,
       isMeasurementActive: isMeasurementActive,
-      isAddMEPVisible: isAddMEPVisible
+      isAddMEPVisible: isAddMEPVisible,
+      viewMode: viewMode
     })
-  }, [activePanel, isRackPropertiesVisible, isMeasurementActive, isAddMEPVisible])
+  }, [activePanel, isRackPropertiesVisible, isMeasurementActive, isAddMEPVisible, viewMode])
 
   // Apply loaded rack configuration to 3D scene on mount
   React.useEffect(() => {
@@ -329,6 +369,10 @@ const AppPage = (props) => {
   // Handler for clicking MEP items in the panel (for duct and pipe selection)
   const handleMepItemClick = (item) => {
     if (item.type === 'duct') {
+      // First deselect any selected pipes
+      if (window.pipingRendererInstance?.pipeInteraction) {
+        window.pipingRendererInstance.pipeInteraction.deselectPipe()
+      }
       
       // Find and select the duct in the 3D scene
       if (window.ductworkRendererInstance?.ductInteraction) {
@@ -355,6 +399,10 @@ const AppPage = (props) => {
         }
       }
     } else if (item.type === 'pipe') {
+      // First deselect any selected ducts
+      if (window.ductworkRendererInstance?.ductInteraction) {
+        window.ductworkRendererInstance.ductInteraction.deselectDuct()
+      }
       
       // Find and select the pipe in the 3D scene
       if (window.pipingRendererInstance?.pipeInteraction) {
@@ -473,6 +521,23 @@ const AppPage = (props) => {
     }
   }
   
+  // Handler for view mode change (2D/3D)
+  const handleViewModeChange = (mode) => {
+    console.log('Changing view mode to:', mode)
+    setViewMode(mode) // Update local state for persistence
+    if (window.sceneViewModeHandler) {
+      window.sceneViewModeHandler(mode)
+    }
+  }
+  
+  // Handler for fit view
+  const handleFitView = () => {
+    console.log('Fitting view to content')
+    if (window.sceneFitViewHandler) {
+      window.sceneFitViewHandler()
+    }
+  }
+  
   // Handler for toggling AppAddMEP visibility
   const handleToggleAddMEP = () => {
     setIsAddMEPVisible(!isAddMEPVisible)
@@ -486,20 +551,68 @@ const AppPage = (props) => {
     // Update manifest with building shell data
     updateBuildingShell(params)
     
+    // Get the latest rack parameters from localStorage to ensure we have the current state
+    let currentRackParams = rackParams
+    try {
+      const savedRackParams = localStorage.getItem('rackParameters')
+      if (savedRackParams) {
+        currentRackParams = JSON.parse(savedRackParams)
+      }
+    } catch (error) {
+      console.error('Error loading current rack parameters:', error)
+    }
+    
+    // Update building shell based on current mount type
     if (buildingShell.update) {
-      buildingShell.update(params)
+      const isFloorMounted = currentRackParams.mountType === 'floor'
+      buildingShell.update(params, isFloorMounted)
     }
     
     // Update rack with new building context for top clearance calculation
     if (tradeRack.update) {
       const updatedRackParams = {
-        ...rackParams,
+        ...currentRackParams,
         buildingContext: {
           corridorHeight: params.corridorHeight,
           beamDepth: params.beamDepth
         }
       }
       tradeRack.update(updatedRackParams)
+      
+      // Also update the state to keep it in sync
+      setRackParams(currentRackParams)
+      
+      // Refresh MEP items after rack update to ensure they're positioned correctly
+      setTimeout(() => {
+        if (window.ductworkRendererInstance) {
+          window.ductworkRendererInstance.refreshDuctwork()
+        }
+        if (window.pipingRendererInstance) {
+          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+          window.pipingRendererInstance.updatePiping(storedMepItems)
+        }
+      }, 100)
+    }
+    
+    // If there's an active configuration, update it with the new building shell params
+    const activeConfigId = localStorage.getItem('activeConfiguration')
+    if (activeConfigId) {
+      try {
+        const savedConfigs = JSON.parse(localStorage.getItem('tradeRackConfigurations') || '[]')
+        const updatedConfigs = savedConfigs.map(config => {
+          if (config.id === parseInt(activeConfigId)) {
+            return {
+              ...config,
+              buildingShellParams: params
+            }
+          }
+          return config
+        })
+        localStorage.setItem('tradeRackConfigurations', JSON.stringify(updatedConfigs))
+        console.log('✅ Updated active configuration with new building shell parameters')
+      } catch (error) {
+        console.error('Error updating active configuration with building shell params:', error)
+      }
     }
   }
 
@@ -549,6 +662,7 @@ const AppPage = (props) => {
         name: `Rack Configuration ${savedConfigs.length + 1}`,
         ...params,
         totalHeight: calculateTotalHeight(params),
+        buildingShellParams: buildingParams, // Save building shell parameters with the configuration
         savedAt: new Date().toISOString()
       }
       savedConfigs.push(newConfig)
@@ -569,8 +683,15 @@ const AppPage = (props) => {
   const handleRestoreConfiguration = (config) => {
     
     // Update rack parameters with saved config (excluding metadata)
-    const { id, name, savedAt, importedAt, originalId, ...configParams } = config
+    const { id, name, savedAt, importedAt, originalId, buildingShellParams, ...configParams } = config
     setRackParams(configParams)
+    
+    // Restore building shell parameters if they were saved with the configuration
+    if (buildingShellParams) {
+      console.log('🏢 Restoring building shell parameters from configuration:', buildingShellParams)
+      setBuildingParams(buildingShellParams)
+      updateBuildingShell(buildingShellParams)
+    }
     
     // Store current rack parameters in localStorage for tier calculations
     localStorage.setItem('rackParameters', JSON.stringify(configParams))
@@ -581,23 +702,29 @@ const AppPage = (props) => {
     }
     
     // Apply the configuration to the 3D scene WITHOUT saving a new copy
-    // Switch building shell mode based on mount type
+    // Switch building shell mode based on mount type using restored or current building params
+    const currentBuildingParams = buildingShellParams || buildingParams
     if (buildingShell.switchMode) {
       const isFloorMounted = configParams.mountType === 'floor'
-      buildingShell.switchMode(buildingParams, isFloorMounted)
+      buildingShell.switchMode(currentBuildingParams, isFloorMounted)
     }
     
-    // Combine rack params with building shell context for positioning calculation
+    // CRITICAL: Always ensure building context is passed for deck-mounted racks
+    // This ensures the rack position is calculated correctly based on building shell
     const combinedParams = {
       ...configParams,
       buildingContext: {
-        corridorHeight: buildingParams.corridorHeight,
-        beamDepth: buildingParams.beamDepth
+        corridorHeight: currentBuildingParams.corridorHeight,
+        beamDepth: currentBuildingParams.beamDepth || { feet: 0, inches: 0 } // Ensure beamDepth has a valid default
       }
     }
     
+    // Force a complete rebuild of the rack with updated positioning
     if (tradeRack.update) {
-      tradeRack.update(combinedParams)
+      // Small delay to ensure building shell updates first
+      setTimeout(() => {
+        tradeRack.update(combinedParams)
+      }, 50)
     }
     
     // Update ductwork renderer with restored rack parameters
@@ -916,12 +1043,19 @@ const AppPage = (props) => {
         onMeasurementClick={handleMeasurementToggle}
         isMeasurementActive={isMeasurementActive}
         onClearMeasurements={handleClearMeasurements}
+        onViewModeChange={handleViewModeChange}
+        onFitView={handleFitView}
+        initialViewMode={viewMode}
       />
       
-      <ThreeScene 
-        isMeasurementActive={isMeasurementActive}
-        mepItems={mepItems}
-        onSceneReady={(scene, materials, snapPoints) => {
+      {isConfigLoaded ? (
+        <ThreeScene 
+          isMeasurementActive={isMeasurementActive}
+          mepItems={mepItems}
+          initialRackParams={rackParams}
+          initialBuildingParams={buildingParams}
+          initialViewMode={viewMode}
+          onSceneReady={(scene, materials, snapPoints) => {
           // Set references in the building shell hook
           buildingShell.setReferences(scene, materials, snapPoints)
           
@@ -949,6 +1083,66 @@ const AppPage = (props) => {
           }
         }}
       />
+      ) : (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #f8f9fa 100%)',
+          color: '#333333',
+          fontSize: '16px',
+          zIndex: 1000,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        }}>
+          <div style={{ 
+            textAlign: 'center',
+            padding: '40px',
+            borderRadius: '12px',
+            background: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ 
+              width: '60px', 
+              height: '60px', 
+              border: '3px solid rgba(0, 0, 0, 0.1)', 
+              borderTop: '3px solid #00D4FF',
+              borderRight: '3px solid #00A8CC',
+              borderRadius: '50%',
+              animation: 'spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+              margin: '0 auto 24px'
+            }}></div>
+            <div style={{
+              fontSize: '18px',
+              fontWeight: '500',
+              color: '#333333',
+              marginBottom: '8px',
+              letterSpacing: '0.5px'
+            }}>
+              Loading Configuration
+            </div>
+            <div style={{
+              fontSize: '14px',
+              color: 'rgba(0, 0, 0, 0.6)',
+              fontWeight: '400'
+            }}>
+              Setting up your workspace...
+            </div>
+          </div>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   )
 }

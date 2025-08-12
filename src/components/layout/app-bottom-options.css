@@ -185,6 +185,23 @@
 .app-bottom-options-text4 {
   display: inline-block;
 }
+
+/* Active states for 2D/3D buttons */
+.app-bottom-options-two-d-view-buton.active {
+  background-color: #0088ff;
+}
+
+.app-bottom-options-two-d-view-buton.active .app-bottom-options-text1 {
+  color: white;
+}
+
+.app-bottom-options-three-d-view-button.active {
+  background-color: #0088ff;
+}
+
+.app-bottom-options-three-d-view-button.active .app-bottom-options-text2 {
+  color: white;
+}
  
 /* Clear measurements button */
 .app-bottom-options-clear-measurements-button {

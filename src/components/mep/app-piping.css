@@ -46,6 +46,128 @@
 .app-piping-piping {
   display: block;
 }
+
+.app-piping-inputs {
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 0;
+}
+
+.app-piping-title1,
+.app-piping-title2,
+.app-piping-title3,
+.app-piping-title4 {
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 16px 4px 16px;
+  flex-direction: column;
+  margin: 0;
+}
+
+.app-piping-input1,
+.app-piping-input2,
+.app-piping-input3,
+.app-piping-input4 {
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: flex-start;
+  padding: 0px 16px 12px 16px;
+  flex-direction: column;
+  margin: 0;
+}
+
+.feet-inches-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.feet-inches-input input,
+.app-piping-input1 input,
+.app-piping-input2 select {
+  height: 28px;
+  padding: 3px 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.feet-inches-input input {
+  width: 45px;
+}
+
+.app-piping-input2 select {
+  width: 100%;
+  background: white;
+}
+
+.app-piping-input1 input {
+  width: 100%;
+}
+
+.unit-label {
+  font-size: 12px;
+  font-style: normal;
+  font-family: "Bricolage Grotesque";
+  font-weight: 400;
+  color: #666;
+  white-space: nowrap;
+  margin: 0;
+  padding: 0;
+}
+
+.error-text {
+  color: red;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.app-piping-save {
+  flex: 0 0 auto;
+  width: 300px;
+  height: auto;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  justify-content: flex-end;
+  border-top: 1px solid #eee;
+  margin-top: 4px;
+}
+
+.app-piping-button {
+  width: 100px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: #4A90E2;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.app-piping-button:hover {
+  background: #357ABD;
+}
+
+.app-piping-button:active {
+  background: #2968A3;
+}
  
 .app-piping-input1 {
   flex: 0 0 auto;

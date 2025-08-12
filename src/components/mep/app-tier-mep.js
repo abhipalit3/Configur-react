@@ -54,7 +54,7 @@ const AppTierMEP = (props) => {
       const w = item.width ?? 0
       const h = item.height ?? 0
       const insulation = item.insulation ?? 0
-      const insulationText = insulation > 0 ? ` | Insulation: ${insulation}"` : ''
+      const insulationText = insulation > 0 ? ` | Ins: ${insulation}"` : ''
       return `${name} - ${w}" x ${h}"${insulationText}`
     }
 
@@ -62,7 +62,9 @@ const AppTierMEP = (props) => {
       const name = item.name || 'Pipe'
       const typ = item.pipeType || 'Pipe'
       const dia = item.diameter ?? 0
-      return `Pipe - ${name} - ${typ} ${dia} Ø`
+      const insulation = item.insulation ?? 0
+      const insulationText = insulation > 0 ? ` | Ins: ${insulation}"` : ''
+      return `Pipe - ${name} - ${typ} ${dia}" Ø${insulationText}`
     }
 
     if (item.type === 'conduit') {
