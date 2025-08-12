@@ -209,11 +209,23 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     depth     : initialRackParams?.depth || 4,
 
     topClearance : initialRackParams?.topClearance || 15,
-    postSize     : initialRackParams?.postSize || 2,
-    beamSize     : initialRackParams?.beamSize || 2,
+    // Handle both old postSize format and new columnSizes + columnType format
+    postSize     : initialRackParams?.columnSizes && initialRackParams?.columnType 
+                   ? initialRackParams.columnSizes[initialRackParams.columnType] 
+                   : (initialRackParams?.postSize || 2),
+    // Handle both old beamSize format and new beamSizes + beamType format
+    beamSize     : initialRackParams?.beamSizes && initialRackParams?.beamType 
+                   ? initialRackParams.beamSizes[initialRackParams.beamType] 
+                   : (initialRackParams?.beamSize || 2),
 
     tierCount    : initialRackParams?.tierCount || 2,
     tierHeights  : initialRackParams?.tierHeights || [2, 2],   // ft  (parallel array #1)
+
+    // Pass new parameter structure for beam/column type selection
+    beamSizes    : initialRackParams?.beamSizes,
+    beamType     : initialRackParams?.beamType,
+    columnSizes  : initialRackParams?.columnSizes,
+    columnType   : initialRackParams?.columnType,
 
     /* per-tier duct settings – disabled to use DuctworkRenderer instead */
     ductEnabled  : [false, false],

@@ -296,6 +296,43 @@ const AppPage = (props) => {
     }
   }, [mepItems])
   
+  // Update trade rack when building shell parameters change
+  React.useEffect(() => {
+    if (rackParams && tradeRack.update && isConfigLoaded) {
+      console.log('🏢 Building shell parameters changed, updating trade rack...')
+      
+      // Switch building shell mode based on mount type
+      if (buildingShell.switchMode) {
+        const isFloorMounted = rackParams.mountType === 'floor'
+        buildingShell.switchMode(buildingParams, isFloorMounted)
+      }
+      
+      // Combine rack params with updated building shell context
+      const combinedParams = {
+        ...rackParams,
+        buildingContext: {
+          corridorHeight: buildingParams.corridorHeight,
+          beamDepth: buildingParams.beamDepth || { feet: 0, inches: 0 }
+        }
+      }
+      
+      // Update the trade rack with new building context
+      tradeRack.update(combinedParams)
+      
+      // Update ductwork renderer with new parameters
+      if (window.ductworkRendererInstance) {
+        window.ductworkRendererInstance.updateRackParams(combinedParams)
+        
+        // Trigger recalculation of tier info for all ducts
+        setTimeout(() => {
+          if (window.ductworkRendererInstance) {
+            window.ductworkRendererInstance.recalculateTierInfo()
+          }
+        }, 100)
+      }
+    }
+  }, [buildingParams, isConfigLoaded]) // Depend on buildingParams changes
+  
   // Handler for panel button clicks
   const handlePanelClick = (panelName) => {
     // Handle special case for tradeRack panel (toggles rack properties)
@@ -594,26 +631,9 @@ const AppPage = (props) => {
       }, 100)
     }
     
-    // If there's an active configuration, update it with the new building shell params
-    const activeConfigId = localStorage.getItem('activeConfiguration')
-    if (activeConfigId) {
-      try {
-        const savedConfigs = JSON.parse(localStorage.getItem('tradeRackConfigurations') || '[]')
-        const updatedConfigs = savedConfigs.map(config => {
-          if (config.id === parseInt(activeConfigId)) {
-            return {
-              ...config,
-              buildingShellParams: params
-            }
-          }
-          return config
-        })
-        localStorage.setItem('tradeRackConfigurations', JSON.stringify(updatedConfigs))
-        console.log('✅ Updated active configuration with new building shell parameters')
-      } catch (error) {
-        console.error('Error updating active configuration with building shell params:', error)
-      }
-    }
+    // Building shell parameters are now stored independently in the manifest
+    // Configurations will always reference the current building shell parameters
+    console.log('✅ Building shell parameters saved to manifest (independent of rack configurations)')
   }
 
   // Handler for trade rack save
@@ -662,7 +682,6 @@ const AppPage = (props) => {
         name: `Rack Configuration ${savedConfigs.length + 1}`,
         ...params,
         totalHeight: calculateTotalHeight(params),
-        buildingShellParams: buildingParams, // Save building shell parameters with the configuration
         savedAt: new Date().toISOString()
       }
       savedConfigs.push(newConfig)
@@ -682,16 +701,14 @@ const AppPage = (props) => {
   // Handler for restoring saved rack configuration
   const handleRestoreConfiguration = (config) => {
     
-    // Update rack parameters with saved config (excluding metadata)
+    // Update rack parameters with saved config (excluding metadata and building shell params)
     const { id, name, savedAt, importedAt, originalId, buildingShellParams, ...configParams } = config
     setRackParams(configParams)
     
-    // Restore building shell parameters if they were saved with the configuration
-    if (buildingShellParams) {
-      console.log('🏢 Restoring building shell parameters from configuration:', buildingShellParams)
-      setBuildingParams(buildingShellParams)
-      updateBuildingShell(buildingShellParams)
-    }
+    // Note: Building shell parameters are NOT restored from configurations
+    // The rack will use the current building shell parameters from the manifest
+    console.log('📦 Restoring rack configuration:', config.name || `Configuration ${id}`)
+    console.log('🏢 Using current building shell parameters (not from configuration)')
     
     // Store current rack parameters in localStorage for tier calculations
     localStorage.setItem('rackParameters', JSON.stringify(configParams))
@@ -702,20 +719,19 @@ const AppPage = (props) => {
     }
     
     // Apply the configuration to the 3D scene WITHOUT saving a new copy
-    // Switch building shell mode based on mount type using restored or current building params
-    const currentBuildingParams = buildingShellParams || buildingParams
+    // Switch building shell mode based on mount type using CURRENT building params only
     if (buildingShell.switchMode) {
       const isFloorMounted = configParams.mountType === 'floor'
-      buildingShell.switchMode(currentBuildingParams, isFloorMounted)
+      buildingShell.switchMode(buildingParams, isFloorMounted)
     }
     
     // CRITICAL: Always ensure building context is passed for deck-mounted racks
-    // This ensures the rack position is calculated correctly based on building shell
+    // This ensures the rack position is calculated correctly based on current building shell
     const combinedParams = {
       ...configParams,
       buildingContext: {
-        corridorHeight: currentBuildingParams.corridorHeight,
-        beamDepth: currentBuildingParams.beamDepth || { feet: 0, inches: 0 } // Ensure beamDepth has a valid default
+        corridorHeight: buildingParams.corridorHeight,
+        beamDepth: buildingParams.beamDepth || { feet: 0, inches: 0 } // Ensure beamDepth has a valid default
       }
     }
     
@@ -1062,17 +1078,17 @@ const AppPage = (props) => {
           // Set references in the trade rack hook
           tradeRack.setReferences(scene, materials, snapPoints)
           
-          // Initialize building shell based on default mount type
-          const initialMountType = tradeRackDefaults.mountType || 'deck'
+          // Initialize building shell with actual loaded parameters based on mount type
+          const initialMountType = rackParams?.mountType || 'deck'
           const isInitialFloorMounted = initialMountType === 'floor'
-          buildingShell.build(buildingShellDefaults, isInitialFloorMounted)
+          buildingShell.build(buildingParams, isInitialFloorMounted)
           
-          // Initialize trade rack with defaults and building context
+          // Initialize trade rack with actual parameters and building context
           const initialRackParams = {
-            ...tradeRackDefaults,
+            ...rackParams,
             buildingContext: {
-              corridorHeight: buildingShellDefaults.corridorHeight,
-              beamDepth: buildingShellDefaults.beamDepth
+              corridorHeight: buildingParams.corridorHeight,
+              beamDepth: buildingParams.beamDepth
             }
           }
           tradeRack.build(initialRackParams)

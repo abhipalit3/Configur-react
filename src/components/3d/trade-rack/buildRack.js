@@ -99,7 +99,11 @@ export function buildRackScene(scene, params, mats) {
       beamSize: params.beamSize,
       postSize: params.postSize,
       columnSize: params.postSize,
-      columnType: 'standard'
+      columnType: params.columnType || 'standard',
+      // Pass new parameter structure
+      beamSizes: params.beamSizes,
+      beamType: params.beamType,
+      columnSizes: params.columnSizes
     })
   }
   
