@@ -1,6 +1,6 @@
 /* Trade Rack Properties - Improved styling */
 .app-rack-properties-container {
-  width: auto;
+  width: 300px;
   height: auto;
   max-height: 65vh;
   display: flex;
@@ -10,19 +10,21 @@
   border-radius: var(--dl-layout-radius-radius8);
   flex-direction: column;
   background-color: rgba(255, 255, 255, 0.95);
+  overflow: hidden;
 }
 
 .app-rack-properties-heading {
   flex: 0 0 auto;
-  width: 280px;
+  width: 100%;
   height: auto;
   display: flex;
   box-shadow: 0px 1px 2px 0px #d4d4d4;
   align-items: center;
-  padding: 10px 14px;
+  padding: 10px 16px;
   border-radius: var(--dl-layout-radius-radius8);
   flex-direction: row;
   justify-content: space-between;
+  box-sizing: border-box;
 }
 
 
@@ -47,48 +49,72 @@
 .app-rack-properties-mount-type {
   gap: 8px;
   flex: 0 0 auto;
-  width: 280px;
+  width: 100%;
   height: auto;
   display: flex;
   box-shadow: 0px 1px 0px 0px #ccc3c3;
   align-items: center;
-  padding: 10px 14px;
+  padding: 12px 12px;
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: center;
+  background: rgba(248, 249, 250, 0.8);
+  border-radius: 6px;
+  margin: 4px 0;
+  box-sizing: border-box;
 }
 
 .app-rack-properties-button1,
 .app-rack-properties-button2 {
-  width: 48%;
-  height: auto;
-  font-size: 10px;
-  padding: 4px 6px;
-  transition: 0.3s;
+  width: 110px;
+  height: 24px;
+  font-size: 11px;
+  padding: 0 12px;
+  transition: all 0.2s ease;
   font-family: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-weight: 600;
-  border: none;
-  border-radius: var(--dl-layout-radius-radius4);
-  background-color: rgba(25, 24, 24, 0.6);
-  color: white;
+  font-weight: 500;
+  border: 2px solid #e0e6ed;
+  border-radius: 6px;
+  background: white;
+  color: #64748b;
   cursor: pointer;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .app-rack-properties-button1:hover,
 .app-rack-properties-button2:hover {
-  background-color: black;
+  background: #E6F3FF;
+  border-color: #87CEEB;
+  color: #4A90E2;
+  box-shadow: 0 2px 6px rgba(135, 206, 235, 0.15);
+  transform: translateY(-1px);
 }
 
 .app-rack-properties-button1.selected,
 .app-rack-properties-button2.selected {
-  background-color: black;
+  background: #4A90E2;
+  border-color: #4A90E2;
+  color: white;
+  box-shadow: 0 3px 8px rgba(74, 144, 226, 0.3);
+  transform: translateY(-1px);
+}
+
+.app-rack-properties-button1:active,
+.app-rack-properties-button2:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .app-rack-properties-text11,
 .app-rack-properties-text12 {
-  fill: white;
-  color: white;
   font-style: normal;
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  transition: color 0.2s ease;
 }
 
 /* Title Sections - Improved */
@@ -282,45 +308,50 @@
 /* Save section - Improved */
 .app-rack-properties-save {
   flex: 0 0 auto;
-  width: 280px;
+  width: 100%;
   height: auto;
+  min-height: 50px;
   display: flex;
-  box-shadow: 0px 1px 0px 0px #ccc3c3;
   align-items: center;
-  padding: 10px 14px;
-  border-radius: var(--dl-layout-radius-radius8);
-  flex-direction: row;
-  justify-content: center;
-  overflow: hidden;
+  padding: 15px 16px;
+  justify-content: flex-end;
+  border-top: 1px solid #eee;
+  margin-top: 4px;
+  box-sizing: border-box;
 }
 
 .app-rack-properties-button {
-  width: 100%;
-  max-width: 260px;
-  padding: 6px 8px;
-  font-size: 10px;
-  font-weight: 600;
+  width: 80px;
+  height: 24px;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-weight: 500;
   font-family: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   border: none;
-  border-radius: var(--dl-layout-radius-radius4);
-  background-color: rgba(25, 24, 24, 0.8);
+  border-radius: 4px;
+  background: #4A90E2;
   color: white;
   cursor: pointer;
-  transition: 0.3s;
+  transition: background-color 0.2s ease;
   text-align: center;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 .app-rack-properties-button:hover {
-  background-color: black;
+  background: #357ABD;
+}
+
+.app-rack-properties-button:active {
+  background: #2968A3;
 }
 
 .app-rack-properties-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: rgba(25, 24, 24, 0.4);
+  background: #ccc;
 }
 
 .app-rack-properties-save-text {
@@ -429,10 +460,11 @@
 /* Scrollable inputs container */
 .app-rack-properties-inputs {
   flex: 1;
-  width: 280px;
+  width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: calc(65vh - 120px);
+  max-height: calc(65vh - 150px);
+  box-sizing: border-box;
 }
 
 /* Custom scrollbar styling */

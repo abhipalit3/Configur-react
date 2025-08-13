@@ -11,21 +11,46 @@ import PropTypes from 'prop-types'
 import './app-conduits.css'
 
 const AppConduits = (props) => {
-  const [count, setCount] = useState(1)
-  const [conduitType, setConduitType] = useState('Select Conduit Type')
-  const [diameter, setDiameter] = useState('Select Conduit Outside Diameter')
   const [errors, setErrors] = useState({})
+  const [formData, setFormData] = useState({
+    name: '',
+    conduitType: 'emt',
+    diameter: { feet: 0, inches: 1 }, // Use feet/inches like piping
+    spacing: { feet: 0, inches: 4 }, // Use feet/inches like piping
+    count: 1,
+    fillPercentage: 0, // percentage
+    tier: 1
+  })
+  
+  // Helper to convert feet+inches to total inches
+  const convertToInches = (feetInches) => {
+    return (feetInches.feet * 12) + feetInches.inches
+  }
+  
+  // Handler for feet+inches input changes
+  const handleFeetInchesChange = (field, type, value) => {
+    const numValue = parseFloat(value) || 0
+    setFormData(prev => ({
+      ...prev,
+      [field]: {
+        ...prev[field],
+        [type]: numValue
+      }
+    }))
+  }
   
   const handleAddConduit = () => {
-    const spacingInput = document.querySelector('.app-conduits-input4 input')
-    
     // Validation
     const newErrors = {}
-    if (conduitType === 'Select Conduit Type') {
-      newErrors.conduitType = 'Please select a conduit type'
+    const diameterInches = convertToInches(formData.diameter)
+    const spacingInches = convertToInches(formData.spacing)
+    
+    if (diameterInches <= 0) {
+      newErrors.diameter = 'Diameter is required and must be greater than 0'
     }
-    if (diameter === 'Select Conduit Outside Diameter') {
-      newErrors.diameter = 'Please select a conduit diameter'
+    
+    if (formData.fillPercentage < 0 || formData.fillPercentage > 100) {
+      newErrors.fillPercentage = 'Fill percentage must be between 0 and 100'
     }
     
     if (Object.keys(newErrors).length > 0) {
@@ -35,31 +60,51 @@ const AppConduits = (props) => {
     
     const conduitData = {
       type: 'conduit',
-      conduitType: conduitType,
-      diameter: diameter,
-      spacing: spacingInput?.value || '0',
-      count: count
+      name: formData.name || 'Conduit',
+      conduitType: formData.conduitType,
+      diameter: diameterInches,
+      spacing: spacingInches,
+      count: formData.count,
+      fillPercentage: formData.fillPercentage,
+      tier: formData.tier,
+      color: getConduitColor(formData.conduitType)
     }
     
     if (props.onAddConduit) {
       props.onAddConduit(conduitData)
     }
     
-    // Clear inputs
-    if (spacingInput) spacingInput.value = ''
-    setConduitType('Select Conduit Type')
-    setDiameter('Select Conduit Outside Diameter')
+    // Clear form data and errors after adding
+    setFormData({
+      name: '',
+      conduitType: 'emt',
+      diameter: { feet: 0, inches: 1 },
+      spacing: { feet: 0, inches: 4 },
+      count: 1,
+      fillPercentage: 0,
+      tier: 1
+    })
     setErrors({})
-    setCount(1)
+  }
+
+  // Get default color based on conduit type
+  const getConduitColor = (type) => {
+    switch (type) {
+      case 'emt': return '#C0C0C0' // Silver
+      case 'rigid': return '#505050' // Dark gray
+      case 'pvc': return '#808080' // Gray
+      case 'flexible': return '#FFA500' // Orange
+      default: return '#C0C0C0'
+    }
   }
   
-  const incrementCount = () => setCount(prev => prev + 1)
-  const decrementCount = () => setCount(prev => Math.max(1, prev - 1))
+  const incrementCount = () => setFormData(prev => ({...prev, count: prev.count + 1}))
+  const decrementCount = () => setFormData(prev => ({...prev, count: Math.max(1, prev.count - 1)}))
   
   return (
     <div className={`app-conduits-container1 ${props.rootClassName} `}>
       <div className="app-conduits-heading">
-        <h1 className="heading"> Add Conduit Group</h1>
+        <h1 className="heading">Add Conduits</h1>
         <svg
           width="32"
           height="32"
@@ -74,164 +119,116 @@ const AppConduits = (props) => {
         </svg>
       </div>
       <div className="app-conduits-conduits">
-        <div className="app-conduits-input1">
-          <div className="app-conduits-input2">
-            <div
-              data-thq="thq-dropdown"
-              className="app-conduits-thq-dropdown1 list-item"
-            >
-              <div
-                data-thq="thq-dropdown-toggle"
-                className="app-conduits-dropdown-toggle1"
-              >
-                <span className="app-conduits-text11">
-                  {conduitType}
-                </span>
-                <div
-                  data-thq="thq-dropdown-arrow"
-                  className="app-conduits-dropdown-arrow1"
-                >
-                  <svg viewBox="0 0 1024 1024" className="app-conduits-icon12">
-                    <path d="M426 726v-428l214 214z"></path>
-                  </svg>
-                </div>
-              </div>
-              <ul
-                data-thq="thq-dropdown-list"
-                className="app-conduits-dropdown-list1"
-              >
-                <li
-                  data-thq="thq-dropdown"
-                  className="app-conduits-dropdown1 list-item"
-                  onClick={() => {setConduitType('EMT'); setErrors({...errors, conduitType: ''})}}
-                >
-                  <div
-                    data-thq="thq-dropdown-toggle"
-                    className="app-conduits-dropdown-toggle2"
-                  >
-                    <span className="app-conduits-text12">EMT</span>
-                  </div>
-                </li>
-                <li
-                  data-thq="thq-dropdown"
-                  className="app-conduits-dropdown2 list-item"
-                  onClick={() => {setConduitType('Rigid'); setErrors({...errors, conduitType: ''})}}
-                >
-                  <div
-                    data-thq="thq-dropdown-toggle"
-                    className="app-conduits-dropdown-toggle3"
-                  >
-                    <span className="app-conduits-text13">Rigid</span>
-                  </div>
-                </li>
-                <li
-                  data-thq="thq-dropdown"
-                  className="app-conduits-dropdown3 list-item"
-                  onClick={() => {setConduitType('Flexible'); setErrors({...errors, conduitType: ''})}}
-                >
-                  <div
-                    data-thq="thq-dropdown-toggle"
-                    className="app-conduits-dropdown-toggle4"
-                  >
-                    <span className="app-conduits-text14">Flexible</span>
-                  </div>
-                </li>
-              </ul>
-            </div>
+        <div className="app-conduits-inputs">
+          <div className="app-conduits-title1">
+            <span className="app-conduits-text13 title">Conduit Name</span>
           </div>
-          {errors.conduitType && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.conduitType}</span>}
-          
-          <div className="app-conduits-input3">
-            <div
-              data-thq="thq-dropdown"
-              className="app-conduits-thq-dropdown2 list-item"
-            >
-              <div
-                data-thq="thq-dropdown-toggle"
-                className="app-conduits-dropdown-toggle5"
-              >
-                <span className="app-conduits-text15">
-                  {diameter}
-                </span>
-                <div
-                  data-thq="thq-dropdown-arrow"
-                  className="app-conduits-dropdown-arrow2"
-                >
-                  <svg viewBox="0 0 1024 1024" className="app-conduits-icon14">
-                    <path d="M426 726v-428l214 214z"></path>
-                  </svg>
-                </div>
-              </div>
-              <ul
-                data-thq="thq-dropdown-list"
-                className="app-conduits-dropdown-list2"
-              >
-                <li
-                  data-thq="thq-dropdown"
-                  className="app-conduits-dropdown4 list-item"
-                  onClick={() => {setDiameter('1"'); setErrors({...errors, diameter: ''})}}
-                >
-                  <div
-                    data-thq="thq-dropdown-toggle"
-                    className="app-conduits-dropdown-toggle6"
-                  >
-                    <span className="app-conduits-text16">1"</span>
-                  </div>
-                </li>
-                <li
-                  data-thq="thq-dropdown"
-                  className="app-conduits-dropdown5 list-item"
-                  onClick={() => {setDiameter('2"'); setErrors({...errors, diameter: ''})}}
-                >
-                  <div
-                    data-thq="thq-dropdown-toggle"
-                    className="app-conduits-dropdown-toggle7"
-                  >
-                    <span className="app-conduits-text17">2"</span>
-                  </div>
-                </li>
-                <li
-                  data-thq="thq-dropdown"
-                  className="app-conduits-dropdown6 list-item"
-                  onClick={() => {setDiameter('3"'); setErrors({...errors, diameter: ''})}}
-                >
-                  <div
-                    data-thq="thq-dropdown-toggle"
-                    className="app-conduits-dropdown-toggle8"
-                  >
-                    <span className="app-conduits-text18">3"</span>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-          {errors.diameter && <span style={{color: 'red', fontSize: '11px', paddingLeft: '16px'}}>{errors.diameter}</span>}
-          
-          <div className="app-conduits-input4">
+          <div className="app-conduits-input1">
             <input
-              type="number"
-              placeholder="Enter conduit spacing (center to center)"
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              placeholder="Enter conduit name"
               className="input-form"
             />
-            <span className="app-conduits-text19">inches</span>
+          </div>
+
+          <div className="app-conduits-title2">
+            <span className="app-conduits-text15 title">Conduit Type</span>
+          </div>
+          <div className="app-conduits-input2">
+            <select
+              value={formData.conduitType}
+              onChange={(e) => setFormData({...formData, conduitType: e.target.value})}
+              className="input-form"
+            >
+              <option value="emt">EMT</option>
+              <option value="rigid">Rigid</option>
+              <option value="pvc">PVC</option>
+              <option value="flexible">Flexible</option>
+            </select>
+          </div>
+          
+          <div className="app-conduits-title3">
+            <span className="app-conduits-text16 title">Diameter</span>
+          </div>
+          <div className="app-conduits-input3">
+            <div className="feet-inches-input">
+              <input
+                type="number"
+                value={formData.diameter.feet}
+                onChange={(e) => handleFeetInchesChange('diameter', 'feet', e.target.value)}
+                className={`input-form ${errors.diameter ? 'error' : ''}`}
+                min="0"
+                step="1"
+                placeholder="0"
+              />
+              <span className="unit-label">ft</span>
+              <input
+                type="number"
+                value={formData.diameter.inches}
+                onChange={(e) => handleFeetInchesChange('diameter', 'inches', e.target.value)}
+                className={`input-form ${errors.diameter ? 'error' : ''}`}
+                min="0"
+                max="11"
+                step="0.25"
+                placeholder="1"
+              />
+              <span className="unit-label">in</span>
+            </div>
+            {errors.diameter && <span className="error-text">{errors.diameter}</span>}
+          </div>
+          
+          <div className="app-conduits-title4">
+            <span className="app-conduits-text17 title">Spacing (Center to Center)</span>
+          </div>
+          <div className="app-conduits-input4">
+            <div className="feet-inches-input">
+              <input
+                type="number"
+                value={formData.spacing.feet}
+                onChange={(e) => handleFeetInchesChange('spacing', 'feet', e.target.value)}
+                className="input-form"
+                min="0"
+                step="1"
+                placeholder="0"
+              />
+              <span className="unit-label">ft</span>
+              <input
+                type="number"
+                value={formData.spacing.inches}
+                onChange={(e) => handleFeetInchesChange('spacing', 'inches', e.target.value)}
+                className="input-form"
+                min="0"
+                max="11"
+                step="0.5"
+                placeholder="4"
+              />
+              <span className="unit-label">in</span>
+            </div>
           </div>
         </div>
         <div className="app-conduits-save">
-          <button type="button" className="app-conduits-button save-button" onClick={handleAddConduit}>
-            <span className="app-conduits-text20">
-              {props.addConduitButton ?? (
-                <Fragment>
-                  <span className="app-conduits-text25">Add Conduits</span>
-                </Fragment>
-              )}
-            </span>
-          </button>
-          <div className="app-conduits-container2">
+          <div className="app-conduits-counter">
+            <svg
+              width="1024"
+              height="1024"
+              viewBox="0 0 1024 1024"
+              className="app-conduits-minus"
+              onClick={decrementCount}
+              style={{cursor: 'pointer', opacity: formData.count === 1 ? 0.5 : 1}}
+            >
+              <path
+                d="M872 474H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h720c4.4 0 8-3.6 8-8v-60c0-4.4-3.6-8-8-8"
+                fill="currentColor"
+              ></path>
+            </svg>
+            <span className="app-conduits-count">{formData.count}</span>
             <svg
               width="36"
               height="36"
               viewBox="0 0 36 36"
-              className="app-conduits-icon16"
+              className="app-conduits-plus"
               onClick={incrementCount}
               style={{cursor: 'pointer'}}
             >
@@ -242,21 +239,16 @@ const AppConduits = (props) => {
               ></path>
               <path d="M0 0h36v36H0z" fill="none"></path>
             </svg>
-            <span className="app-conduits-text21">{count}</span>
-            <svg
-              width="1024"
-              height="1024"
-              viewBox="0 0 1024 1024"
-              className="app-conduits-icon19"
-              onClick={decrementCount}
-              style={{cursor: 'pointer', opacity: count === 1 ? 0.5 : 1}}
-            >
-              <path
-                d="M872 474H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h720c4.4 0 8-3.6 8-8v-60c0-4.4-3.6-8-8-8"
-                fill="currentColor"
-              ></path>
-            </svg>
           </div>
+          <button type="button" className="app-conduits-button save-button" onClick={handleAddConduit}>
+            <span className="app-conduits-add-conduits">
+              {props.button11 ?? (
+                <Fragment>
+                  <span className="app-conduits-text32">Add Conduits</span>
+                </Fragment>
+              )}
+            </span>
+          </button>
         </div>
       </div>
     </div>
@@ -264,31 +256,31 @@ const AppConduits = (props) => {
 }
 
 AppConduits.defaultProps = {
-  conduitDia1: undefined,
-  conduitType: undefined,
-  conduitType3: undefined,
-  addConduitButton: undefined,
+  text2: undefined,
+  text: undefined,
+  text21: undefined,
+  text11: undefined,
+  text4: undefined,
+  text3: undefined,
+  text1: undefined,
+  button11: undefined,
+  text31: undefined,
   rootClassName: '',
-  conduitDia2: undefined,
-  conduitType1: undefined,
-  conduitDiameter: undefined,
-  conduitDia3: undefined,
-  conduitType2: undefined,
   onClose: () => {},
   onAddConduit: () => {},
 }
 
 AppConduits.propTypes = {
-  conduitDia1: PropTypes.element,
-  conduitType: PropTypes.element,
-  conduitType3: PropTypes.element,
-  addConduitButton: PropTypes.element,
+  text2: PropTypes.element,
+  text: PropTypes.element,
+  text21: PropTypes.element,
+  text11: PropTypes.element,
+  text4: PropTypes.element,
+  text3: PropTypes.element,
+  text1: PropTypes.element,
+  button11: PropTypes.element,
+  text31: PropTypes.element,
   rootClassName: PropTypes.string,
-  conduitDia2: PropTypes.element,
-  conduitType1: PropTypes.element,
-  conduitDiameter: PropTypes.element,
-  conduitDia3: PropTypes.element,
-  conduitType2: PropTypes.element,
   onClose: PropTypes.func,
   onAddConduit: PropTypes.func,
 }

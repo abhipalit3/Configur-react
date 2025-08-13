@@ -16,6 +16,7 @@ import { MeasurementTool } from '../controls/MeasurementTool.js'
 import { DuctworkRenderer, DuctEditor } from '../ductwork'
 import { PipingRenderer } from '../piping'
 import { PipeEditor } from '../piping'
+import { ConduitRenderer, ConduitEditorUI } from '../conduits'
 import { createMaterials, loadTextures, disposeMaterials } from '../materials'
 import '../styles/measurement-styles.css'
 
@@ -25,6 +26,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   const measurementToolRef = useRef(null)
   const ductworkRendererRef = useRef(null)
   const pipingRendererRef = useRef(null)
+  const conduitRendererRef = useRef(null)
   const cameraRef = useRef(null)
   const rendererRef = useRef(null)
   
@@ -50,6 +52,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   const [selectedPipe, setSelectedPipe] = useState(null)
   const [showPipeEditor, setShowPipeEditor] = useState(false)
   const [skipPipeRecreation, setSkipPipeRecreation] = useState(false)
+  
+  // State for conduit editor
+  const [selectedConduit, setSelectedConduit] = useState(null)
+  const [showConduitEditor, setShowConduitEditor] = useState(false)
+  const [skipConduitRecreation, setSkipConduitRecreation] = useState(false)
   
   // State for rack parameters (to access in render)
   const [rackParams, setRackParams] = useState({
@@ -607,6 +614,32 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       beamSize: params.beamSize,
       postSize: params.postSize
     })
+
+    // Initialize conduit renderer with the same parameters
+    const conduitRenderer = new ConduitRenderer(
+      scene,
+      camera, 
+      renderer,
+      controls,
+      ductworkRenderer.snapLineManager // Share snap line manager with ductwork and piping
+    )
+    conduitRendererRef.current = conduitRenderer
+    
+    // Make conduit renderer globally accessible
+    window.conduitRendererInstance = conduitRenderer
+    
+    // Update conduit renderer with rack parameters
+    conduitRenderer.updateRackParams({
+      bayCount: params.bayCount,
+      bayWidth: params.bayWidth,
+      depth: params.depth,
+      rackWidth: params.depth,
+      tierCount: params.tierCount,
+      tierHeights: params.tierHeights,
+      topClearance: params.topClearance,
+      beamSize: params.beamSize,
+      postSize: params.postSize
+    })
     
     // Setup ductwork interactions
     ductworkRenderer.setupInteractions(camera, renderer, controls)
@@ -614,12 +647,18 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Setup piping interactions
     pipingRenderer.setupInteractions(camera, renderer, controls)
 
+    // Setup conduit interactions
+    conduitRenderer.setupInteractions(camera, renderer, controls)
+
     // Provide access to snap points for measurement tool
     if (ductworkRenderer.ductGeometry) {
       ductworkRenderer.ductGeometry.setSnapPoints(snapPoints)
     }
     if (pipingRenderer.pipeGeometry) {
       pipingRenderer.pipeGeometry.setSnapPoints(snapPoints)
+    }
+    if (conduitRenderer.conduitGeometry) {
+      conduitRenderer.conduitGeometry.setSnapPoints(snapPoints)
     }
 
     
@@ -637,10 +676,18 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       setShowPipeEditor(!!selected)
     }
     
-    // Poll for duct and pipe selection changes
+    // Setup conduit editor callbacks
+    const handleConduitSelection = () => {
+      const selected = conduitRenderer.conduitInteraction?.getSelectedConduit()
+      setSelectedConduit(selected)
+      setShowConduitEditor(!!selected)
+    }
+    
+    // Poll for duct, pipe, and conduit selection changes
     const pollSelection = setInterval(() => {
       handleDuctSelection()
       handlePipeSelection()
+      handleConduitSelection()
     }, 100)
     
     // Periodically update tier information for all ducts
@@ -769,6 +816,73 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       setShowPipeEditor(false)
     }
     
+    const handleConduitEditorSave = (newDimensions) => {
+      console.log(`⚡ ThreeScene: handleConduitEditorSave called with:`, newDimensions)
+      if (conduitRenderer.conduitInteraction) {
+        // Update the 3D conduit with new dimensions
+        conduitRenderer.conduitInteraction.updateConduitDimensions(newDimensions)
+        
+        // Update MEP items in localStorage similar to pipes and ducts
+        try {
+          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+          const selectedConduitData = selectedConduit?.userData?.conduitData
+          
+          if (selectedConduitData && storedMepItems.length > 0) {
+            const baseId = selectedConduitData.id.toString().split('_')[0]
+            
+            const updatedItems = storedMepItems.map(item => {
+              const itemBaseId = item.id.toString().split('_')[0]
+              
+              if (itemBaseId === baseId && item.type === 'conduit') {
+                const currentPosition = {
+                  x: selectedConduit.position.x,
+                  y: selectedConduit.position.y, 
+                  z: selectedConduit.position.z
+                }
+                
+                // Include count in updates since it's now editable
+                const updatedItem = { 
+                  ...item, 
+                  ...newDimensions,
+                  position: currentPosition
+                }
+                return updatedItem
+              }
+              return item
+            })
+            
+            localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+            
+            if (window.updateMEPItemsManifest) {
+              window.updateMEPItemsManifest(updatedItems)
+            }
+            
+            window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+              detail: { updatedItems, updatedConduitId: selectedConduitData.id }
+            }))
+            
+            if (window.refreshMepPanel) {
+              window.refreshMepPanel()
+            }
+            
+            window.dispatchEvent(new StorageEvent('storage', {
+              key: 'configurMepItems',
+              newValue: JSON.stringify(updatedItems),
+              storageArea: localStorage
+            }))
+          }
+        } catch (error) {
+          console.error('Error updating MEP conduit items:', error)
+        }
+      }
+      
+      setShowConduitEditor(false)
+    }
+    
+    const handleConduitEditorCancel = () => {
+      setShowConduitEditor(false)
+    }
+    
     // Set callbacks on duct interaction
     if (ductworkRenderer.ductInteraction) {
       ductworkRenderer.ductInteraction.setDuctEditorCallbacks(
@@ -777,11 +891,12 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       )
     }
     
-    // Initial ductwork and piping update
+    // Initial ductwork, piping, and conduit update
     setTimeout(() => {
       if (mepItems && mepItems.length > 0) {
         ductworkRenderer.updateDuctwork(mepItems)
         pipingRenderer.updatePiping(mepItems)
+        conduitRenderer.updateConduits(mepItems)
       }
     }, 200) // Small delay to ensure everything is ready
 
@@ -944,6 +1059,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       return
     }
     
+    if (skipConduitRecreation) {
+      setSkipConduitRecreation(false)
+      return
+    }
+    
     if (ductworkRendererRef.current && mepItems) {
       ductworkRendererRef.current.updateDuctwork(mepItems)
     }
@@ -951,7 +1071,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     if (pipingRendererRef.current && mepItems) {
       pipingRendererRef.current.updatePiping(mepItems)
     }
-  }, [mepItems, skipDuctRecreation, skipPipeRecreation])
+
+    if (conduitRendererRef.current && mepItems && !skipConduitRecreation) {
+      conduitRendererRef.current.updateConduits(mepItems)
+    }
+  }, [mepItems, skipDuctRecreation, skipPipeRecreation, skipConduitRecreation])
 
   const handleAxisToggle = (axis) => {
     setAxisLock(prev => {
@@ -1248,6 +1372,104 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           }}
           onCancel={() => {
             setShowPipeEditor(false)
+          }}
+        />
+      )}
+      
+      {/* Conduit Editor */}
+      {showConduitEditor && selectedConduit && cameraRef.current && rendererRef.current && (
+        <ConduitEditorUI
+          selectedConduit={selectedConduit}
+          camera={cameraRef.current}
+          renderer={rendererRef.current}
+          visible={showConduitEditor}
+          rackParams={rackParams}
+          onSave={(dimensions) => {
+            
+            // Set flag to prevent conduit recreation
+            setSkipConduitRecreation(true)
+            
+            if (conduitRendererRef.current?.conduitInteraction) {
+              // First update the selected conduit's userData to ensure consistency
+              if (selectedConduit?.userData?.conduitData) {
+                selectedConduit.userData.conduitData = {
+                  ...selectedConduit.userData.conduitData,
+                  ...dimensions
+                }
+              }
+              
+              // Update the 3D conduit
+              conduitRendererRef.current.conduitInteraction.updateConduitDimensions(dimensions)
+              
+              // Update localStorage (MEP panel data)
+              try {
+                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+                const selectedConduitData = selectedConduit?.userData?.conduitData
+                
+                if (selectedConduitData) {
+                  
+                  // Find and update the matching item
+                  // Handle ID matching - selectedConduitData.id might have _0, _1 suffix for multiple conduits
+                  const baseId = selectedConduitData.id.toString().split('_')[0]
+                  
+                  const updatedItems = storedMepItems.map(item => {
+                    const itemBaseId = item.id.toString().split('_')[0]
+                    
+                    if (itemBaseId === baseId && item.type === 'conduit') {
+                      // Include current conduit position in the update
+                      const currentPosition = {
+                        x: selectedConduit.position.x,
+                        y: selectedConduit.position.y, 
+                        z: selectedConduit.position.z
+                      }
+                      
+                      // Include count since it's now editable
+                      const updatedItem = { 
+                        ...item, 
+                        ...dimensions,
+                        position: currentPosition
+                      }
+                      return updatedItem
+                    }
+                    return item
+                  })
+                  
+                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+                  
+                  // IMPORTANT: Also update the manifest to ensure consistency
+                  if (window.updateMEPItemsManifest) {
+                    window.updateMEPItemsManifest(updatedItems)
+                  } else {
+                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
+                  }
+                  
+                  // Dispatch custom event to notify MEP panel of changes
+                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+                    detail: { updatedItems, updatedConduitId: selectedConduitData.id }
+                  }))
+                  
+                  // Also try multiple refresh methods
+                  if (window.refreshMepPanel) {
+                    window.refreshMepPanel()
+                  }
+                  
+                  // Force re-render by dispatching storage event
+                  window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'configurMepItems',
+                    newValue: JSON.stringify(updatedItems),
+                    storageArea: localStorage
+                  }))
+                }
+              } catch (error) {
+                console.error('Error updating MEP conduit items:', error)
+              }
+            }
+            
+            // Don't close the editor immediately - let user click away or edit another conduit
+            // setShowConduitEditor(false)
+          }}
+          onCancel={() => {
+            setShowConduitEditor(false)
           }}
         />
       )}

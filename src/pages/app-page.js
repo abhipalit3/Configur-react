@@ -412,9 +412,12 @@ const AppPage = (props) => {
   // Handler for clicking MEP items in the panel (for duct and pipe selection)
   const handleMepItemClick = (item) => {
     if (item.type === 'duct') {
-      // First deselect any selected pipes
+      // First deselect any selected pipes and conduits
       if (window.pipingRendererInstance?.pipeInteraction) {
         window.pipingRendererInstance.pipeInteraction.deselectPipe()
+      }
+      if (window.conduitRendererInstance?.conduitInteraction) {
+        window.conduitRendererInstance.conduitInteraction.deselectConduit()
       }
       
       // Find and select the duct in the 3D scene
@@ -442,9 +445,12 @@ const AppPage = (props) => {
         }
       }
     } else if (item.type === 'pipe') {
-      // First deselect any selected ducts
+      // First deselect any selected ducts and conduits
       if (window.ductworkRendererInstance?.ductInteraction) {
         window.ductworkRendererInstance.ductInteraction.deselectDuct()
+      }
+      if (window.conduitRendererInstance?.conduitInteraction) {
+        window.conduitRendererInstance.conduitInteraction.deselectConduit()
       }
       
       // Find and select the pipe in the 3D scene
@@ -469,6 +475,40 @@ const AppPage = (props) => {
           pipingRenderer.pipeInteraction.selectPipe(targetPipe)
         } else {
           console.warn('⚠️ Could not find pipe to select:', item.id)
+        }
+      }
+    } else if (item.type === 'conduit') {
+      // First deselect any selected ducts and pipes
+      if (window.ductworkRendererInstance?.ductInteraction) {
+        window.ductworkRendererInstance.ductInteraction.deselectDuct()
+      }
+      if (window.pipingRendererInstance?.pipeInteraction) {
+        window.pipingRendererInstance.pipeInteraction.deselectPipe()
+      }
+      
+      // Find and select the conduit in the 3D scene
+      if (window.conduitRendererInstance?.conduitInteraction) {
+        const conduitRenderer = window.conduitRendererInstance
+        const conduitsGroup = conduitRenderer.getConduitsGroup()
+        
+        // Find the multi-conduit group by ID
+        let targetConduit = null
+        conduitsGroup.children.forEach(multiConduitGroup => {
+          const conduitData = multiConduitGroup.userData?.conduitData
+          if (conduitData && multiConduitGroup.userData?.type === 'multiConduit') {
+            // For multi-conduit groups, match the base ID
+            const baseId = conduitData.id.toString().split('_')[0]
+            const itemBaseId = item.id.toString().split('_')[0]
+            if (baseId === itemBaseId || conduitData.id === item.id) {
+              targetConduit = multiConduitGroup
+            }
+          }
+        })
+        
+        if (targetConduit) {
+          conduitRenderer.conduitInteraction.selectConduit(targetConduit)
+        } else {
+          console.warn('⚠️ Could not find conduit to select:', item.id)
         }
       }
     }
