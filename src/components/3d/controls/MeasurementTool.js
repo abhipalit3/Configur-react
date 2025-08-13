@@ -25,6 +25,9 @@ export class MeasurementTool {
     // Axis locking state
     this.axisLock = { x: false, y: false, z: false }
     
+    // Button visual state (tracks which buttons should appear active)
+    this.buttonActive = { x: false, y: false, z: false }
+    
     // MeasurementTool initialized
     
     // High-visibility professional colors for measurement lines
@@ -184,8 +187,74 @@ export class MeasurementTool {
   }
 
   setAxisLock(axisLock) {
-    this.axisLock = { ...axisLock }
-    // Axis lock updated
+    // DON'T let external calls override our carefully set axis locks
+    // Only accept external axis lock changes if no buttons are currently active
+    const hasButtonStates = this.buttonActive.x || this.buttonActive.y || this.buttonActive.z
+    if (!hasButtonStates) {
+      // Only set axis locks if no buttons are active (for arrow keys)
+      this.axisLock = { ...axisLock }
+      this.buttonActive = { ...axisLock }
+    }
+    // If buttons are active, ignore the external setAxisLock call entirely
+    
+    this.updateAxisLockVisuals()
+  }
+
+  toggleAxisLock(axis) {
+    // Toggle the specified axis, clear others (exclusive locking)
+    const wasLocked = this.axisLock[axis]
+    this.axisLock = { x: false, y: false, z: false }
+    this.axisLock[axis] = !wasLocked
+    this.updateAxisLockVisuals()
+    console.log(`Axis ${axis.toUpperCase()} lock ${this.axisLock[axis] ? 'ON' : 'OFF'}`)
+  }
+
+  toggleButtonAndAxis(buttonId, axisToLock) {
+    // Toggle the button state and corresponding axis lock
+    const wasActive = this.buttonActive[buttonId]
+    
+    // Clear all button states and axis locks (exclusive)
+    this.buttonActive = { x: false, y: false, z: false }
+    this.axisLock = { x: false, y: false, z: false }
+    
+    // Set the new states
+    this.buttonActive[buttonId] = !wasActive
+    this.axisLock[axisToLock] = !wasActive
+    
+    this.updateAxisLockVisuals()
+  }
+
+  clearAxisLocks() {
+    this.axisLock = { x: false, y: false, z: false }
+    this.buttonActive = { x: false, y: false, z: false }
+    this.updateAxisLockVisuals()
+    console.log('All axis locks cleared')
+  }
+
+  updateAxisLockVisuals() {
+    // Update cursor to indicate axis lock status
+    if (this.axisLock.x) {
+      this.domElement.style.cursor = 'ew-resize' // Horizontal resize cursor for X-axis
+    } else if (this.axisLock.y) {
+      this.domElement.style.cursor = 'move' // Move cursor for Y-axis (depth)
+    } else if (this.axisLock.z) {
+      this.domElement.style.cursor = 'ns-resize' // Vertical resize cursor for Z-axis (height)
+    } else {
+      this.domElement.style.cursor = 'crosshair' // Default measurement cursor
+    }
+    
+    // Update preview line color to indicate locked axis
+    if (this.previewLine && this.points.length > 0) {
+      let color = this.colors.primary
+      if (this.axisLock.x) color = 0xff0000 // Red for X-axis
+      else if (this.axisLock.y) color = 0x0000ff // Blue for Y-axis (depth)
+      else if (this.axisLock.z) color = 0x00ff00 // Green for Z-axis (height)
+      
+      this.previewLine.material.color.setHex(color)
+    }
+
+    // Update controls panel button states
+    this.updateControlsPanelState()
   }
 
   enable() {
@@ -201,6 +270,9 @@ export class MeasurementTool {
     
     // Show cursor feedback
     this.domElement.style.cursor = 'crosshair'
+    
+    // Create and show measurement controls panel
+    this.createControlsPanel()
     
   }
 
@@ -220,6 +292,9 @@ export class MeasurementTool {
     if (this.previewLine) this.previewLine.visible = false
     this.hidePreviewLabel()
     
+    // Hide measurement controls panel
+    this.hideControlsPanel()
+    
     // Clear current points
     this.points = []
     
@@ -230,8 +305,10 @@ export class MeasurementTool {
     
     switch(event.key.toLowerCase()) {
       case 'escape':
-        // Priority order: Cancel measurement -> Clear selection -> Deactivate tool
-        if (this.points.length > 0) {
+        // Priority order: Clear axis locks -> Cancel measurement -> Clear selection -> Deactivate tool
+        if (this.axisLock.x || this.axisLock.y || this.axisLock.z) {
+          this.clearAxisLocks()
+        } else if (this.points.length > 0) {
           this.points = []
           this.previewLine.visible = false
         } else if (this.selectedMeasurements.size > 0) {
@@ -247,6 +324,45 @@ export class MeasurementTool {
           }
         }
         break
+      
+      // === AXIS LOCKING SHORTCUTS (Industry Standard) ===
+      case 'x':
+        if (!event.ctrlKey && !event.metaKey) {
+          event.preventDefault()
+          this.toggleButtonAndAxis('x', 'x')
+        }
+        break
+      case 'y':
+        if (!event.ctrlKey && !event.metaKey) {
+          event.preventDefault()
+          this.toggleButtonAndAxis('y', 'z')  // Y key locks to Z-axis
+        }
+        break
+      case 'z':
+        if (!event.ctrlKey && !event.metaKey) {
+          event.preventDefault()
+          this.toggleButtonAndAxis('z', 'y')  // Z key locks to Y-axis
+        }
+        break
+        
+      // === ARROW KEYS FOR AXIS LOCKING (SnapTrude Style) ===
+      case 'arrowleft':  // Left arrow = X-axis
+        event.preventDefault()
+        this.setAxisLock({ x: true, y: false, z: false })
+        break
+      case 'arrowup':    // Up arrow = Y-axis
+        event.preventDefault()
+        this.setAxisLock({ x: false, y: true, z: false })
+        break
+      case 'arrowright': // Right arrow = Z-axis
+        event.preventDefault()
+        this.setAxisLock({ x: false, y: false, z: true })
+        break
+      case 'arrowdown':  // Down arrow = Clear locks
+        event.preventDefault()
+        this.clearAxisLocks()
+        break
+        
       case 'c':
         if (event.ctrlKey || event.metaKey) {
           // Clear all measurements
@@ -309,7 +425,7 @@ export class MeasurementTool {
         const y = (-screenPoint.y * 0.5 + 0.5) * this.domElement.clientHeight
         const dist = Math.hypot(mouseX - x, mouseY - y)
 
-        if (dist < 30) { // Increased snap threshold for better edge detection
+        if (dist < 15) { // Reduced snap threshold for more precise snapping
           if (type === 'vertex' && dist < minVertexDist) {
             minVertexDist = dist
             closestVertex = { point: worldPoint.clone(), type: 'vertex', dist }
@@ -432,19 +548,34 @@ export class MeasurementTool {
       const anyAxisLocked = this.axisLock.x || this.axisLock.y || this.axisLock.z
       
       if (anyAxisLocked) {
-        // Use axis-constrained positioning first
-        point = this.getWorldPositionFromMouse(event)
-        // Still check for snap points but with lower priority
+        // Use axis-constrained positioning - simplified approach
+        const worldPoint = this.getWorldPositionFromMouse(event)
+        const firstPoint = this.points[0]
+        
+        // Apply axis constraints consistently
+        if (this.axisLock.x) {
+          point = new THREE.Vector3(worldPoint.x, firstPoint.y, firstPoint.z)
+        } else if (this.axisLock.y) {
+          point = new THREE.Vector3(firstPoint.x, worldPoint.y, firstPoint.z)
+        } else if (this.axisLock.z) {
+          point = new THREE.Vector3(firstPoint.x, firstPoint.y, worldPoint.z)
+        }
+        
+        // Still check for snap points but apply constraints to them too
         const snapResult = this.findClosestSnapPoint(event)
         if (snapResult && snapResult.point) {
           isSnapPoint = true
           snapType = snapResult.type
-          // Apply axis constraints to the snap point too
           const snapPoint = snapResult.point.clone()
-          if (this.axisLock.x) snapPoint.x = this.points[0].x
-          if (this.axisLock.y) snapPoint.y = this.points[0].y
-          if (this.axisLock.z) snapPoint.z = this.points[0].z
-          point = snapPoint
+          
+          // Apply same axis constraints to snap points
+          if (this.axisLock.x) {
+            point = new THREE.Vector3(snapPoint.x, firstPoint.y, firstPoint.z)
+          } else if (this.axisLock.y) {
+            point = new THREE.Vector3(firstPoint.x, snapPoint.y, firstPoint.z)
+          } else if (this.axisLock.z) {
+            point = new THREE.Vector3(firstPoint.x, firstPoint.y, snapPoint.z)
+          }
         }
       } else {
         // No axis lock, use original behavior
@@ -516,61 +647,29 @@ export class MeasurementTool {
       const anyAxisLocked = this.axisLock.x || this.axisLock.y || this.axisLock.z
       
       if (anyAxisLocked) {
-        // Apply axis locking - create axis-constrained measurement
-        let targetPoint = new THREE.Vector3()
+        // For axis locking, we need to use the original unconstrained plane intersection first
+        const distanceToFirst = this.camera.position.distanceTo(firstPoint)
+        const direction = new THREE.Vector3().subVectors(firstPoint, this.camera.position).normalize()
+        const planePoint = this.camera.position.clone().add(direction.multiplyScalar(distanceToFirst))
+        const plane = new THREE.Plane(direction, -direction.dot(planePoint))
         
-        // Get mouse ray direction
-        const rayDirection = this.raycaster.ray.direction.clone()
-        const rayOrigin = this.raycaster.ray.origin.clone()
-        
-        // Project mouse ray onto the appropriate axis/plane
-        if (this.axisLock.x && !this.axisLock.y && !this.axisLock.z) {
-          // Lock to X-axis: measurement along X only
-          // Find intersection with plane perpendicular to X-axis passing through first point
-          const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), -firstPoint.x)
-          if (this.raycaster.ray.intersectPlane(plane, targetPoint)) {
-            targetPoint.y = firstPoint.y  // Lock Y
-            targetPoint.z = firstPoint.z  // Lock Z
-          } else {
-            // Fallback: project ray direction onto X-axis
-            targetPoint.copy(firstPoint)
-            targetPoint.x = rayOrigin.x + rayDirection.x * 100 // Extend along X
-          }
-        } else if (this.axisLock.y && !this.axisLock.x && !this.axisLock.z) {
-          // Lock to Y-axis: measurement along Y only
-          const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -firstPoint.y)
-          if (this.raycaster.ray.intersectPlane(plane, targetPoint)) {
-            targetPoint.x = firstPoint.x  // Lock X
-            targetPoint.z = firstPoint.z  // Lock Z
-          } else {
-            targetPoint.copy(firstPoint)
-            targetPoint.y = rayOrigin.y + rayDirection.y * 100
-          }
-        } else if (this.axisLock.z && !this.axisLock.x && !this.axisLock.y) {
-          // Lock to Z-axis: measurement along Z only
-          const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -firstPoint.z)
-          if (this.raycaster.ray.intersectPlane(plane, targetPoint)) {
-            targetPoint.x = firstPoint.x  // Lock X
-            targetPoint.y = firstPoint.y  // Lock Y
-          } else {
-            targetPoint.copy(firstPoint)
-            targetPoint.z = rayOrigin.z + rayDirection.z * 100
-          }
-        } else {
-          // Fallback to original plane intersection if multiple axes locked
-          const distanceToFirst = this.camera.position.distanceTo(firstPoint)
-          const direction = new THREE.Vector3().subVectors(firstPoint, this.camera.position).normalize()
-          const planePoint = this.camera.position.clone().add(direction.multiplyScalar(distanceToFirst))
-          const plane = new THREE.Plane(direction, -direction.dot(planePoint))
-          
-          if (this.raycaster.ray.intersectPlane(plane, targetPoint)) {
-            if (this.axisLock.x) targetPoint.x = firstPoint.x
-            if (this.axisLock.y) targetPoint.y = firstPoint.y  
-            if (this.axisLock.z) targetPoint.z = firstPoint.z
+        let worldPoint = new THREE.Vector3()
+        if (this.raycaster.ray.intersectPlane(plane, worldPoint)) {
+          // Apply axis constraints - much simpler and more intuitive approach
+          if (this.axisLock.x) {
+            // X-axis lock: only allow movement along X, keep Y and Z from first point
+            return new THREE.Vector3(worldPoint.x, firstPoint.y, firstPoint.z)
+          } else if (this.axisLock.y) {
+            // Y-axis lock: only allow movement along Y, keep X and Z from first point
+            return new THREE.Vector3(firstPoint.x, worldPoint.y, firstPoint.z)
+          } else if (this.axisLock.z) {
+            // Z-axis lock: only allow movement along Z, keep X and Y from first point
+            return new THREE.Vector3(firstPoint.x, firstPoint.y, worldPoint.z)
           }
         }
         
-        return targetPoint
+        // Fallback if plane intersection fails
+        return firstPoint.clone()
       } else {
         // Original behavior when no axis is locked
         const distanceToFirst = this.camera.position.distanceTo(firstPoint)
@@ -1295,6 +1394,233 @@ export class MeasurementTool {
       }
     } catch (error) {
       console.error('❌ Error restoring measurements from manifest:', error)
+    }
+  }
+
+  createControlsPanel() {
+    // Check if a measurement controls panel already exists in the DOM
+    const existingPanel = document.querySelector('.measurement-controls-panel')
+    if (existingPanel) {
+      console.log('Measurement controls panel already exists, modifying existing buttons')
+      this.modifyExistingControlsPanel(existingPanel)
+      return
+    }
+    
+    // Don't create if already exists
+    if (this.controlsPanel) return
+
+    // Create the measurement controls panel
+    this.controlsPanel = document.createElement('div')
+    this.controlsPanel.className = 'measurement-controls-panel'
+    Object.assign(this.controlsPanel.style, {
+      position: 'absolute',
+      bottom: '120px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: 'rgba(255, 255, 255, 0.95)',
+      border: '1px solid rgb(225, 232, 237)',
+      borderRadius: '8px',
+      padding: '12px',
+      boxShadow: 'rgba(0, 0, 0, 0.15) 0px 2px 8px',
+      zIndex: '1000',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      backdropFilter: 'blur(8px)',
+      minWidth: '260px'
+    })
+
+    // Title
+    const title = document.createElement('div')
+    title.textContent = 'Measurement Controls'
+    Object.assign(title.style, {
+      fontSize: '13px',
+      fontWeight: '600',
+      marginBottom: '8px',
+      color: 'rgb(44, 62, 80)',
+      textAlign: 'center'
+    })
+    this.controlsPanel.appendChild(title)
+
+    // Axis Lock Section
+    const axisSection = document.createElement('div')
+    axisSection.style.marginBottom = '8px'
+    
+    const axisLabel = document.createElement('div')
+    axisLabel.textContent = 'Axis Lock:'
+    Object.assign(axisLabel.style, {
+      fontSize: '11px',
+      fontWeight: '500',
+      marginBottom: '4px',
+      color: 'rgb(85, 85, 85)',
+      textAlign: 'center'
+    })
+    axisSection.appendChild(axisLabel)
+
+    // Axis Buttons Container
+    const buttonsContainer = document.createElement('div')
+    Object.assign(buttonsContainer.style, {
+      display: 'flex',
+      gap: '6px',
+      justifyContent: 'center',
+      marginBottom: '8px'
+    })
+
+    // Create X, Y, Z buttons
+    this.axisButtons = {}
+    
+    // X Button
+    this.axisButtons.x = this.createAxisButton('X', () => this.toggleButtonAndAxis('x', 'x'))
+    buttonsContainer.appendChild(this.axisButtons.x)
+    
+    // Y Button - NOTE: This triggers Z-axis lock (swapped functionality)
+    this.axisButtons.y = this.createAxisButton('Y', () => this.toggleButtonAndAxis('y', 'z'))
+    buttonsContainer.appendChild(this.axisButtons.y)
+    
+    // Z Button - NOTE: This triggers Y-axis lock (swapped functionality)  
+    this.axisButtons.z = this.createAxisButton('Z', () => this.toggleButtonAndAxis('z', 'y'))
+    buttonsContainer.appendChild(this.axisButtons.z)
+
+    axisSection.appendChild(buttonsContainer)
+    this.controlsPanel.appendChild(axisSection)
+
+    // Clear All Button
+    const clearAllContainer = document.createElement('div')
+    clearAllContainer.style.textAlign = 'center'
+    
+    const clearAllButton = document.createElement('button')
+    clearAllButton.textContent = 'Clear All'
+    Object.assign(clearAllButton.style, {
+      padding: '6px 12px',
+      border: '1px solid rgb(255, 68, 68)',
+      borderRadius: '4px',
+      background: 'white',
+      color: 'rgb(255, 68, 68)',
+      fontWeight: '500',
+      cursor: 'pointer',
+      transition: '0.2s',
+      fontSize: '11px'
+    })
+    
+    clearAllButton.addEventListener('click', () => this.clearAxisLocks())
+    clearAllButton.addEventListener('mouseenter', () => {
+      clearAllButton.style.background = 'rgb(255, 68, 68)'
+      clearAllButton.style.color = 'white'
+    })
+    clearAllButton.addEventListener('mouseleave', () => {
+      clearAllButton.style.background = 'white'
+      clearAllButton.style.color = 'rgb(255, 68, 68)'
+    })
+    
+    clearAllContainer.appendChild(clearAllButton)
+    this.controlsPanel.appendChild(clearAllContainer)
+
+    // Add to DOM
+    document.body.appendChild(this.controlsPanel)
+
+    // Update button states
+    this.updateControlsPanelState()
+  }
+
+  createAxisButton(label, onClick) {
+    const button = document.createElement('button')
+    button.textContent = label
+    Object.assign(button.style, {
+      width: '30px',
+      height: '30px',
+      border: '1px solid rgb(221, 221, 221)',
+      borderRadius: '4px',
+      background: 'white',
+      color: 'rgb(51, 51, 51)',
+      fontWeight: '600',
+      cursor: 'pointer',
+      transition: '0.2s',
+      fontSize: '12px'
+    })
+
+    button.addEventListener('click', onClick)
+    return button
+  }
+
+  updateControlsPanelState() {
+    if (!this.axisButtons) return
+
+    // Visual state should match which button was clicked
+    this.updateAxisButtonState(this.axisButtons.x, this.buttonActive.x)
+    this.updateAxisButtonState(this.axisButtons.y, this.buttonActive.y)
+    this.updateAxisButtonState(this.axisButtons.z, this.buttonActive.z)
+  }
+
+  updateAxisButtonState(button, isLocked) {
+    if (isLocked) {
+      button.style.border = '1px solid rgb(0, 212, 255)'
+      button.style.background = 'rgb(0, 212, 255)'
+      button.style.color = 'white'
+    } else {
+      button.style.border = '1px solid rgb(221, 221, 221)'
+      button.style.background = 'white'
+      button.style.color = 'rgb(51, 51, 51)'
+    }
+  }
+
+  modifyExistingControlsPanel(existingPanel) {
+    // Find all buttons in the existing panel
+    const buttons = existingPanel.querySelectorAll('button')
+    
+    // Look for X, Y, Z buttons by their text content
+    buttons.forEach(button => {
+      const buttonText = button.textContent.trim()
+      
+      if (buttonText === 'X') {
+        // X button works normally
+        button.onclick = () => this.toggleButtonAndAxis('x', 'x')
+      } else if (buttonText === 'Y') {
+        // Y button should trigger Z-axis lock (swapped functionality)
+        button.onclick = () => this.toggleButtonAndAxis('y', 'z')
+      } else if (buttonText === 'Z') {
+        // Z button should trigger Y-axis lock (swapped functionality)
+        button.onclick = () => this.toggleButtonAndAxis('z', 'y')
+      } else if (buttonText === 'Clear All') {
+        // Clear all button
+        button.onclick = () => this.clearAxisLocks()
+      }
+    })
+    
+    // Store reference to the existing panel and buttons for state updates
+    this.controlsPanel = existingPanel
+    this.axisButtons = {
+      x: Array.from(buttons).find(btn => btn.textContent.trim() === 'X'),
+      y: Array.from(buttons).find(btn => btn.textContent.trim() === 'Y'),
+      z: Array.from(buttons).find(btn => btn.textContent.trim() === 'Z')
+    }
+    
+    console.log('Modified existing controls panel with Y/Z swapped functionality')
+    
+    // Update button states to reflect current axis locks
+    this.updateControlsPanelState()
+  }
+
+  hideControlsPanel() {
+    // For existing React-managed panels, we don't remove them, just clear our references
+    if (this.controlsPanel && this.controlsPanel.querySelector) {
+      // This is likely a React-managed panel, don't remove it
+      console.log('Not removing React-managed controls panel')
+      this.controlsPanel = null
+      this.axisButtons = null
+      return
+    }
+    
+    // Only remove panels that we created ourselves
+    if (this.controlsPanel) {
+      try {
+        // Check if the element still exists and has a parent before removing
+        if (this.controlsPanel && this.controlsPanel.parentNode) {
+          this.controlsPanel.parentNode.removeChild(this.controlsPanel)
+        }
+      } catch (error) {
+        // Silently handle the case where React has already removed the element
+        console.warn('Controls panel already removed:', error.message)
+      }
+      this.controlsPanel = null
+      this.axisButtons = null
     }
   }
 

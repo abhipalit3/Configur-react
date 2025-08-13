@@ -58,7 +58,7 @@ export const ConduitEditorUI = ({
               if (gap >= minTierHeight && isFinite(gap)) {
                 tierSpaces.push({
                   value: tierSpaces.length + 1,
-                  label: `Tier ${tierSpaces.length + 1}`
+                  label: `${tierSpaces.length + 1}`
                 })
               }
             }
@@ -74,12 +74,12 @@ export const ConduitEditorUI = ({
       const tierCount = rackParams.tierCount || 2
       return Array.from({ length: tierCount }, (_, i) => ({
         value: i + 1,
-        label: `Tier ${i + 1}`
+        label: `${i + 1}`
       }))
       
     } catch (error) {
       console.error('Error getting tier options:', error)
-      return [{ value: 1, label: 'Tier 1' }, { value: 2, label: 'Tier 2' }]
+      return [{ value: 1, label: '1' }, { value: 2, label: '2' }]
     }
   }
 
@@ -338,11 +338,11 @@ export const ConduitEditorUI = ({
 
   const tierOptions = getTierOptions()
 
-  // Position the editor centered below the selected conduit with more padding (same as pipes)
+  // Position the editor next to the selected conduit (similar to ducts)
   const editorStyle = {
     position: 'fixed',
-    left: `${position.x - 210}px`, // Better centering for 420px effective width with padding
-    top: `${position.y + 80}px`, // More padding below the conduit
+    left: `${position.x - 200}px`, // Position to the left of the conduit like ducts
+    top: `${position.y}px`, // At the same level as the conduit
     background: 'rgba(40, 44, 52, 0.95)',
     border: '1px solid rgba(255, 255, 255, 0.2)',
     borderRadius: '6px',

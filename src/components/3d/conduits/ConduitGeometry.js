@@ -257,6 +257,98 @@ export class ConduitGeometry {
     // Calculate and store bounding box
     multiConduitGroup.userData.boundingBox = new THREE.Box3().setFromObject(multiConduitGroup)
     
+    // Add snap points for measurement tool if available
+    if (this.snapPoints) {
+      multiConduitGroup.updateMatrixWorld(true)
+      
+      // Calculate length once for all conduits (they're all the same length)
+      const lengthM = this.in2m(conduitLength)
+      
+      // Add snap points for each conduit in the group
+      multiConduitGroup.children.forEach((conduitMesh, index) => {
+        if (conduitMesh.userData?.type === 'conduit') {
+          // Get the conduit's world position
+          const worldPosition = new THREE.Vector3()
+          conduitMesh.getWorldPosition(worldPosition)
+          
+          const conduitDiameter = this.in2m(diameter)
+          const conduitRadius = conduitDiameter / 2
+          const halfLength = lengthM / 2
+          
+          // === CONDUIT SNAP POINTS ===
+          // Center points (front and back ends) - conduit centerline
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z), 
+            type: 'vertex' 
+          })
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z), 
+            type: 'vertex' 
+          })
+          
+          // Top points of conduit (front and back)
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y + conduitRadius, worldPosition.z), 
+            type: 'vertex' 
+          })
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y + conduitRadius, worldPosition.z), 
+            type: 'vertex' 
+          })
+          
+          // Bottom points of conduit (front and back)
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y - conduitRadius, worldPosition.z), 
+            type: 'vertex' 
+          })
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y - conduitRadius, worldPosition.z), 
+            type: 'vertex' 
+          })
+          
+          // Side points of conduit (front and back)
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z + conduitRadius), 
+            type: 'vertex' 
+          })
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z + conduitRadius), 
+            type: 'vertex' 
+          })
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z - conduitRadius), 
+            type: 'vertex' 
+          })
+          this.snapPoints.push({ 
+            point: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z - conduitRadius), 
+            type: 'vertex' 
+          })
+          
+          // Edge lines for conduit
+          this.snapPoints.push({
+            start: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y + conduitRadius, worldPosition.z),
+            end: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y + conduitRadius, worldPosition.z),
+            type: 'edge'
+          })
+          this.snapPoints.push({
+            start: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y - conduitRadius, worldPosition.z),
+            end: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y - conduitRadius, worldPosition.z),
+            type: 'edge'
+          })
+          this.snapPoints.push({
+            start: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z + conduitRadius),
+            end: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z + conduitRadius),
+            type: 'edge'
+          })
+          this.snapPoints.push({
+            start: new THREE.Vector3(worldPosition.x - halfLength, worldPosition.y, worldPosition.z - conduitRadius),
+            end: new THREE.Vector3(worldPosition.x + halfLength, worldPosition.y, worldPosition.z - conduitRadius),
+            type: 'edge'
+          })
+        }
+      })
+    }
+    
     console.log(`✅ Multi-conduit group created with ${multiConduitGroup.children.length} conduits`)
     return multiConduitGroup
   }
@@ -465,7 +557,20 @@ export class ConduitGeometry {
     const conduitData = conduitGroup.userData.conduitData
     if (!conduitData) return
 
-    const mainConduit = conduitGroup.getObjectByName('MainConduit')
+    // For multi-conduit groups created by createMultiConduitGroup, 
+    // the conduit mesh itself IS the conduitGroup (not a child named 'MainConduit')
+    // For legacy single conduits, look for 'MainConduit' child
+    let conduitMesh = null
+    
+    if (conduitGroup.type === 'Mesh') {
+      // This is a direct mesh from multi-conduit group
+      conduitMesh = conduitGroup
+    } else {
+      // This is a legacy single conduit group with MainConduit child
+      conduitMesh = conduitGroup.getObjectByName('MainConduit')
+    }
+    
+    if (!conduitMesh) return
     
     let materialType
     switch (appearance) {
@@ -489,11 +594,11 @@ export class ConduitGeometry {
         opacity: 0.9,
         side: THREE.DoubleSide
       })
-      if (mainConduit) mainConduit.material = customMaterial
+      conduitMesh.material = customMaterial
     } else {
       // Use predefined materials
-      if (mainConduit && this.materials[materialType]) {
-        mainConduit.material = this.materials[materialType]
+      if (this.materials[materialType]) {
+        conduitMesh.material = this.materials[materialType]
       }
     }
   }

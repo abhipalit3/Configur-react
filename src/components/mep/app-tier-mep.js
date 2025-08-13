@@ -51,6 +51,31 @@ const AppTierMEP = (props) => {
     }
   }, [showColorPicker])
 
+  // Position color picker dropdown dynamically
+  const positionColorPicker = (buttonElement, dropdownElement) => {
+    if (!buttonElement || !dropdownElement) return
+    
+    const buttonRect = buttonElement.getBoundingClientRect()
+    const dropdownHeight = 120 // Approximate height of the dropdown
+    const viewportHeight = window.innerHeight
+    const spaceBelow = viewportHeight - buttonRect.bottom
+    const spaceAbove = buttonRect.top
+    
+    // Position dropdown below if there's enough space, otherwise above
+    if (spaceBelow >= dropdownHeight + 10) {
+      // Position below
+      dropdownElement.style.top = `${buttonRect.bottom + 4}px`
+    } else if (spaceAbove >= dropdownHeight + 10) {
+      // Position above
+      dropdownElement.style.top = `${buttonRect.top - dropdownHeight - 4}px`
+    } else {
+      // If no space, position it in the center of viewport
+      dropdownElement.style.top = `${(viewportHeight - dropdownHeight) / 2}px`
+    }
+    
+    dropdownElement.style.left = `${buttonRect.left}px`
+  }
+
   // Display text per item with detailed information (no tier info since it's shown in sections)
   function getItemDisplayText(item) {
     if (!item || typeof item !== 'object') return ''
@@ -201,21 +226,21 @@ const AppTierMEP = (props) => {
   }
 
   return (
-    <div className={`app-tier-mep-container1 ${props.rootClassName} `}>
-      <div className="app-tier-mep-heading">
+    <div className={`mep-panel-container ${props.rootClassName} `}>
+      <div className="mep-panel-header">
         <input
           type="text"
           placeholder="Search MEP items..."
-          className="app-tier-mep-textinput input-form"
+          className="mep-search-input input-form"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      <div className="app-tier-mep-container2" style={{ padding: '0' }}>
+      <div className="mep-items-scroll-container">
         {mepItems.length === 0 ? (
-          <div className="app-tier-mep-added-mep1">
-            <span className="app-tier-mep-text10">No MEP items added yet</span>
+          <div className="mep-item-row">
+            <span className="mep-item-text">No MEP items added yet</span>
           </div>
         ) : (
           Object.keys(tierGroups).map((sectionName, index) => {
@@ -232,101 +257,49 @@ const AppTierMEP = (props) => {
               <div key={sectionName} className="tier-section">
                 {/* Top separator line - only for sections after the first */}
                 {index > 0 && (
-                  <div style={{
-                    height: '1px',
-                    backgroundColor: '#e8e8e8',
-                    margin: '6px 0',
-                    width: '100%'
-                  }} />
+                  <div className="tier-section-separator" />
                 )}
                 
                 {/* Section Header with built-in bottom border */}
                 <div
                   className="tier-section-header"
-                  style={{
-                    padding: '4px 16px 6px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#888',
-                    backgroundColor: 'transparent',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    borderBottom: '1px solid #e8e8e8',
-                    marginBottom: '2px'
-                  }}
                 >
                   <span>{sectionName} ({sectionItems.length})</span>
                 </div>
                 
                 {/* Section Content - Same styling as original items */}
                 {hasItems && (
-                  <div className="tier-section-content" style={{ width: '100%', padding: '0' }}>
+                  <div className="tier-section-content">
                     {sectionItems.map((item) => (
                       <div 
                         key={item.id} 
-                        className="app-tier-mep-added-mep1"
-                        style={{
-                          cursor: (item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') ? 'pointer' : 'default',
-                          display: 'flex',
-                          alignItems: 'center',
-                          position: 'relative',
-                          width: '100%',
-                          minWidth: 0, // Prevents flex items from overflowing
-                          padding: '4px 16px', // Reduced padding for more compact look
-                          boxSizing: 'border-box'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') {
-                            e.currentTarget.style.backgroundColor = '#f0f8ff'
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') {
-                            e.currentTarget.style.backgroundColor = 'transparent'
-                          }
-                        }}
+                        className={`mep-item-row ${(item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') ? 'clickable' : ''}`}
                       >
                         {/* Color Picker for Ducts */}
                         {item.type === 'duct' && (
-                          <div className="color-picker-container" style={{ position: 'relative', marginRight: '8px' }}>
+                          <div className="color-picker-container">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setShowColorPicker(showColorPicker === item.id ? null : item.id)
                               }}
+                              className="color-picker-button"
                               style={{
-                                width: '16px',
-                                height: '16px',
-                                borderRadius: '50%',
-                                border: '1px solid #ccc',
-                                background: item.color || '#d05e8f',
-                                cursor: 'pointer',
-                                position: 'relative',
-                                minWidth: '16px',
-                                flexShrink: 0
+                                background: item.color || '#d05e8f'
                               }}
                               title="Change duct color"
                             />
                             
                             {showColorPicker === item.id && (
-                              <div style={{
-                                position: 'absolute',
-                                top: '20px',
-                                left: '0',
-                                background: 'white',
-                                border: '1px solid #ccc',
-                                borderRadius: '4px',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                padding: '8px',
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)',
-                                gap: '4px',
-                                zIndex: 1001,
-                                minWidth: '120px'
-                              }}>
+                              <div 
+                                className="color-picker-dropdown"
+                                ref={(dropdown) => {
+                                  if (dropdown) {
+                                    const button = dropdown.previousElementSibling
+                                    positionColorPicker(button, dropdown)
+                                  }
+                                }}
+                              >
                                 {colorPalette.map((color, index) => (
                                   <button
                                     key={index}
@@ -337,14 +310,9 @@ const AppTierMEP = (props) => {
                                       }
                                       setShowColorPicker(null)
                                     }}
+                                    className={`color-picker-option ${(item.color || '#d05e8f') === color.value ? 'selected' : ''}`}
                                     style={{
-                                      width: '24px',
-                                      height: '24px',
-                                      borderRadius: '3px',
-                                      border: (item.color || '#d05e8f') === color.value ? '2px solid #333' : '1px solid #ccc',
-                                      background: color.value,
-                                      cursor: 'pointer',
-                                      transition: 'all 0.2s ease'
+                                      background: color.value
                                     }}
                                     title={color.name}
                                   />
@@ -356,42 +324,29 @@ const AppTierMEP = (props) => {
 
                         {/* Color Picker for Pipes */}
                         {item.type === 'pipe' && (
-                          <div className="color-picker-container" style={{ position: 'relative', marginRight: '8px' }}>
+                          <div className="color-picker-container">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setShowColorPicker(showColorPicker === item.id ? null : item.id)
                               }}
+                              className="color-picker-button"
                               style={{
-                                width: '16px',
-                                height: '16px',
-                                borderRadius: '50%',
-                                border: '1px solid #ccc',
-                                background: item.color || (item.pipeType === 'copper' ? '#B87333' : item.pipeType === 'pvc' ? '#F5F5F5' : '#708090'),
-                                cursor: 'pointer',
-                                position: 'relative',
-                                minWidth: '16px',
-                                flexShrink: 0
+                                background: item.color || (item.pipeType === 'copper' ? '#B87333' : item.pipeType === 'pvc' ? '#F5F5F5' : '#708090')
                               }}
                               title="Change pipe color"
                             />
                             
                             {showColorPicker === item.id && (
-                              <div style={{
-                                position: 'absolute',
-                                top: '20px',
-                                left: '0',
-                                background: 'white',
-                                border: '1px solid #ccc',
-                                borderRadius: '4px',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                padding: '8px',
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)',
-                                gap: '4px',
-                                zIndex: 1001,
-                                minWidth: '120px'
-                              }}>
+                              <div 
+                                className="color-picker-dropdown"
+                                ref={(dropdown) => {
+                                  if (dropdown) {
+                                    const button = dropdown.previousElementSibling
+                                    positionColorPicker(button, dropdown)
+                                  }
+                                }}
+                              >
                                 {colorPalette.map((color, index) => (
                                   <button
                                     key={index}
@@ -402,19 +357,12 @@ const AppTierMEP = (props) => {
                                       }
                                       setShowColorPicker(null)
                                     }}
+                                    className="color-picker-option"
                                     style={{
-                                      width: '24px',
-                                      height: '24px',
-                                      border: '1px solid #ccc',
-                                      borderRadius: '2px',
-                                      background: color.value,
-                                      cursor: 'pointer',
-                                      fontSize: '0'
+                                      background: color.value
                                     }}
                                     title={color.name}
-                                  >
-                                    {color.name}
-                                  </button>
+                                  />
                                 ))}
                               </div>
                             )}
@@ -423,42 +371,29 @@ const AppTierMEP = (props) => {
 
                         {/* Color Picker for Conduits */}
                         {item.type === 'conduit' && (
-                          <div className="color-picker-container" style={{ position: 'relative', marginRight: '8px' }}>
+                          <div className="color-picker-container">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setShowColorPicker(showColorPicker === item.id ? null : item.id)
                               }}
+                              className="color-picker-button"
                               style={{
-                                width: '16px',
-                                height: '16px',
-                                borderRadius: '50%',
-                                border: '1px solid #ccc',
-                                background: item.color || (item.conduitType === 'EMT' ? '#C0C0C0' : item.conduitType === 'Rigid' ? '#808080' : item.conduitType === 'PVC' ? '#F5F5F5' : '#FFD700'),
-                                cursor: 'pointer',
-                                position: 'relative',
-                                minWidth: '16px',
-                                flexShrink: 0
+                                background: item.color || (item.conduitType === 'EMT' ? '#C0C0C0' : item.conduitType === 'Rigid' ? '#808080' : item.conduitType === 'PVC' ? '#F5F5F5' : '#FFD700')
                               }}
                               title="Change conduit color"
                             />
                             
                             {showColorPicker === item.id && (
-                              <div style={{
-                                position: 'absolute',
-                                top: '20px',
-                                left: '0',
-                                background: 'white',
-                                border: '1px solid #ccc',
-                                borderRadius: '4px',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                padding: '8px',
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)',
-                                gap: '4px',
-                                zIndex: 1001,
-                                minWidth: '120px'
-                              }}>
+                              <div 
+                                className="color-picker-dropdown"
+                                ref={(dropdown) => {
+                                  if (dropdown) {
+                                    const button = dropdown.previousElementSibling
+                                    positionColorPicker(button, dropdown)
+                                  }
+                                }}
+                              >
                                 {colorPalette.map((color, index) => (
                                   <button
                                     key={index}
@@ -469,19 +404,12 @@ const AppTierMEP = (props) => {
                                       }
                                       setShowColorPicker(null)
                                     }}
+                                    className="color-picker-option"
                                     style={{
-                                      width: '24px',
-                                      height: '24px',
-                                      border: '1px solid #ccc',
-                                      borderRadius: '2px',
-                                      background: color.value,
-                                      cursor: 'pointer',
-                                      fontSize: '0'
+                                      background: color.value
                                     }}
                                     title={color.name}
-                                  >
-                                    {color.name}
-                                  </button>
+                                  />
                                 ))}
                               </div>
                             )}
@@ -489,20 +417,13 @@ const AppTierMEP = (props) => {
                         )}
 
                         <span 
-                          className="app-tier-mep-text10" 
+                          className="mep-item-text" 
                           onClick={() => {
                             if ((item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') && onItemClick) {
                               onItemClick(item)
                             }
                           }}
-                          style={{ 
-                            flex: 1, 
-                            cursor: (item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') ? 'pointer' : 'default',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            minWidth: 0 // Important for flexbox text truncation
-                          }}
+                          className={`mep-item-text ${(item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') ? 'clickable' : ''}`}
                         >
                           {getItemDisplayText(item)}
                         </span>
@@ -511,16 +432,10 @@ const AppTierMEP = (props) => {
                           width="16"
                           height="16"
                           viewBox="0 0 32 32"
-                          className="app-tier-mep-remove-icon"
+                          className="mep-item-remove-icon"
                           onClick={(e) => {
                             e.stopPropagation()
                             onRemoveItem(item.id)
-                          }}
-                          style={{
-                            cursor: 'pointer',
-                            minWidth: '16px',
-                            flexShrink: 0,
-                            marginLeft: '8px'
                           }}
                         >
                           <path
@@ -535,13 +450,7 @@ const AppTierMEP = (props) => {
                 
                 {/* Empty tier placeholder - Cleaner */}
                 {!hasItems && sectionName.startsWith('Tier ') && (
-                  <div style={{ 
-                    fontStyle: 'italic', 
-                    color: '#bbb', 
-                    fontSize: '11px',
-                    padding: '6px 16px',
-                    textAlign: 'center'
-                  }}>
+                  <div className="tier-section-empty">
                     No MEP elements in this tier
                   </div>
                 )}
@@ -551,27 +460,24 @@ const AppTierMEP = (props) => {
         )}
       </div>
 
-      <div className="app-tier-mep-title">
-        <span style={{ fontSize: '11px', color: '#666', padding: '4px' }}>
+      <div className="mep-panel-footer">
+        <span className="mep-item-count">
           Total items: {mepItems.length}
         </span>
 
         <button
-          className="app-tier-mep-plus-button"
+          className="mep-add-button"
           onClick={() => {
             if (onToggleAddMEP) {
               onToggleAddMEP()
             }
-          }}
-          style={{
-            marginLeft: 'auto'
           }}
         >
           <svg
             height="24"
             width="24"
             viewBox="0 0 24 24"
-            className="app-tier-mep-plus-icon"
+            className="mep-add-icon"
           >
             <path
               fill="currentColor"
@@ -581,7 +487,7 @@ const AppTierMEP = (props) => {
         </button>
 
         <button
-          className="app-tier-mep-delete-all-button"
+          className="mep-delete-all-button"
           onClick={handleDeleteAll}
           title={`Delete all ${mepItems.length} MEP element(s)`}
         >
@@ -589,7 +495,7 @@ const AppTierMEP = (props) => {
             height="14"
             width="14"
             viewBox="0 0 48 48"
-            className="app-tier-mep-delete-all-icon"
+            className="mep-delete-all-icon"
           >
             <g
               fill="none"

@@ -1,5 +1,6 @@
-.app-tier-mep-container1 {
+.mep-panel-container {
   width: 300px;
+  max-width: 100%;
   height: auto;
   display: flex;
   position: relative;
@@ -8,9 +9,11 @@
   border-radius: var(--dl-layout-radius-radius8);
   flex-direction: column;
   background-color: rgba(255, 255, 255, 0.8);
+  box-sizing: border-box;
+  overflow: visible; /* Allow dropdowns to overflow the container */
 }
  
-.app-tier-mep-heading {
+.mep-panel-header {
   flex: 0 0 auto;
   width: 100%;
   height: auto;
@@ -26,23 +29,25 @@
   justify-content: space-between;
 }
  
-.app-tier-mep-textinput {
+.mep-search-input {
   width: 100%;
   height: auto;
   padding: 4px;
 }
 
-.app-tier-mep-textinput:focus {
+.mep-search-input:focus {
   outline: none;
   box-shadow: none;
 }
 
 
-.app-tier-mep-container2 {
+.mep-items-scroll-container {
   width: 100%;
   height: 280px; /* Reduced height to be more reasonable */
+  max-height: 400px;
   display: flex;
-  overflow: auto;
+  overflow-y: auto; /* Restore vertical scrolling */
+  overflow-x: visible; /* Allow dropdowns to overflow horizontally */
   box-shadow: 1px 1px 1px 0px #d4d4d4;
   align-items: flex-start;
   flex-direction: column;
@@ -50,199 +55,37 @@
   scroll-padding-right: var(--dl-layout-space-halfunit);
   scroll-padding-bottom: var(--dl-layout-space-halfunit);
   padding: 0; /* Remove any padding that might interfere with full-width lines */
-}
- 
-.app-tier-mep-added-mep1 {
-  flex: 0 0 auto;
-  width: 100%;
-  height: auto;
-  display: flex;
-  box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: 0px; /* Override to remove default padding */
-  padding-right: 0px; /* Override to remove default padding */
-  flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
   box-sizing: border-box;
+  position: relative; /* Establish positioning context for dropdowns */
 }
  
-.app-tier-mep-text10 {
-  width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
-}
- 
-.app-tier-mep-added-mep2 {
+.mep-item-row {
   flex: 0 0 auto;
-  width: 100%;
-  height: auto;
+  width: 100% !important;
+  min-width: 0; /* Important for text truncation */
+  max-width: 100% !important;
+  height: 36px;
   display: flex;
   box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
+  padding: 0 8px !important; /* Add left and right padding for content */
+  margin: 0 !important; /* Remove all margin */
   flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  position: relative;
 }
  
-.app-tier-mep-text11 {
+.mep-item-text {
   width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
+  padding: 0 !important; /* Remove ALL padding */
+  margin: 0 !important; /* Remove ALL margin */
+  font-size: 12px !important;
 }
  
-.app-tier-mep-added-mep3 {
-  flex: 0 0 auto;
-  width: 100%;
-  height: auto;
-  display: flex;
-  box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
-  flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
-}
+/* Removed unused duplicate row styles - only using .mep-item-row */
  
-.app-tier-mep-text12 {
-  width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
-}
- 
-.app-tier-mep-added-mep4 {
-  flex: 0 0 auto;
-  width: 100%;
-  height: auto;
-  display: flex;
-  box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
-  flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
-}
- 
-.app-tier-mep-text13 {
-  width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
-}
- 
-.app-tier-mep-added-mep5 {
-  flex: 0 0 auto;
-  width: 100%;
-  height: auto;
-  display: flex;
-  box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
-  flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
-}
- 
-.app-tier-mep-text14 {
-  width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
-}
- 
-.app-tier-mep-added-mep6 {
-  flex: 0 0 auto;
-  width: 100%;
-  height: auto;
-  display: flex;
-  box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
-  flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
-}
- 
-.app-tier-mep-text15 {
-  width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
-}
- 
-.app-tier-mep-added-mep7 {
-  flex: 0 0 auto;
-  width: 100%;
-  height: auto;
-  display: flex;
-  box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
-  flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
-}
- 
-.app-tier-mep-text16 {
-  width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
-}
- 
-.app-tier-mep-added-mep8 {
-  flex: 0 0 auto;
-  width: 100%;
-  height: auto;
-  display: flex;
-  box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
-  flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
-}
- 
-.app-tier-mep-text17 {
-  width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
-}
- 
-.app-tier-mep-added-mep9 {
-  flex: 0 0 auto;
-  width: 100%;
-  height: auto;
-  display: flex;
-  box-shadow: -1px 1px 1px 0px #d4d4d4;
-  padding-top: 0px;
-  padding-left: var(--dl-layout-space-unit);
-  padding-right: var(--dl-layout-space-unit);
-  flex-direction: row;
-  padding-bottom: 0px;
-  justify-content: flex-start;
-}
- 
-.app-tier-mep-text18 {
-  width: 100%;
-  padding-top: var(--dl-layout-space-halfunit);
-  padding-right: var(--dl-layout-space-halfunit);
-  padding-bottom: var(--dl-layout-space-halfunit);
-}
- 
-.app-tier-mep-title {
+.mep-panel-footer {
   gap: var(--dl-layout-space-unit);
   flex: 0 0 auto;
   width: 100%;
@@ -258,96 +101,127 @@
   justify-content: center;
 }
  
-.app-tier-mep-icon10 {
-  width: 32px;
-  height: 32px;
-  padding: var(--dl-layout-space-halfunit);
+/* Removed unused icon and text classes */
+
+/* Tier section styles */
+.tier-section-separator {
+  height: 1px;
+  background-color: #e8e8e8;
+  margin: 6px 0;
+  width: 100%;
 }
- 
-.app-tier-mep-icon12 {
-  width: 32px;
-  height: 32px;
-  padding: var(--dl-layout-space-halfunit);
+
+.tier-section-empty {
+  font-style: italic;
+  color: #bbb;
+  font-size: 11px;
+  padding: 6px 0;
+  text-align: center;
 }
- 
-.app-tier-mep-icon16 {
-  width: 32px;
-  height: 32px;
-  padding: var(--dl-layout-space-halfunit);
+
+/* Color picker styles */
+.color-picker-container {
+  position: relative;
+  margin: 0 8px 0 0 !important;
+  padding: 0 !important;
+  flex-shrink: 0;
 }
- 
-.app-tier-mep-text19 {
-  display: inline-block;
+
+.color-picker-button {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  position: relative;
+  min-width: 16px;
+  flex-shrink: 0;
 }
- 
-.app-tier-mep-text20 {
-  display: inline-block;
+
+.color-picker-dropdown {
+  position: fixed; /* Use fixed positioning to escape container boundaries */
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* Stronger shadow for better visibility */
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  z-index: 99999; /* Extremely high z-index to ensure it's always on top */
+  min-width: 120px;
+  max-width: 150px;
 }
- 
-.app-tier-mep-text21 {
-  display: inline-block;
+
+.color-picker-option {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
- 
-.app-tier-mep-text22 {
-  display: inline-block;
+
+.color-picker-option:hover {
+  transform: scale(1.1);
 }
- 
-.app-tier-mep-text23 {
-  display: inline-block;
+
+.color-picker-option.selected {
+  border: 2px solid #333;
 }
- 
-.app-tier-mep-text24 {
-  display: inline-block;
+
+/* Item count label */
+.mep-item-count {
+  font-size: 11px;
+  color: #666;
+  padding: 4px;
 }
- 
-.app-tier-mep-text25 {
-  display: inline-block;
+
+/* Dynamic item states */
+.mep-item-row.clickable {
+  cursor: pointer;
 }
- 
-.app-tier-mep-text26 {
-  display: inline-block;
+
+.mep-item-row:hover {
+  background-color: #e6f3ff;
 }
- 
-.app-tier-mep-text27 {
-  display: inline-block;
-}
- 
-.app-tier-me-proot-class-name {
-  left: 0px;
-  bottom: 0px;
-  position: static;
-  margin-top: var(--dl-layout-space-unit);
-  margin-bottom: var(--dl-layout-space-halfunit);
+
+.mep-item-text.clickable {
+  cursor: pointer;
 }
 
 /* Update the MEP item styling to include space for the remove button */
-.app-tier-mep-added-mep1 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+/* REMOVED DUPLICATE - merged with main definition above */
 
 /* Style for remove icon */
-.app-tier-mep-remove-icon {
+.mep-item-remove-icon {
   width: 16px;
   height: 16px;
   cursor: pointer;
   transition: 0.3s;
   flex-shrink: 0;
   opacity: 0.6;
+  min-width: 16px;
+  margin: 0 0 0 8px !important;
+  padding: 0 !important;
 }
 
-.app-tier-mep-remove-icon:hover {
+.mep-item-remove-icon:hover {
   opacity: 1;
   transform: scale(1.1);
 }
 
 /* Ensure text doesn't overflow */
-.app-tier-mep-text10 {
+.mep-item-text {
   flex: 1;
+  min-width: 0; /* Critical for flex text truncation */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  word-wrap: break-word;
+  box-sizing: border-box;
+  padding-left: 0 !important; /* Override any default left padding */
+  font-size: 12px !important;
 }
 
 /* Add these styles to your respective component CSS files */
@@ -404,22 +278,22 @@
 }
 
 /* Search input in TierMEP */
-.app-tier-mep-textinput {
+.mep-search-input {
   transition: 0.3s;
 }
 
-.app-tier-mep-textinput:focus {
+.mep-search-input:focus {
   border-color: #4a90e2;
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
 /* MEP item hover state */
-.app-tier-mep-added-mep1:hover {
-  background-color: #f5f5f5;
+.mep-item-row:hover {
+  background-color: #e6f3ff;
 }
 
 /* Total items counter */
-.app-tier-mep-title {
+.mep-panel-footer {
   align-items: center;
   padding: 8px;
 }
@@ -427,21 +301,41 @@
 /* Ensure all tier section elements extend full width */
 .tier-section {
   width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tier-section-header {
   width: 100% !important;
+  max-width: 100% !important;
   box-sizing: border-box;
+  overflow: hidden;
+  padding: 4px 0 6px 8px; /* Add left padding for visual alignment */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  background-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e8e8e8;
+  margin-bottom: 2px;
 }
 
 .tier-section-content {
   width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Plus button styling to match AppAddMEP buttons */
-.app-tier-mep-plus-button {
+.mep-add-button {
   width: 36px;
   height: 36px;
   display: flex;
@@ -455,33 +349,34 @@
   justify-content: center;
   background-color: #ffffff;
   cursor: pointer;
+  margin-left: auto;
 }
 
-.app-tier-mep-plus-button:hover {
+.mep-add-button:hover {
   background-color: #5c5c5c;
 }
 
-.app-tier-mep-plus-button:active {
+.mep-add-button:active {
   background-color: #5c5c5c;
 }
 
-.app-tier-mep-plus-icon {
+.mep-add-icon {
   width: 100%;
   height: 100%;
   padding: var(--dl-layout-space-halfunit);
   transition: 0.3s;
 }
 
-.app-tier-mep-plus-button:hover .app-tier-mep-plus-icon {
+.mep-add-button:hover .mep-add-icon {
   color: white;
 }
 
-.app-tier-mep-plus-button:active .app-tier-mep-plus-icon {
+.mep-add-button:active .mep-add-icon {
   color: white;
 }
 
 /* Delete all button styling - matches plus button but with red hover */
-.app-tier-mep-delete-all-button {
+.mep-delete-all-button {
   width: 36px;
   height: 36px;
   display: flex;
@@ -497,22 +392,45 @@
   cursor: pointer;
 }
 
-.app-tier-mep-delete-all-button:hover {
+.mep-delete-all-button:hover {
   background-color: #ff4444;
 }
 
-.app-tier-mep-delete-all-button:active {
+.mep-delete-all-button:active {
   background-color: #ff4444;
 }
 
-.app-tier-mep-delete-all-icon {
+.mep-delete-all-icon {
   transition: 0.3s;
 }
 
-.app-tier-mep-delete-all-button:hover .app-tier-mep-delete-all-icon {
+.mep-delete-all-button:hover .mep-delete-all-icon {
   color: white;
 }
 
-.app-tier-mep-delete-all-button:active .app-tier-mep-delete-all-icon {
+.mep-delete-all-button:active .mep-delete-all-icon {
   color: white;
+}
+
+/* Simple empty state styling */
+.mep-items-scroll-container .mep-item-row:only-child {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  box-shadow: none !important;
+  margin: 16px 12px;
+  padding: 0px;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  width: calc(100% - 24px);
+}
+
+.mep-items-scroll-container .mep-item-row:only-child .mep-item-text {
+  text-align: left;
+  color: #6c757d;
+  font-size: 14px;
+  padding: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
 }

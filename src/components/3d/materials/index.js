@@ -25,19 +25,19 @@ export function createMaterials(textures = {}) {
 
   // Rack structural materials
   materials.postMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x666666, 
+    color: 0xB1B1B1, 
     metalness: 0.8, 
     roughness: 0.3 
   }) // Darker posts
 
   materials.longBeamMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x888888, 
+    color: 0xB1B1B1, 
     metalness: 0.9, 
     roughness: 0.2 
   }) // Lighter longitudinal beams
 
   materials.transBeamMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x777777, 
+    color: 0xB1B1B1, 
     metalness: 1.0, 
     roughness: 0.25 
   }) // Original color for transverse beams

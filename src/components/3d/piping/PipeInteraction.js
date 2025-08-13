@@ -66,6 +66,27 @@ export class PipeInteraction {
   setupEventListeners() {
     this.domElement.addEventListener('click', this.onMouseClick.bind(this))
     this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
+    this.setupKeyboardShortcuts()
+  }
+
+  setupKeyboardShortcuts() {
+    this.onKeyDown = (event) => {
+      if (!this.selectedPipe) return
+      
+      switch (event.key) {
+        case 'Delete':
+        case 'Backspace':
+          event.preventDefault()
+          this.deleteSelectedPipe()
+          break
+        case 'Escape':
+          this.deselectPipe()
+          break
+      }
+    }
+    
+    document.addEventListener('keydown', this.onKeyDown)
+    this.keyboardHandler = this.onKeyDown
   }
 
   onMouseClick(event) {
@@ -639,9 +660,88 @@ export class PipeInteraction {
     return this.selectedPipe
   }
 
+  /**
+   * Delete selected pipe
+   */
+  deleteSelectedPipe() {
+    if (!this.selectedPipe) return
+
+    // Get pipe data for deletion from MEP storage
+    const pipeData = this.selectedPipe.userData.pipeData
+    if (!pipeData || !pipeData.id) {
+      console.error('❌ Cannot delete pipe: missing pipe data or ID')
+      return
+    }
+
+    // Remove from MEP data storage
+    try {
+      const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      
+      const updatedItems = storedMepItems.filter(item => {
+        if (item.type === 'pipe') {
+          // Extract base ID from the pipe data ID (remove suffix like _0, _1, etc.)
+          const pipeBaseId = pipeData.id.toString().split('_')[0]
+          const itemId = item.id.toString()
+          
+          // Check both full ID match and base ID match
+          const fullIdMatch = itemId === pipeData.id.toString()
+          const baseIdMatch = itemId === pipeBaseId
+          
+          return !(fullIdMatch || baseIdMatch)
+        }
+        return true
+      })
+      
+      // Save updated items to localStorage
+      localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      
+      // Update manifest if function available
+      if (window.updateMEPItemsManifest) {
+        window.updateMEPItemsManifest(updatedItems)
+      }
+      
+      // Refresh MEP panel to reflect the deletion
+      if (window.refreshMepPanel) {
+        window.refreshMepPanel()
+      }
+      
+      // Dispatch events to update MEP panel
+      window.dispatchEvent(new Event('mepItemsUpdated'))
+      
+    } catch (error) {
+      console.error('❌ Error removing pipe from MEP data:', error)
+    }
+
+    // Remove from 3D scene
+    const pipingGroup = this.scene.getObjectByName('PipingGroup')
+    if (pipingGroup) {
+      // Dispose of geometry and materials
+      this.selectedPipe.traverse((child) => {
+        if (child.geometry) child.geometry.dispose()
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose()
+          child.material.dispose()
+        }
+      })
+
+      // Remove from scene
+      pipingGroup.remove(this.selectedPipe)
+    }
+
+    // Clear measurements
+    this.clearPipeMeasurements()
+
+    // Deselect
+    this.deselectPipe()
+  }
+
   dispose() {
     if (this.transformControls) {
       this.scene.remove(this.transformControls.getHelper())
+    }
+    
+    if (this.keyboardHandler) {
+      document.removeEventListener('keydown', this.keyboardHandler)
     }
     
     this.domElement.removeEventListener('click', this.onMouseClick.bind(this))

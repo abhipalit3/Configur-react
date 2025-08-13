@@ -358,27 +358,36 @@ export class DuctInteraction {
   }
 
   setupKeyboardShortcuts() {
-    const onKeyDown = (event) => {
+    this.onKeyDown = (event) => {
       if (!this.transformControls) return
       
-      switch (event.key.toLowerCase()) {
+      switch (event.key) {
         case 'w':
+        case 'W':
           this.transformControls.setMode('translate')
           break
         case 'e':
+        case 'E':
           this.transformControls.setMode('rotate')
           break
         case 'r':
+        case 'R':
           this.transformControls.setMode('scale')
           break
-        case 'escape':
+        case 'Delete':
+        case 'Backspace':
+          if (this.selectedDuct) {
+            this.deleteSelectedDuct()
+          }
+          break
+        case 'Escape':
           this.deselectDuct()
           break
       }
     }
     
-    document.addEventListener('keydown', onKeyDown)
-    this.keyboardHandler = onKeyDown
+    document.addEventListener('keydown', this.onKeyDown)
+    this.keyboardHandler = this.onKeyDown
   }
 
   /**
@@ -758,6 +767,74 @@ export class DuctInteraction {
     // Update measurements
     this.updateDuctMeasurements()
     
+  }
+
+  /**
+   * Delete selected duct
+   */
+  deleteSelectedDuct() {
+    if (!this.selectedDuct) return
+
+    // Get duct data for deletion from MEP storage
+    const ductData = this.selectedDuct.userData.ductData
+    if (!ductData || !ductData.id) {
+      console.error('❌ Cannot delete duct: missing duct data or ID')
+      return
+    }
+
+    console.log(`⚡ Deleting duct with ID: ${ductData.id}`)
+
+    // Remove from MEP data storage
+    try {
+      const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      const updatedItems = storedMepItems.filter(item => {
+        // Remove the duct with matching ID
+        return !(item.type === 'duct' && item.id === ductData.id)
+      })
+      
+      // Save updated items to localStorage
+      localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      console.log(`⚡ Duct ${ductData.id} removed from MEP data storage`)
+      
+      // Update manifest if function available
+      if (window.updateMEPItemsManifest) {
+        window.updateMEPItemsManifest(updatedItems)
+      }
+      
+      // Refresh MEP panel to reflect the deletion
+      if (window.refreshMepPanel) {
+        window.refreshMepPanel()
+      }
+      
+      // Dispatch events to update MEP panel
+      window.dispatchEvent(new Event('mepItemsUpdated'))
+      
+    } catch (error) {
+      console.error('❌ Error removing duct from MEP data:', error)
+    }
+
+    // Remove from 3D scene
+    const ductGroup = this.scene.getObjectByName('DuctsGroup')
+    if (ductGroup) {
+      // Dispose of geometry and materials
+      this.selectedDuct.traverse((child) => {
+        if (child.geometry) child.geometry.dispose()
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose()
+          child.material.dispose()
+        }
+      })
+
+      // Remove from scene
+      ductGroup.remove(this.selectedDuct)
+      console.log('⚡ Duct deleted from scene')
+    }
+
+    // Clear measurements
+    this.clearDuctMeasurements()
+
+    // Deselect
+    this.deselectDuct()
   }
 
   dispose() {

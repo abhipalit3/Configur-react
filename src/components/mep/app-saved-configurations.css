@@ -72,7 +72,7 @@
 
 .app-saved-configurations-empty-text {
   color: rgba(0, 0, 0, 0.5);
-  font-size: 11px;
+  font-size: 12px;
   font-family: "Bricolage Grotesque";
   text-align: center;
   line-height: 1.4;
@@ -119,7 +119,7 @@
 
 .app-saved-configurations-card-title {
   color: #333;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   font-family: "Bricolage Grotesque";
   margin: 0;
@@ -144,7 +144,7 @@
 
 .app-saved-configurations-detail-label {
   color: #666;
-  font-size: 10px;
+  font-size: 12px;
   font-family: "Bricolage Grotesque";
   line-height: 1.3;
 }
@@ -167,7 +167,7 @@
   color: #4CAF50;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -180,7 +180,7 @@
 
 .app-saved-configurations-date-text {
   color: rgba(0, 0, 0, 0.4);
-  font-size: 9px;
+  font-size: 12px;
   font-family: "Bricolage Grotesque";
 }
 

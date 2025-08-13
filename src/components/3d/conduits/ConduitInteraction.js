@@ -46,6 +46,7 @@ export class ConduitInteraction {
     this.selectedConduitGroup = [] // Array of related conduits that move together
     this.groupRelativePositions = [] // Store relative positions for group movement
     this.hoveredConduit = null
+    this.hoveredGroup = null // Track the hovered multi-conduit group
     
     // Measurement tracking
     this.conduitMeasurementIds = []
@@ -110,13 +111,23 @@ export class ConduitInteraction {
 
     const intersects = this.raycaster.intersectObjects(conduitGroup.children, true)
 
-    // Find the first conduit in the intersections
+    // Find the first conduit in the intersections and its parent group
     let newHoveredConduit = null
+    let newHoveredGroup = null
     for (const intersect of intersects) {
       let obj = intersect.object
       while (obj && obj.parent) {
         if (obj.userData && obj.userData.type === 'conduit') {
           newHoveredConduit = obj
+          // Find the parent multi-conduit group
+          let parent = obj.parent
+          while (parent) {
+            if (parent.userData && parent.userData.type === 'multiConduit') {
+              newHoveredGroup = parent
+              break
+            }
+            parent = parent.parent
+          }
           break
         }
         obj = obj.parent
@@ -124,21 +135,22 @@ export class ConduitInteraction {
       if (newHoveredConduit) break
     }
 
-    // Update hover state
-    if (newHoveredConduit !== this.hoveredConduit) {
+    // Update hover state for the entire group
+    if (newHoveredGroup !== this.hoveredGroup) {
       // Clear previous hover
-      if (this.hoveredConduit && this.hoveredConduit !== this.selectedConduit) {
-        this.conduitGeometry.updateConduitAppearance(this.hoveredConduit, 'normal')
-        console.log('⚡ Cleared hover from:', this.hoveredConduit.name)
+      if (this.hoveredGroup && this.hoveredGroup !== this.selectedConduitGroup) {
+        this.updateGroupAppearance(this.hoveredGroup, 'normal')
+        console.log('⚡ Cleared hover from group:', this.hoveredGroup.name)
       }
 
       // Set new hover
+      this.hoveredGroup = newHoveredGroup
       this.hoveredConduit = newHoveredConduit
-      if (this.hoveredConduit && this.hoveredConduit !== this.selectedConduit) {
-        this.conduitGeometry.updateConduitAppearance(this.hoveredConduit, 'hover')
+      if (this.hoveredGroup && this.hoveredGroup !== this.selectedConduitGroup) {
+        this.updateGroupAppearance(this.hoveredGroup, 'hover')
         this.renderer.domElement.style.cursor = 'pointer'
-        console.log('⚡ Hovering over:', this.hoveredConduit.name)
-      } else if (!this.hoveredConduit) {
+        console.log('⚡ Hovering over group:', this.hoveredGroup.name)
+      } else if (!this.hoveredGroup) {
         this.renderer.domElement.style.cursor = 'default'
       }
     }
@@ -344,6 +356,45 @@ export class ConduitInteraction {
   deleteSelectedConduit() {
     if (!this.selectedConduitGroup) return
 
+    // Get conduit data for deletion from MEP storage
+    const conduitData = this.selectedConduitGroup.userData.conduitData
+    if (!conduitData || !conduitData.id) {
+      console.error('❌ Cannot delete conduit: missing conduit data or ID')
+      return
+    }
+
+    console.log(`⚡ Deleting conduit group with ID: ${conduitData.id}`)
+
+    // Remove from MEP data storage
+    try {
+      const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      const updatedItems = storedMepItems.filter(item => {
+        // Remove the conduit with matching ID
+        return !(item.type === 'conduit' && item.id === conduitData.id)
+      })
+      
+      // Save updated items to localStorage
+      localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      console.log(`⚡ Conduit ${conduitData.id} removed from MEP data storage`)
+      
+      // Update manifest if function available
+      if (window.updateMEPItemsManifest) {
+        window.updateMEPItemsManifest(updatedItems)
+      }
+      
+      // Refresh MEP panel to reflect the deletion
+      if (window.refreshMepPanel) {
+        window.refreshMepPanel()
+      }
+      
+      // Dispatch events to update MEP panel
+      window.dispatchEvent(new Event('mepItemsUpdated'))
+      
+    } catch (error) {
+      console.error('❌ Error removing conduit from MEP data:', error)
+    }
+
+    // Remove from 3D scene
     const conduitGroup = this.scene.getObjectByName('ConduitsGroup')
     if (conduitGroup) {
       // Dispose of geometry and materials
@@ -357,7 +408,7 @@ export class ConduitInteraction {
 
       // Remove from scene
       conduitGroup.remove(this.selectedConduitGroup)
-      console.log('⚡ Multi-conduit group deleted')
+      console.log('⚡ Multi-conduit group deleted from scene')
     }
 
     // Deselect

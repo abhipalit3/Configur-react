@@ -7,7 +7,9 @@
       "Bash(git push:*)",
       "Bash(git restore:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "WebSearch",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
