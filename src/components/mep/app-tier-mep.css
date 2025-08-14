@@ -47,7 +47,7 @@
   max-height: 400px;
   display: flex;
   overflow-y: auto; /* Restore vertical scrolling */
-  overflow-x: visible; /* Allow dropdowns to overflow horizontally */
+  overflow-x: hidden; /* Prevent horizontal overflow issues */
   box-shadow: 1px 1px 1px 0px #d4d4d4;
   align-items: flex-start;
   flex-direction: column;
@@ -304,7 +304,8 @@
   max-width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible; /* Allow content to be visible */
+  flex-shrink: 0; /* Prevent sections from shrinking */
 }
 
 .tier-section-header {
@@ -331,7 +332,10 @@
   max-width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible; /* Allow content to be visible */
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0; /* Prevent content from shrinking */
 }
 
 /* Plus button styling to match AppAddMEP buttons */

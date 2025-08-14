@@ -389,6 +389,114 @@ export class MeasurementTool {
     }
   }
 
+  /**
+   * Check if we're in 2D view based on the bottom panel view mode state
+   */
+  isIn2DView() {
+    // Check the global view mode state from the bottom panel
+    // This is set by the 2D/3D buttons in the bottom panel
+    return window.currentViewMode === '2D'
+  }
+
+  /**
+   * Filter snap points to only show those within a range from camera in X-axis for 2D view
+   */
+  filterSnapPointsFor2D(snapPoints) {
+    if (!snapPoints || snapPoints.length === 0) return snapPoints
+    
+    // Configuration for 2D filtering
+    const groupTolerance = 0.01 // 1cm tolerance for grouping points into X-layers
+    const rangeFromCamera = 2.0 // 2m range from closest layer (tighter filtering)
+
+    // Group snap points by their X coordinate (with small tolerance for floating point)
+    const xGroups = new Map()
+    
+    for (const snapPoint of snapPoints) {
+      let x = null
+      
+      // Handle different snap point types
+      if (snapPoint.type === 'edge' && snapPoint.start && snapPoint.end) {
+        // For edge points, use the average X position of start and end
+        x = (snapPoint.start.x + snapPoint.end.x) / 2
+      } else if (snapPoint.point && snapPoint.point.isVector3) {
+        // For vertex points
+        x = snapPoint.point.x
+      } else if (snapPoint.isVector3) {
+        // Direct vector3 point
+        x = snapPoint.x
+      }
+      
+      if (x === null) continue // Skip invalid points
+      
+      let foundGroup = false
+      
+      // Check if this X value matches an existing group
+      for (const [groupX, points] of xGroups.entries()) {
+        if (Math.abs(x - groupX) < groupTolerance) {
+          points.push(snapPoint)
+          foundGroup = true
+          break
+        }
+      }
+      
+      // Create new group if no match found
+      if (!foundGroup) {
+        xGroups.set(x, [snapPoint])
+      }
+    }
+    
+    if (xGroups.size === 0) return snapPoints
+    
+    // Debug: Log X-layer distribution
+    const allXLayers = Array.from(xGroups.keys()).sort((a, b) => a - b)
+    console.log(`🔌 Found ${xGroups.size} X-layers:`, allXLayers.map(x => x.toFixed(2)))
+    
+    // Get camera position to determine range
+    const cameraX = this.camera.position.x
+    console.log(`🔌 Camera X position: ${cameraX.toFixed(2)}`)
+    
+    // Find the closest X layer to the camera first
+    let closestX = null
+    let minDistance = Infinity
+    
+    for (const [groupX] of xGroups.entries()) {
+      const distance = Math.abs(cameraX - groupX)
+      if (distance < minDistance) {
+        minDistance = distance
+        closestX = groupX
+      }
+    }
+    
+    if (closestX === null) return snapPoints
+    
+    // Collect all X-layers within range from the closest layer
+    const filteredPoints = []
+    let includedLayers = []
+    let excludedLayers = []
+    
+    console.log(`🔌 Closest layer: ${closestX.toFixed(2)}, Range: ±${rangeFromCamera}m`)
+    
+    for (const [groupX, points] of xGroups.entries()) {
+      const distanceFromClosest = Math.abs(groupX - closestX)
+      if (distanceFromClosest <= rangeFromCamera) {
+        filteredPoints.push(...points)
+        includedLayers.push(`${groupX.toFixed(2)} (${points.length}pts)`)
+        console.log(`🔌 ✅ Including layer ${groupX.toFixed(2)} - distance: ${distanceFromClosest.toFixed(2)}m, points: ${points.length}`)
+      } else {
+        excludedLayers.push(`${groupX.toFixed(2)} (${points.length}pts)`)
+        console.log(`🔌 ❌ Excluding layer ${groupX.toFixed(2)} - distance: ${distanceFromClosest.toFixed(2)}m, points: ${points.length}`)
+      }
+    }
+    
+    // Sort layers for better logging
+    includedLayers.sort((a, b) => parseFloat(a) - parseFloat(b))
+    
+    console.log(`🔌 2D View Range Filter: ${snapPoints.length} → ${filteredPoints.length} points`)
+    console.log(`🔌 Included X-layers: [${includedLayers.join(', ')}] (range: ±${rangeFromCamera}m from closest)`)
+    
+    return filteredPoints
+  }
+
   findClosestSnapPoint(event) {
     // Validate inputs
     if (!event || !this.domElement || !this.camera) {
@@ -402,6 +510,14 @@ export class MeasurementTool {
       return null
     }
 
+    // Filter snap points for 2D view if applicable
+    let activeSnapPoints = this.snapPoints
+    const is2DView = this.isIn2DView()
+    if (is2DView) {
+      activeSnapPoints = this.filterSnapPointsFor2D(this.snapPoints)
+      console.log('🔌 2D View Active: Using filtered snap points for measurements')
+    }
+
     const rect = this.domElement.getBoundingClientRect()
     const mouseX = event.clientX - rect.left
     const mouseY = event.clientY - rect.top
@@ -412,26 +528,60 @@ export class MeasurementTool {
     let minEdgeDist = Infinity
 
     try {
-      for (const snapPoint of this.snapPoints) {
+      for (const snapPoint of activeSnapPoints) {
         const type = snapPoint.type || 'vertex'
-        const worldPoint = snapPoint.point || snapPoint
         
-        if (!worldPoint || !worldPoint.isVector3) {
-          continue // Skip invalid points
-        }
-        
-        const screenPoint = worldPoint.clone().project(this.camera)
-        const x = (screenPoint.x * 0.5 + 0.5) * this.domElement.clientWidth
-        const y = (-screenPoint.y * 0.5 + 0.5) * this.domElement.clientHeight
-        const dist = Math.hypot(mouseX - x, mouseY - y)
+        if (type === 'edge' && snapPoint.start && snapPoint.end) {
+          // Handle edge snap points with start/end
+          const start = snapPoint.start
+          const end = snapPoint.end
+          
+          // Calculate closest point on the edge line to the mouse cursor
+          const startScreen = start.clone().project(this.camera)
+          const endScreen = end.clone().project(this.camera)
+          
+          const startX = (startScreen.x * 0.5 + 0.5) * this.domElement.clientWidth
+          const startY = (-startScreen.y * 0.5 + 0.5) * this.domElement.clientHeight
+          const endX = (endScreen.x * 0.5 + 0.5) * this.domElement.clientWidth
+          const endY = (-endScreen.y * 0.5 + 0.5) * this.domElement.clientHeight
+          
+          // Find closest point on the line segment to mouse
+          const lineVec = { x: endX - startX, y: endY - startY }
+          const mouseVec = { x: mouseX - startX, y: mouseY - startY }
+          const lineLength = Math.hypot(lineVec.x, lineVec.y)
+          
+          if (lineLength > 0) {
+            const t = Math.max(0, Math.min(1, (mouseVec.x * lineVec.x + mouseVec.y * lineVec.y) / (lineLength * lineLength)))
+            const closestScreenX = startX + t * lineVec.x
+            const closestScreenY = startY + t * lineVec.y
+            const dist = Math.hypot(mouseX - closestScreenX, mouseY - closestScreenY)
+            
+            if (dist < 15 && dist < minEdgeDist) {
+              // Calculate corresponding 3D world point
+              const worldPoint = start.clone().lerp(end, t)
+              minEdgeDist = dist
+              closestEdge = { point: worldPoint, type: 'edge', dist }
+            }
+          }
+          
+        } else {
+          // Handle vertex snap points
+          const worldPoint = snapPoint.point || snapPoint
+          
+          if (!worldPoint || !worldPoint.isVector3) {
+            continue // Skip invalid points
+          }
+          
+          const screenPoint = worldPoint.clone().project(this.camera)
+          const x = (screenPoint.x * 0.5 + 0.5) * this.domElement.clientWidth
+          const y = (-screenPoint.y * 0.5 + 0.5) * this.domElement.clientHeight
+          const dist = Math.hypot(mouseX - x, mouseY - y)
 
-        if (dist < 15) { // Reduced snap threshold for more precise snapping
-          if (type === 'vertex' && dist < minVertexDist) {
-            minVertexDist = dist
-            closestVertex = { point: worldPoint.clone(), type: 'vertex', dist }
-          } else if (type === 'edge' && dist < minEdgeDist) {
-            minEdgeDist = dist
-            closestEdge = { point: worldPoint.clone(), type: 'edge', dist }
+          if (dist < 15) { // Reduced snap threshold for more precise snapping
+            if (type === 'vertex' && dist < minVertexDist) {
+              minVertexDist = dist
+              closestVertex = { point: worldPoint.clone(), type: 'vertex', dist }
+            }
           }
         }
       }

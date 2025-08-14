@@ -1065,7 +1065,8 @@ export class ConduitInteraction {
             x: groupPosition.x,
             y: groupPosition.y,
             z: groupPosition.z
-          }
+          },
+          color: newDimensions.color || groupConduitData.color // Preserve color
         }
         
         // Note: Skip flag is already set in ThreeScene onSave to prevent double recreation
@@ -1101,7 +1102,7 @@ export class ConduitInteraction {
       const conduitLength = rackLength * 12 + 12 // Convert feet to inches + 12" extension
 
       // Update all conduits in the group
-      this.selectedConduitGroup.forEach(conduit => {
+      this.selectedConduitGroup.children.forEach(conduit => {
         const conduitData = conduit.userData.conduitData
         if (!conduitData) {
           console.warn('❌ No conduit data found for conduit:', conduit.name)
@@ -1121,42 +1122,71 @@ export class ConduitInteraction {
         // Store current position
         const currentPosition = conduit.position.clone()
         
-        // Remove old geometry
-        while (conduit.children.length > 0) {
-          const child = conduit.children[0]
-          conduit.remove(child)
-          if (child.geometry) child.geometry.dispose()
-          if (child.material) {
-            if (child.material.map) child.material.map.dispose()
-            child.material.dispose()
+        // If only color is changing, update material without recreating geometry
+        if (newDimensions.color && Object.keys(newDimensions).length === 1) {
+          // Just update the material color
+          conduit.traverse((child) => {
+            if (child.isMesh) {
+              // Create new material with custom color
+              const newMaterial = new THREE.MeshLambertMaterial({
+                color: new THREE.Color(newDimensions.color),
+                transparent: true,
+                opacity: 0.9,
+                side: THREE.DoubleSide
+              })
+              child.material = newMaterial
+            }
+          })
+        } else {
+          // Remove old geometry for full update
+          while (conduit.children.length > 0) {
+            const child = conduit.children[0]
+            conduit.remove(child)
+            if (child.geometry) child.geometry.dispose()
+            if (child.material) {
+              if (child.material.map) child.material.map.dispose()
+              child.material.dispose()
+            }
           }
+
+          // Create new geometry with updated dimensions
+          const newGeometry = this.conduitGeometry.createConduitGeometry(
+            updatedConduitData.diameter || 1,
+            conduitLength,
+            updatedConduitData.conduitType || 'EMT'
+          )
+
+          // Apply materials
+          let material
+          if (updatedConduitData.color) {
+            // Use custom color if specified
+            material = new THREE.MeshLambertMaterial({
+              color: new THREE.Color(updatedConduitData.color),
+              transparent: true,
+              opacity: 0.9,
+              side: THREE.DoubleSide
+            })
+          } else {
+            // Use default material for conduit type
+            const materials = this.conduitGeometry.materials
+            const materialKey = updatedConduitData.conduitType?.toLowerCase() || 'emt'
+            material = materials[materialKey] || materials.emt
+          }
+
+          // Create new mesh
+          const newMesh = new THREE.Mesh(newGeometry, material)
+          conduit.add(newMesh)
+
+          // Update appearance to maintain selection state
+          this.conduitGeometry.updateConduitAppearance(conduit, 'selected')
         }
-
-        // Create new geometry with updated dimensions
-        const newGeometry = this.conduitGeometry.createConduitGeometry(
-          updatedConduitData.diameter || 1,
-          conduitLength,
-          updatedConduitData.conduitType || 'EMT'
-        )
-
-        // Apply materials
-        const materials = this.conduitGeometry.materials
-        const materialKey = updatedConduitData.conduitType?.toLowerCase() || 'emt'
-        const material = materials[materialKey] || materials.emt
-
-        // Create new mesh
-        const newMesh = new THREE.Mesh(newGeometry, material)
-        conduit.add(newMesh)
-
-        // Update appearance to maintain selection state
-        this.conduitGeometry.updateConduitAppearance(conduit, 'selected')
 
         // Update tier information
         this.updateConduitTierInfo(conduit)
       })
 
       // Refresh measurements for the primary conduit
-      this.refreshConduitMeasurements()
+      this.updateConduitMeasurements()
 
       console.log('⚡ Conduit group dimensions updated for', this.selectedConduitGroup.children.length, 'conduits')
       

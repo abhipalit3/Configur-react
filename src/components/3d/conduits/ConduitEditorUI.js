@@ -90,7 +90,18 @@ export const ConduitEditorUI = ({
       
       // Get group information from conduit interaction
       const conduitInteraction = window.conduitRendererInstance?.conduitInteraction
-      const groupSize = conduitInteraction?.selectedConduitGroup?.length || 1
+      let groupSize = 1
+      
+      if (conduitInteraction?.selectedConduitGroup) {
+        // Check if we have the count in userData first
+        const groupUserData = conduitInteraction.selectedConduitGroup.userData
+        if (groupUserData?.conduitData?.count) {
+          groupSize = groupUserData.conduitData.count
+        } else if (conduitInteraction.selectedConduitGroup.children) {
+          // Fallback to children count
+          groupSize = conduitInteraction.selectedConduitGroup.children.length
+        }
+      }
       
       setDimensions({
         diameter: conduitData.diameter || 1,

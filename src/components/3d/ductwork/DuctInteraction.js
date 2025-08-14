@@ -72,6 +72,7 @@ export class DuctInteraction {
   }
 
   onMouseClick(event) {
+    console.log('🎯 DUCTWORK CLICK EVENT RECEIVED')
     if (this.transformControls?.dragging) return
 
     this.updateMousePosition(event)
@@ -93,10 +94,23 @@ export class DuctInteraction {
       const ductGroup = this.findDuctGroup(intersects[0].object)
       if (ductGroup && ductGroup !== this.selectedDuct) {
         this.selectDuct(ductGroup)
+        return // Early return if duct was selected
       }
-    } else {
-      this.deselectDuct()
     }
+
+    // If no duct was found, check for cable trays
+    console.log('🎯 No duct found, checking for cable trays')
+    if (window.cableTrayInteractionInstance) {
+      const cableTraySelected = window.cableTrayInteractionInstance.handleClick(event)
+      if (cableTraySelected) {
+        console.log('🎯 Cable tray was selected, deselecting duct')
+        this.deselectDuct() // Deselect duct if cable tray was selected
+        return
+      }
+    }
+    
+    // If neither duct nor cable tray was selected, deselect everything
+    this.deselectDuct()
   }
 
   onMouseMove(event) {

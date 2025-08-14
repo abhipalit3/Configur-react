@@ -201,7 +201,8 @@ export class ConduitGeometry {
         diameter,
         conduitType,
         fillPercentage,
-        tier
+        tier,
+        color // Pass the color through to individual conduit data
       }
 
       // Create the individual conduit geometry
@@ -223,8 +224,21 @@ export class ConduitGeometry {
       const conduitGeometry = this.createConduitGeometry(lengthM, diameterM)
       
       // Apply materials
-      const materialKey = conduitType?.toLowerCase() || 'emt'
-      const material = this.materials[materialKey] || this.materials.emt
+      let material
+      if (color) {
+        // Use custom color if specified
+        material = new THREE.MeshLambertMaterial({
+          color: new THREE.Color(color),
+          transparent: true,
+          opacity: 0.9,
+          side: THREE.DoubleSide
+        })
+        console.log(`⚡ Using custom color for conduit ${conduitId}:`, color)
+      } else {
+        // Use default material for conduit type
+        const materialKey = conduitType?.toLowerCase() || 'emt'
+        material = this.materials[materialKey] || this.materials.emt
+      }
       
       // Create mesh
       const conduitMesh = new THREE.Mesh(conduitGeometry, material)

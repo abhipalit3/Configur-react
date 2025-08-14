@@ -17,6 +17,8 @@ import { DuctworkRenderer, DuctEditor } from '../ductwork'
 import { PipingRenderer } from '../piping'
 import { PipeEditor } from '../piping'
 import { ConduitRenderer, ConduitEditorUI } from '../conduits'
+import { CableTrayRenderer } from '../cable-trays'
+import { CableTrayEditor } from '../cable-trays/CableTrayEditor'
 import { createMaterials, loadTextures, disposeMaterials } from '../materials'
 import '../styles/measurement-styles.css'
 
@@ -27,6 +29,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   const ductworkRendererRef = useRef(null)
   const pipingRendererRef = useRef(null)
   const conduitRendererRef = useRef(null)
+  const cableTrayRendererRef = useRef(null)
   const cameraRef = useRef(null)
   const rendererRef = useRef(null)
   
@@ -57,6 +60,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   const [selectedConduit, setSelectedConduit] = useState(null)
   const [showConduitEditor, setShowConduitEditor] = useState(false)
   const [skipConduitRecreation, setSkipConduitRecreation] = useState(false)
+  
+  // State for cable tray editor
+  const [selectedCableTray, setSelectedCableTray] = useState(null)
+  const [showCableTrayEditor, setShowCableTrayEditor] = useState(false)
+  const [skipCableTrayRecreation, setSkipCableTrayRecreation] = useState(false)
   
   // State for rack parameters (to access in render)
   const [rackParams, setRackParams] = useState({
@@ -311,6 +319,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Track current view mode
     let currentViewMode = initialViewMode
     
+    // Make view mode globally accessible for measurement tool
+    window.currentViewMode = currentViewMode
+    
     // Camera state persistence functions
     const saveCameraState = () => {
       const cameraState = {
@@ -375,6 +386,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     window.sceneViewModeHandler = (mode) => {
       console.log('🔧 Switching to view mode:', mode)
       currentViewMode = mode // Update tracked view mode
+      window.currentViewMode = mode // Update global access
       
       if (mode === '2D') {
         // Store current 3D settings before switching
@@ -640,6 +652,16 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       beamSize: params.beamSize,
       postSize: params.postSize
     })
+
+    // Initialize cable tray renderer with the same parameters
+    const cableTrayRenderer = new CableTrayRenderer(
+      scene,
+      ductworkRenderer.snapLineManager // Share snap line manager with other MEP systems
+    )
+    cableTrayRendererRef.current = cableTrayRenderer
+    
+    // Make cable tray renderer globally accessible
+    window.cableTrayRendererInstance = cableTrayRenderer
     
     // Setup ductwork interactions
     ductworkRenderer.setupInteractions(camera, renderer, controls)
@@ -650,6 +672,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Setup conduit interactions
     conduitRenderer.setupInteractions(camera, renderer, controls)
 
+    // Setup cable tray interactions
+    cableTrayRenderer.setupInteractions(camera, renderer, controls)
+
     // Provide access to snap points for measurement tool
     if (ductworkRenderer.ductGeometry) {
       ductworkRenderer.ductGeometry.setSnapPoints(snapPoints)
@@ -659,6 +684,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     }
     if (conduitRenderer.conduitGeometry) {
       conduitRenderer.conduitGeometry.setSnapPoints(snapPoints)
+    }
+    if (cableTrayRenderer.cableTrayGeometry) {
+      cableTrayRenderer.cableTrayGeometry.setSnapPoints(snapPoints)
     }
 
     
@@ -683,11 +711,19 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       setShowConduitEditor(!!selected)
     }
     
-    // Poll for duct, pipe, and conduit selection changes
+    // Setup cable tray editor callbacks
+    const handleCableTraySelection = () => {
+      const selected = cableTrayRenderer.cableTrayInteraction?.getSelectedCableTray()
+      setSelectedCableTray(selected)
+      setShowCableTrayEditor(!!selected)
+    }
+    
+    // Poll for duct, pipe, conduit, and cable tray selection changes
     const pollSelection = setInterval(() => {
       handleDuctSelection()
       handlePipeSelection()
       handleConduitSelection()
+      handleCableTraySelection()
     }, 100)
     
     // Periodically update tier information for all ducts
@@ -699,6 +735,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       // if (pipingRenderer.pipeInteraction && mepItems.length > 0) {
       //   pipingRenderer.pipeInteraction.updateAllPipeTierInfo()
       // }
+      
+      // Update cable tray tier information
+      if (cableTrayRenderer.cableTrayInteraction && mepItems.length > 0) {
+        cableTrayRenderer.cableTrayInteraction.updateAllCableTrayTierInfo()
+      }
     }, 5000) // Update every 5 seconds
     
     const handleDuctEditorSave = (newDimensions) => {
@@ -883,6 +924,80 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       setShowConduitEditor(false)
     }
     
+    // Cable tray editor handlers
+    const handleCableTrayEditorSave = (newDimensions) => {
+      console.log(`🔌 ThreeScene: handleCableTrayEditorSave called with:`, newDimensions)
+      
+      // Set flag to prevent cable tray recreation
+      setSkipCableTrayRecreation(true)
+      
+      if (cableTrayRendererRef.current?.cableTrayInteraction) {
+        // First update the selected cable tray's userData to ensure consistency
+        if (selectedCableTray?.userData?.cableTrayData) {
+          selectedCableTray.userData.cableTrayData = {
+            ...selectedCableTray.userData.cableTrayData,
+            ...newDimensions
+          }
+        }
+        
+        // Update the 3D cable tray with new dimensions
+        cableTrayRendererRef.current.cableTrayInteraction.updateCableTrayDimensions(newDimensions)
+        
+        // Update MEP items in localStorage similar to other MEP systems
+        try {
+          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+          const selectedCableTrayData = selectedCableTray?.userData?.cableTrayData
+          
+          if (selectedCableTrayData && storedMepItems.length > 0) {
+            const baseId = selectedCableTrayData.id.toString().split('_')[0]
+            
+            const updatedItems = storedMepItems.map(item => {
+              const itemBaseId = item.id.toString().split('_')[0]
+              
+              if (itemBaseId === baseId && item.type === 'cableTray') {
+                console.log(`🔌 Found matching cable tray in localStorage to update:`, item)
+                const currentPosition = {
+                  x: selectedCableTray.position.x,
+                  y: selectedCableTray.position.y, 
+                  z: selectedCableTray.position.z
+                }
+                
+                const updatedItem = {
+                  ...item,
+                  width: newDimensions.width,
+                  height: newDimensions.height,
+                  trayType: newDimensions.trayType,
+                  tier: newDimensions.tier,
+                  tierName: `Tier ${newDimensions.tier}`,
+                  position: currentPosition
+                }
+                console.log(`🔌 Updated cable tray item:`, updatedItem)
+                return updatedItem
+              }
+              return item
+            })
+            
+            localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+            console.log(`🔌 Updated cable tray ${selectedCableTrayData.id} in localStorage`)
+            
+            // Dispatch storage event to update other components
+            window.dispatchEvent(new Event('storage'))
+          } else {
+            console.warn('⚠️ Could not find cable tray data for localStorage update')
+          }
+        } catch (error) {
+          console.error('Error updating MEP cable tray items:', error)
+        }
+      }
+      
+      // Don't close the editor immediately - let user click away or edit another cable tray
+      // setShowCableTrayEditor(false)
+    }
+    
+    const handleCableTrayEditorCancel = () => {
+      setShowCableTrayEditor(false)
+    }
+    
     // Set callbacks on duct interaction
     if (ductworkRenderer.ductInteraction) {
       ductworkRenderer.ductInteraction.setDuctEditorCallbacks(
@@ -891,12 +1006,13 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       )
     }
     
-    // Initial ductwork, piping, and conduit update
+    // Initial ductwork, piping, conduit, and cable tray update
     setTimeout(() => {
       if (mepItems && mepItems.length > 0) {
         ductworkRenderer.updateDuctwork(mepItems)
         pipingRenderer.updatePiping(mepItems)
         conduitRenderer.updateConduits(mepItems)
+        cableTrayRenderer.updateCableTrays(mepItems)
       }
     }, 200) // Small delay to ensure everything is ready
 
@@ -1064,6 +1180,12 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       return
     }
     
+    if (skipCableTrayRecreation) {
+      // Don't reset the flag immediately - wait for next render cycle
+      setTimeout(() => setSkipCableTrayRecreation(false), 100)
+      return
+    }
+    
     if (ductworkRendererRef.current && mepItems) {
       ductworkRendererRef.current.updateDuctwork(mepItems)
     }
@@ -1075,7 +1197,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     if (conduitRendererRef.current && mepItems && !skipConduitRecreation) {
       conduitRendererRef.current.updateConduits(mepItems)
     }
-  }, [mepItems, skipDuctRecreation, skipPipeRecreation, skipConduitRecreation])
+
+    if (cableTrayRendererRef.current && mepItems && !skipCableTrayRecreation) {
+      cableTrayRendererRef.current.updateCableTrays(mepItems)
+    }
+  }, [mepItems, skipDuctRecreation, skipPipeRecreation, skipConduitRecreation, skipCableTrayRecreation])
 
   const handleAxisToggle = (axis) => {
     setAxisLock(prev => {
@@ -1470,6 +1596,118 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           }}
           onCancel={() => {
             setShowConduitEditor(false)
+          }}
+        />
+      )}
+      
+      {/* Cable Tray Editor */}
+      {showCableTrayEditor && selectedCableTray && cameraRef.current && rendererRef.current && (
+        <CableTrayEditor
+          selectedCableTray={selectedCableTray}
+          camera={cameraRef.current}
+          renderer={rendererRef.current}
+          visible={showCableTrayEditor}
+          rackParams={rackParams}
+          onSave={(dimensions) => {
+            console.log(`🔌 ThreeScene: Cable tray editor save called with:`, dimensions)
+            
+            // Set flag to prevent cable tray recreation
+            setSkipCableTrayRecreation(true)
+            
+            if (cableTrayRendererRef.current?.cableTrayInteraction) {
+              // First update the selected cable tray's userData to ensure consistency
+              if (selectedCableTray?.userData?.cableTrayData) {
+                selectedCableTray.userData.cableTrayData = {
+                  ...selectedCableTray.userData.cableTrayData,
+                  ...dimensions
+                }
+              }
+              
+              // Update the 3D cable tray
+              cableTrayRendererRef.current.cableTrayInteraction.updateCableTrayDimensions(dimensions)
+              
+              // Update localStorage (MEP panel data)
+              try {
+                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+                const selectedCableTrayData = selectedCableTray?.userData?.cableTrayData
+                
+                if (selectedCableTrayData) {
+                  const baseId = selectedCableTrayData.id.toString().split('_')[0]
+                  
+                  const updatedItems = storedMepItems.map(item => {
+                    const itemBaseId = item.id.toString().split('_')[0]
+                    
+                    if (itemBaseId === baseId && item.type === 'cableTray') {
+                      console.log(`🔌 Found matching cable tray in localStorage:`, item)
+                      const currentPosition = {
+                        x: selectedCableTray.position.x,
+                        y: selectedCableTray.position.y,
+                        z: selectedCableTray.position.z
+                      }
+                      
+                      // Auto-detect tier based on current Y position
+                      let tierInfo = { tier: dimensions.tier, tierName: `Tier ${dimensions.tier}` }
+                      if (cableTrayRendererRef.current?.cableTrayInteraction) {
+                        const detectedTier = cableTrayRendererRef.current.cableTrayInteraction.calculateCableTrayTierFromPosition(
+                          currentPosition.y, 
+                          dimensions.height
+                        )
+                        if (detectedTier.tier) {
+                          tierInfo = detectedTier
+                          console.log(`🔌 Auto-detected tier: ${tierInfo.tierName} for Y position ${currentPosition.y}`)
+                        }
+                      }
+                      
+                      const updatedItem = {
+                        ...item,
+                        width: dimensions.width,
+                        height: dimensions.height,
+                        trayType: dimensions.trayType,
+                        tier: tierInfo.tier,
+                        tierName: tierInfo.tierName,
+                        position: currentPosition
+                      }
+                      console.log(`🔌 Updated cable tray item:`, updatedItem)
+                      return updatedItem
+                    }
+                    return item
+                  })
+                  
+                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+                  console.log(`🔌 Saved cable tray ${selectedCableTrayData.id} to localStorage`)
+                  
+                  // IMPORTANT: Also update the manifest to ensure consistency
+                  if (window.updateMEPItemsManifest) {
+                    window.updateMEPItemsManifest(updatedItems)
+                  } else {
+                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
+                  }
+                  
+                  // Dispatch custom event to notify MEP panel of changes
+                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+                    detail: { updatedItems, updatedCableTrayId: selectedCableTrayData.id }
+                  }))
+                  
+                  // Also try multiple refresh methods
+                  if (window.refreshMepPanel) {
+                    window.refreshMepPanel()
+                  }
+                  
+                  // Dispatch storage event to update other components
+                  window.dispatchEvent(new Event('storage'))
+                } else {
+                  console.warn('⚠️ Could not find cable tray data for localStorage update')
+                }
+              } catch (error) {
+                console.error('Error updating MEP cable tray items:', error)
+              }
+            }
+            
+            // Don't close the editor immediately - let user click away or edit another cable tray
+            // setShowCableTrayEditor(false)
+          }}
+          onCancel={() => {
+            setShowCableTrayEditor(false)
           }}
         />
       )}

@@ -511,6 +511,42 @@ const AppPage = (props) => {
           console.warn('⚠️ Could not find conduit to select:', item.id)
         }
       }
+    } else if (item.type === 'cableTray') {
+      // First deselect any selected ducts, pipes, and conduits
+      if (window.ductworkRendererInstance?.ductInteraction) {
+        window.ductworkRendererInstance.ductInteraction.deselectDuct()
+      }
+      if (window.pipingRendererInstance?.pipeInteraction) {
+        window.pipingRendererInstance.pipeInteraction.deselectPipe()
+      }
+      if (window.conduitRendererInstance?.conduitInteraction) {
+        window.conduitRendererInstance.conduitInteraction.deselectConduit()
+      }
+      
+      // Find and select the cable tray in the 3D scene
+      if (window.cableTrayRendererInstance?.cableTrayInteraction) {
+        const cableTrayRenderer = window.cableTrayRendererInstance
+        const cableTraysGroup = cableTrayRenderer.getCableTraysGroup()
+        
+        // Find the cable tray group by ID (handle both base ID and instance ID formats)
+        let targetCableTray = null
+        cableTraysGroup.children.forEach(cableTrayGroup => {
+          const cableTrayData = cableTrayGroup.userData?.cableTrayData
+          if (cableTrayData) {
+            const baseId = cableTrayData.id.toString().split('_')[0]
+            const itemBaseId = item.id.toString().split('_')[0]
+            if (baseId === itemBaseId || cableTrayData.id === item.id) {
+              targetCableTray = cableTrayGroup
+            }
+          }
+        })
+        
+        if (targetCableTray) {
+          cableTrayRenderer.cableTrayInteraction.selectCableTray(targetCableTray)
+        } else {
+          console.warn('⚠️ Could not find cable tray to select:', item.id)
+        }
+      }
     }
   }
 
@@ -572,6 +608,56 @@ const AppPage = (props) => {
               // Update pipe color using the interaction system
               if (pipingRenderer.pipeInteraction.updatePipeDimensions) {
                 pipingRenderer.pipeInteraction.updatePipeDimensions({ color: newColor })
+              }
+            }
+          }
+        })
+      }
+    } else if (targetItem?.type === 'conduit') {
+      // Update the 3D conduit color
+      if (window.conduitRendererInstance?.conduitInteraction) {
+        const conduitRenderer = window.conduitRendererInstance
+        const conduitsGroup = conduitRenderer.getConduitsGroup()
+        
+        // Find the conduit group by ID
+        conduitsGroup.children.forEach(conduitGroup => {
+          const conduitData = conduitGroup.userData?.conduitData
+          if (conduitData) {
+            const baseId = conduitData.id.toString().split('_')[0]
+            const conduitBaseId = itemId.toString().split('_')[0]
+            if (baseId === conduitBaseId || conduitData.id === itemId) {
+              // Select the conduit first if not already selected
+              if (conduitRenderer.conduitInteraction.selectedConduitGroup !== conduitGroup) {
+                conduitRenderer.conduitInteraction.selectConduit(conduitGroup)
+              }
+              // Update conduit color using the interaction system
+              if (conduitRenderer.conduitInteraction.updateConduitDimensions) {
+                conduitRenderer.conduitInteraction.updateConduitDimensions({ color: newColor })
+              }
+            }
+          }
+        })
+      }
+    } else if (targetItem?.type === 'cableTray') {
+      // Update the 3D cable tray color
+      if (window.cableTrayRendererInstance?.cableTrayInteraction) {
+        const cableTrayRenderer = window.cableTrayRendererInstance
+        const cableTraysGroup = cableTrayRenderer.getCableTraysGroup()
+        
+        // Find the cable tray group by ID
+        cableTraysGroup.children.forEach(cableTrayGroup => {
+          const cableTrayData = cableTrayGroup.userData?.cableTrayData
+          if (cableTrayData) {
+            const baseId = cableTrayData.id.toString().split('_')[0]
+            const cableTrayBaseId = itemId.toString().split('_')[0]
+            if (baseId === cableTrayBaseId || cableTrayData.id === itemId) {
+              // Select the cable tray first if not already selected
+              if (cableTrayRenderer.cableTrayInteraction.selectedCableTrayGroup !== cableTrayGroup) {
+                cableTrayRenderer.cableTrayInteraction.selectCableTray(cableTrayGroup)
+              }
+              // Update cable tray color using the interaction system
+              if (cableTrayRenderer.cableTrayInteraction.updateCableTrayDimensions) {
+                cableTrayRenderer.cableTrayInteraction.updateCableTrayDimensions({ color: newColor })
               }
             }
           }

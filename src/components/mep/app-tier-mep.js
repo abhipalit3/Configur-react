@@ -107,9 +107,11 @@ const AppTierMEP = (props) => {
     }
 
     if (item.type === 'cableTray') {
+      const name = item.name || 'Cable Tray'
       const w = item.width ?? 0
       const h = item.height ?? 0
-      return `Cable Tray - ${w}"x${h}"`
+      const trayType = item.trayType || 'ladder'
+      return `${name} - ${trayType} - ${w}" x ${h}"`
     }
 
     return ''
@@ -179,7 +181,7 @@ const AppTierMEP = (props) => {
       }
       
       // Group by tier
-      if (item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') {
+      if (item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit' || item.type === 'cableTray') {
         const tierKey = item.tierName || 'No Tier'
         if (tierGroups[tierKey]) {
           tierGroups[tierKey].push(item)
@@ -188,7 +190,7 @@ const AppTierMEP = (props) => {
           tierGroups['No Tier'].push(item)
         }
       } else {
-        // Non-duct/pipe/conduit items go to a general section
+        // Non-MEP items go to a general section
         if (!tierGroups['Other MEP']) {
           tierGroups['Other MEP'] = []
         }
@@ -273,7 +275,7 @@ const AppTierMEP = (props) => {
                     {sectionItems.map((item) => (
                       <div 
                         key={item.id} 
-                        className={`mep-item-row ${(item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') ? 'clickable' : ''}`}
+                        className={`mep-item-row ${(item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit' || item.type === 'cableTray') ? 'clickable' : ''}`}
                       >
                         {/* Color Picker for Ducts */}
                         {item.type === 'duct' && (
@@ -416,14 +418,61 @@ const AppTierMEP = (props) => {
                           </div>
                         )}
 
+                        {/* Color Picker for Cable Trays */}
+                        {item.type === 'cableTray' && (
+                          <div className="color-picker-container">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setShowColorPicker(showColorPicker === item.id ? null : item.id)
+                              }}
+                              className="color-picker-button"
+                              style={{
+                                background: item.color || '#808080'
+                              }}
+                              title="Change cable tray color"
+                            />
+                            
+                            {showColorPicker === item.id && (
+                              <div 
+                                className="color-picker-dropdown"
+                                ref={(dropdown) => {
+                                  if (dropdown) {
+                                    const button = dropdown.previousElementSibling
+                                    positionColorPicker(button, dropdown)
+                                  }
+                                }}
+                              >
+                                {colorPalette.map((color, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (onColorChange) {
+                                        onColorChange(item.id, color.value)
+                                      }
+                                      setShowColorPicker(null)
+                                    }}
+                                    className={`color-picker-option ${(item.color || '#808080') === color.value ? 'selected' : ''}`}
+                                    style={{
+                                      background: color.value
+                                    }}
+                                    title={color.name}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <span 
                           className="mep-item-text" 
                           onClick={() => {
-                            if ((item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') && onItemClick) {
+                            if ((item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit' || item.type === 'cableTray') && onItemClick) {
                               onItemClick(item)
                             }
                           }}
-                          className={`mep-item-text ${(item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit') ? 'clickable' : ''}`}
+                          className={`mep-item-text ${(item.type === 'duct' || item.type === 'pipe' || item.type === 'conduit' || item.type === 'cableTray') ? 'clickable' : ''}`}
                         >
                           {getItemDisplayText(item)}
                         </span>
