@@ -10,7 +10,8 @@
       "Bash(mv:*)",
       "WebSearch",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm run deploy:*)"
     ],
     "deny": [],
     "ask": []
