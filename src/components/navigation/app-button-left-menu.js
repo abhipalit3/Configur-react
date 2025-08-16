@@ -162,6 +162,30 @@ const AppButtonLeftMenu = (props) => {
             ></path>
           </svg>
         </button>
+        <button
+          id="OptimizeRackButton"
+          type="button"
+          className={`app-button-left-menu-optimize-rack button-icon2 ${activePanel === 'optimization' ? 'active' : ''}`}
+          onClick={() => onPanelClick('optimization')}
+          data-tooltip="Optimize Rack Configuration"
+        >
+          <svg
+            id="OptimizeRackIcon"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            className="app-button-left-menu-icon-optimize button2-icon"
+          >
+            <path
+              d="M12.9 6.858l2.828 2.828l1.414-1.414L12.9 4.03L8.657 8.272l1.414 1.414zm-1.8 10.283l-2.828-2.828l-1.414 1.414l4.242 4.243l4.243-4.243l-1.414-1.414z"
+              fill="currentColor"
+            ></path>
+            <path
+              d="M4 12h7v-2H4zm13 0h3v-2h-3zm-4 0h2v-2h-2zm-9 2h3v2H4zm5 0h7v2H9zm9 0h2v2h-2z"
+              fill="currentColor"
+            ></path>
+          </svg>
+        </button>
       </div>
       <button
         id="EditViewPropButton"

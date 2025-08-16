@@ -57,8 +57,27 @@ const AppSavedConfigurations = (props) => {
   }
 
   const formatDimension = (dimension) => {
-    if (typeof dimension === 'number') return `${dimension}'`
-    return `${dimension.feet}'${dimension.inches}"`
+    // Handle null, undefined, or falsy values
+    if (!dimension) return '0.0\''
+    
+    // Handle numeric values
+    if (typeof dimension === 'number') {
+      return `${dimension.toFixed(1)}'`
+    }
+    
+    // Handle object with feet/inches properties
+    if (typeof dimension === 'object' && dimension !== null) {
+      const feet = dimension.feet || 0
+      const inches = dimension.inches || 0
+      
+      // Ensure both values are numbers
+      if (typeof feet === 'number' && typeof inches === 'number') {
+        return `${feet}'${inches.toFixed(1)}"`
+      }
+    }
+    
+    // Fallback for any other case
+    return '0.0\''
   }
 
   const formatDate = (dateString) => {
@@ -154,12 +173,19 @@ const AppSavedConfigurations = (props) => {
                 <div className="app-saved-configurations-card-details">
                   <div className="app-saved-configurations-detail-row">
                     <span className="app-saved-configurations-detail-label">
-                      {formatDimension(config.rackLength)} × {formatDimension(config.rackWidth)} × {config.tierCount} tiers
+                      {formatDimension(config.rackLength || config.bayWidth)} × {formatDimension(config.rackWidth || config.depth)} × {config.tierCount || 1} tiers
                     </span>
                   </div>
                   <div className="app-saved-configurations-detail-row">
                     <span className="app-saved-configurations-detail-label">
-                      Total height: {config.totalHeight || calculateTotalHeight(config)}
+                      Total height: {(() => {
+                        try {
+                          const height = config.totalHeight || calculateTotalHeight(config) || 0
+                          return typeof height === 'number' ? height.toFixed(1) : '0.0'
+                        } catch (error) {
+                          return '0.0'
+                        }
+                      })()}'
                     </span>
                   </div>
                 </div>

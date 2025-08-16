@@ -23,6 +23,7 @@ import {
   AppConduits,
   AppCableTrays
 } from '../components/mep'
+import RackOptimizationPanel from '../components/optimization/RackOptimizationPanel'
 import { AppAIChatPanel } from '../components/ui'
 import { AppManualBuilding } from '../components/forms'
 import { ThreeScene } from '../components/3d'
@@ -1011,7 +1012,8 @@ const AppPage = (props) => {
         { type: 'conduits', className: 'app-conduits-container1' },
         { type: 'cableTrays', className: 'app-cable-trays-container1' },
         { type: 'building', className: 'app-manual-building-container' },
-        { type: 'aiChat', className: 'app-ai-chat-panel-container1' }
+        { type: 'aiChat', className: 'app-ai-chat-panel-container1' },
+        { type: 'optimization', className: 'rack-optimization-panel' }
       ]
 
       // Check if current active panel is one of the left panels
@@ -1183,6 +1185,23 @@ const AppPage = (props) => {
           rootClassName="app-cable-traysroot-class-name" 
           onClose={() => setActivePanel(null)}
           onAddCableTray={handleAddMepItem}
+        />
+      )}
+
+      {activePanel === 'optimization' && (
+        <RackOptimizationPanel
+          rootClassName="rack-optimization-panelroot-class-name"
+          buildingConstraints={buildingParams}
+          mepSystems={mepItems}
+          onClose={() => setActivePanel(null)}
+          onOptimizationComplete={(result) => {
+            console.log('Optimization completed:', result)
+          }}
+          onApplyConfiguration={(optimizedParams) => {
+            // Apply the optimized configuration
+            handleRackSave(optimizedParams)
+            setActivePanel(null)
+          }}
         />
       )}
 
