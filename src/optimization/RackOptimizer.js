@@ -1329,12 +1329,9 @@ export class RackOptimizationGA {
     
     console.log('🔄 Reorganizing all MEP systems...');
     
-    // Create a temporary chromosome instance to use its placement method
-    const tempChromosome = new RackChromosome(null, this.constraints);
-    
     // Clear current placements and re-place all systems using organized placement
     chromosome.genes.mepPlacements = [];
-    chromosome.genes.mepPlacements = tempChromosome.placeMEPSystems(mepSystems, chromosome.genes);
+    chromosome.genes.mepPlacements = this.placeMEPSystems(mepSystems, chromosome.genes);
   }
 
   getPreferredTier(systemType) {

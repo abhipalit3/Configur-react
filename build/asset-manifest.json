@@ -1,11 +1,11 @@
 {
   "files": {
     "main.css": "/Configur-react/static/css/main.423eb6e2.css",
-    "main.js": "/Configur-react/static/js/main.65bed346.js",
+    "main.js": "/Configur-react/static/js/main.239ab2fc.js",
     "index.html": "/Configur-react/index.html"
   },
   "entrypoints": [
     "static/css/main.423eb6e2.css",
-    "static/js/main.65bed346.js"
+    "static/js/main.239ab2fc.js"
   ]
 }
