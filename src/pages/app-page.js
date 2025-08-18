@@ -1200,6 +1200,50 @@ const AppPage = (props) => {
           onApplyConfiguration={(optimizedParams) => {
             // Apply the optimized configuration
             handleRackSave(optimizedParams)
+            
+            // Update MEP items with optimized positions if they exist
+            if (optimizedParams.mepSystems && optimizedParams.mepSystems.length > 0) {
+              const updatedMepItems = mepItems.map(item => {
+                const optimizedSystem = optimizedParams.mepSystems.find(sys => sys.id === item.id);
+                if (optimizedSystem) {
+                  // Import the rack base Y calculation utility
+                  const { calculateRackBaseY } = require('../components/3d/core/utils');
+                  
+                  // Calculate the actual rack base Y position (same logic as buildRack)
+                  const rackBaseY = calculateRackBaseY(optimizedParams, buildingParams);
+                  
+                  // Convert position from feet to meters and map coordinate systems
+                  // Optimization coords: x=length, y=width, z=height (relative to rack base)
+                  // Scene coords: x=length, y=height (absolute), z=width
+                  const ft2m = (ft) => ft * 0.3048;
+                  
+                  const optimizedPositionMeters = {
+                    x: ft2m(optimizedSystem.position.x), // Optimization X → Scene X (length)
+                    y: rackBaseY + ft2m(optimizedSystem.position.z), // Optimization Z → Scene Y (height, relative to rack base)
+                    z: ft2m(optimizedSystem.position.y)  // Optimization Y → Scene Z (width)
+                  };
+                  
+                  // console.log(`📍 System ${optimizedSystem.id} (${optimizedSystem.type}): Opt(${optimizedSystem.position.x.toFixed(2)}, ${optimizedSystem.position.y.toFixed(2)}, ${optimizedSystem.position.z.toFixed(2)}) → Scene(${optimizedPositionMeters.x.toFixed(2)}, ${optimizedPositionMeters.y.toFixed(2)}, ${optimizedPositionMeters.z.toFixed(2)}) [rackBaseY=${rackBaseY.toFixed(2)}]`);
+                  
+                  
+                  return {
+                    ...item,
+                    // Update position based on optimization result (converted to meters)
+                    position: optimizedPositionMeters,
+                    tier: optimizedSystem.tier,
+                    // Also preserve the mount position string for compatibility
+                    mountPosition: optimizedSystem.mountPosition || 'bottom'
+                  };
+                }
+                return item;
+              });
+              setMepItems(updatedMepItems);
+              console.log('📍 Updated MEP items with optimized positions (converted to meters):', updatedMepItems);
+              
+              // Update localStorage
+              localStorage.setItem('configurMepItems', JSON.stringify(updatedMepItems));
+            }
+            
             setActivePanel(null)
           }}
         />

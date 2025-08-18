@@ -67,7 +67,14 @@ const RackOptimizationPanel = ({
     // Create optimizer with current configuration
     const optimizer = createRackOptimizer({
       ...gaConfig,
-      buildingConstraints,
+      buildingConstraints: {
+        ...buildingConstraints,
+        // Pass building context for proper rack positioning
+        buildingContext: {
+          corridorHeight: buildingConstraints.corridorHeight,
+          beamDepth: buildingConstraints.beamDepth
+        }
+      },
       mepSystems,
       fixedRackLength: buildingConstraints.rackLength?.feet ? 
         buildingConstraints.rackLength.feet + (buildingConstraints.rackLength.inches || 0) / 12 : 

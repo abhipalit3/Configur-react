@@ -13,7 +13,10 @@ const IN2M = 0.0254;
 
 export const ft2m  = ft   => {
   if (!isFinite(ft)) {
-    console.warn('❌ Invalid feet value for conversion:', ft)
+    // Return 0 silently for undefined/null to avoid spam
+    if (ft !== undefined && ft !== null) {
+      console.warn('❌ Invalid feet value for conversion:', ft)
+    }
     return 0
   }
   return ft * FT2M
@@ -21,7 +24,10 @@ export const ft2m  = ft   => {
 
 export const in2m  = inch => {
   if (!isFinite(inch)) {
-    console.warn('❌ Invalid inches value for conversion:', inch)
+    // Return 0 silently for undefined/null to avoid spam
+    if (inch !== undefined && inch !== null) {
+      console.warn('❌ Invalid inches value for conversion:', inch)
+    }
     return 0
   }
   return inch * IN2M
@@ -29,11 +35,62 @@ export const in2m  = inch => {
 
 export const ft2in = ft   => {
   if (!isFinite(ft)) {
-    console.warn('❌ Invalid feet value for conversion:', ft)
+    // Return 0 silently for undefined/null to avoid spam
+    if (ft !== undefined && ft !== null) {
+      console.warn('❌ Invalid feet value for conversion:', ft)
+    }
     return 0
   }
   return ft * 12
 };
+
+/**
+ * Calculate the rack base Y position using the same logic as buildRack()
+ * This ensures optimization and 3D scene use consistent positioning
+ */
+export function calculateRackBaseY(rackParams, buildingParams = {}) {
+  const convertToFeet = (feetInches) => {
+    if (typeof feetInches === 'number') {
+      return isFinite(feetInches) ? feetInches : 0;
+    }
+    if (!feetInches || typeof feetInches !== 'object') {
+      return 0;
+    }
+    const feet = feetInches.feet || 0;
+    const inches = feetInches.inches || 0;
+    return feet + (inches / 12);
+  };
+
+  // Convert tier heights to feet and calculate total height
+  const tierHeightsFeet = rackParams.tierHeights ? rackParams.tierHeights.map(convertToFeet) : [2, 2];
+  const tiersM = tierHeightsFeet.map(ft2m);
+  const beamM = in2m(rackParams.beamSize || 3);
+  const totalH = tiersM.reduce((s,h)=>s+h,0) + (rackParams.tierCount || tiersM.length) * beamM;
+
+  let rackBaseY = 0;
+  let topClearanceFt = rackParams.topClearance || 10;
+  
+  const mountType = rackParams.mountType || 'deck';
+  
+  if (mountType === 'deck') {
+    // PRIORITY: Building shell context takes precedence over stored topClearance
+    if (buildingParams.corridorHeight && buildingParams.beamDepth !== undefined) {
+      const corridorHeightFt = convertToFeet(buildingParams.corridorHeight);
+      const beamDepthFt = convertToFeet(buildingParams.beamDepth);
+      
+      if (isFinite(corridorHeightFt) && isFinite(beamDepthFt) && corridorHeightFt > 0) {
+        topClearanceFt = corridorHeightFt - beamDepthFt;
+      }
+    }
+    rackBaseY = ft2m(topClearanceFt) - totalH;
+  } else {
+    // Floor mounted: rack sits on the floor (Y=0)
+    rackBaseY = 0;
+  }
+  
+  return rackBaseY;
+}
+
 export const dispose = g => g.traverse(o => o.isMesh && o.geometry?.dispose());
 
 function addEdges(mesh, color = 0x333333, lineWidth = 0.5, opacity = 0.5) {
@@ -94,7 +151,7 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
     }
     
     if (!feetInches || typeof feetInches !== 'object') {
-      console.warn('❌ Invalid feetInches object:', feetInches)
+      // Return 0 silently for undefined/null to avoid spam
       return 0
     }
     
