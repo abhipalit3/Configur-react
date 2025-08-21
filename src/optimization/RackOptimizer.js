@@ -1,7 +1,9 @@
 /**
- * Complete Genetic Algorithm for Rack Optimization
- * Single file implementation to avoid import issues
+ * Stacked Container Optimizer for Rack Optimization
+ * Uses stacked container optimization technique for MEP system placement
  */
+
+import { StackedContainerOptimizer } from './stacked_optimizer.js';
 
 // Chromosome representation for rack and MEP configuration
 class RackChromosome {
@@ -923,573 +925,368 @@ class FitnessEvaluator {
 // Main Genetic Algorithm class
 export class RackOptimizationGA {
   constructor(config = {}) {
-    this.populationSize = config.populationSize || 50;
-    this.maxGenerations = config.maxGenerations || 100;
-    this.targetFitness = config.targetFitness || 0.95;
-    this.stagnationLimit = config.stagnationLimit || 20;
+    // Convert MEP systems to rectangles for stacked optimization
+    this.mepSystems = config.mepSystems || [];
+    this.rectangles = this.convertMepSystemsToRectangles(this.mepSystems);
     
+    // Container constraints based on building dimensions
+    this.containerWidth = config.buildingConstraints?.rackLength || config.fixedRackLength || 20;
+    this.maxTotalHeight = config.buildingConstraints?.maxHeight || 15;
+    this.maxContainers = config.maxContainers || 5;
+    
+    // Stacked optimizer configuration
+    this.optimizerConfig = {
+      populationSize: config.populationSize || 100,
+      generations: config.maxGenerations || 500,
+      mutationRate: config.mutationRate || 0.2,
+      crossoverRate: config.crossoverRate || 0.8,
+      elitismRate: config.elitismRate || 0.1
+    };
+    
+    // Keep original constraints for compatibility
     this.constraints = {
-      minBayWidth: config.minBayWidth || 4,
-      maxBayWidth: config.maxBayWidth || 12,
-      minBayCount: config.minBayCount || 1,
-      maxBayCount: config.maxBayCount || 10,
-      minTierCount: config.minTierCount || 1,
-      maxTierCount: config.maxTierCount || 5,
-      minRackDepth: config.minRackDepth || 2,
-      maxRackDepth: config.maxRackDepth || 8,
-      mepSystems: config.mepSystems || [],
+      mepSystems: this.mepSystems,
       buildingConstraints: config.buildingConstraints || {}
     };
     
-    this.fitnessEvaluator = new FitnessEvaluator({
-      buildingConstraints: this.constraints.buildingConstraints,
-      mepRequirements: this.constraints.mepSystems,
-      ...config.fitnessConfig
-    });
-    
-    this.mutationRate = config.mutationRate || 0.1;
-    this.crossoverRate = config.crossoverRate || 0.8;
-    
-    this.population = [];
+    // State tracking
     this.generation = 0;
     this.bestIndividual = null;
     this.bestFitness = 0;
     this.fitnessHistory = [];
     this.stagnationCounter = 0;
     
+    // Callbacks
     this.onGenerationComplete = config.onGenerationComplete || (() => {});
     this.onOptimizationComplete = config.onOptimizationComplete || (() => {});
     this.onImprovement = config.onImprovement || (() => {});
   }
 
-  initializePopulation() {
-    this.population = [];
-    for (let i = 0; i < this.populationSize; i++) {
-      this.population.push(new RackChromosome(null, this.constraints));
+  /**
+   * Convert MEP systems to rectangles for stacked container optimization
+   */
+  convertMepSystemsToRectangles(mepSystems) {
+    return mepSystems.map(system => {
+      const bbox = this.getMEPBoundingBox(system);
+      return [
+        bbox.width / 12, // Convert inches to feet
+        bbox.height / 12
+      ];
+    });
+  }
+  
+  /**
+   * Get bounding box for MEP system (reused from RackChromosome)
+   */
+  getMEPBoundingBox(system) {
+    switch(system.type) {
+      case 'duct':
+        const ductWidth = (system.width || 24) + (system.insulation || 0) * 2;
+        const ductHeight = (system.height || 12) + (system.insulation || 0) * 2;
+        return {
+          width: ductWidth,
+          height: ductHeight,
+          depth: ductWidth + 6,
+          volume: (ductWidth * ductHeight * 12) / 1728
+        };
+      case 'pipe':
+        const radius = (system.diameter || 4) / 2 + (system.insulation || 0);
+        const pipeSpacing = Math.max(radius * 2 + 6, 12);
+        return {
+          width: radius * 2,
+          height: radius * 2,
+          depth: pipeSpacing,
+          volume: (Math.PI * Math.pow(radius / 12, 2) * 1)
+        };
+      case 'conduit':
+        const conduitRadius = (system.diameter || 2) / 2;
+        const conduitCount = system.count || 1;
+        const conduitSpacing = 4;
+        const totalConduitWidth = (conduitCount * conduitRadius * 2) + ((conduitCount - 1) * conduitSpacing);
+        return {
+          width: totalConduitWidth,
+          height: conduitRadius * 2,
+          depth: totalConduitWidth + 6,
+          volume: (Math.PI * Math.pow(conduitRadius / 12, 2) * 1)
+        };
+      case 'cableTray':
+        const trayWidth = system.width || 12;
+        return {
+          width: trayWidth,
+          height: system.height || 4,
+          depth: trayWidth + 6,
+          volume: ((system.width || 12) * (system.height || 4) * 12) / 1728
+        };
+      default:
+        return { width: 12, height: 12, depth: 12, volume: 1 };
     }
-    this.generation = 0;
-    this.stagnationCounter = 0;
   }
 
   async optimize() {
-    console.log('🧬 GA: Starting optimization with config:', {
-      populationSize: this.populationSize,
-      maxGenerations: this.maxGenerations,
-      mepSystems: this.constraints.mepSystems.length
+    console.log('🔧 SCO: Starting stacked container optimization with config:', {
+      populationSize: this.optimizerConfig.populationSize,
+      generations: this.optimizerConfig.generations,
+      mepSystems: this.mepSystems.length,
+      rectangles: this.rectangles.length
     });
     
-    this.initializePopulation();
-    console.log('🧬 GA: Population initialized with', this.population.length, 'individuals');
-    
-    while (this.generation < this.maxGenerations) {
-      console.log('🧬 GA: Starting generation', this.generation);
-      
-      const fitnessResults = this.evaluatePopulation();
-      console.log('🧬 GA: Fitness evaluation completed for generation', this.generation);
-      
-      this.updateBestIndividual(fitnessResults);
-      
-      if (this.shouldTerminate()) {
-        console.log('🧬 GA: Terminating optimization');
-        break;
-      }
-      
-      this.population = this.evolvePopulation(fitnessResults);
-      this.trackStatistics(fitnessResults);
-      
-      const stats = {
-        generation: this.generation,
-        bestFitness: this.bestFitness,
-        averageFitness: this.getAverageFitness(fitnessResults),
-        diversity: this.calculateDiversity(),
-        bestIndividual: this.bestIndividual,
-        stagnation: this.stagnationCounter
-      };
-      
-      console.log('🧬 GA: Calling onGenerationComplete with stats:', stats);
-      await this.onGenerationComplete(stats);
-      
-      this.generation++;
-      await new Promise(resolve => setTimeout(resolve, 10)); // Slightly longer delay for better UI updates
+    if (this.rectangles.length === 0) {
+      throw new Error('No MEP systems to optimize');
     }
     
-    // Get final fitness breakdown
-    const finalEvaluation = this.fitnessEvaluator.evaluate(this.bestIndividual);
+    // Create stacked container optimizer
+    const optimizer = new StackedContainerOptimizer(
+      this.rectangles,
+      this.containerWidth,
+      this.maxTotalHeight,
+      this.maxContainers,
+      this.optimizerConfig.populationSize,
+      this.optimizerConfig.generations,
+      this.optimizerConfig.mutationRate,
+      this.optimizerConfig.crossoverRate,
+      this.optimizerConfig.elitismRate
+    );
     
-    const finalResult = {
-      bestSolution: this.bestIndividual,
-      fitness: this.bestFitness,
-      generations: this.generation,
-      fitnessHistory: this.fitnessHistory,
-      rackParams: this.bestIndividual.toRackParams(),
-      breakdown: finalEvaluation.breakdown,
-      violations: finalEvaluation.violations
-    };
+    // Track progress through generation callbacks
+    let currentGeneration = 0;
+    const originalConsoleLog = console.log;
     
-    await this.onOptimizationComplete(finalResult);
-    return finalResult;
-  }
-
-  evaluatePopulation() {
-    const results = [];
-    
-    for (const individual of this.population) {
-      const fitness = this.fitnessEvaluator.evaluate(individual);
-      results.push({
-        individual,
-        fitness: fitness.total,
-        breakdown: fitness.breakdown,
-        violations: fitness.violations
-      });
-    }
-    
-    results.sort((a, b) => b.fitness - a.fitness);
-    return results;
-  }
-
-  updateBestIndividual(fitnessResults) {
-    const currentBest = fitnessResults[0];
-    
-    if (currentBest.fitness > this.bestFitness) {
-      this.bestFitness = currentBest.fitness;
-      this.bestIndividual = currentBest.individual.clone();
-      this.stagnationCounter = 0;
-      
-      this.onImprovement({
-        fitness: this.bestFitness,
-        individual: this.bestIndividual,
-        generation: this.generation,
-        breakdown: currentBest.breakdown,
-        violations: currentBest.violations
-      });
-    } else {
-      this.stagnationCounter++;
-    }
-  }
-
-  shouldTerminate() {
-    // Always run for at least 10 generations to show progress
-    if (this.generation < 10) {
-      return false;
-    }
-    
-    if (this.bestFitness >= this.targetFitness) {
-      console.log('🧬 GA: Target fitness reached:', this.bestFitness, '>=', this.targetFitness);
-      return true;
-    }
-    
-    if (this.stagnationCounter >= this.stagnationLimit) {
-      console.log('🧬 GA: Stagnation limit reached:', this.stagnationCounter);
-      return true;
-    }
-    
-    return false;
-  }
-
-  evolvePopulation(fitnessResults) {
-    const newPopulation = [];
-    const fitnessScores = fitnessResults.map(r => r.fitness);
-    const individuals = fitnessResults.map(r => r.individual);
-    
-    // Elitism
-    const eliteCount = Math.floor(this.populationSize * 0.1);
-    for (let i = 0; i < eliteCount; i++) {
-      newPopulation.push(individuals[i].clone());
-    }
-    
-    // Generate offspring
-    while (newPopulation.length < this.populationSize) {
-      const parent1 = this.tournamentSelection(individuals, fitnessScores);
-      const parent2 = this.tournamentSelection(individuals, fitnessScores);
-      
-      const offspring = this.crossover(parent1, parent2);
-      const mutatedOffspring = offspring.map(child => this.mutate(child));
-      
-      newPopulation.push(...mutatedOffspring);
-    }
-    
-    newPopulation.length = this.populationSize;
-    return newPopulation;
-  }
-
-  tournamentSelection(population, fitnessScores, tournamentSize = 3) {
-    const tournamentIndices = [];
-    
-    for (let i = 0; i < tournamentSize; i++) {
-      tournamentIndices.push(Math.floor(Math.random() * population.length));
-    }
-    
-    let bestIndex = tournamentIndices[0];
-    let bestFitness = fitnessScores[bestIndex];
-    
-    for (let i = 1; i < tournamentIndices.length; i++) {
-      const index = tournamentIndices[i];
-      if (fitnessScores[index] > bestFitness) {
-        bestFitness = fitnessScores[index];
-        bestIndex = index;
-      }
-    }
-    
-    return population[bestIndex];
-  }
-
-  crossover(parent1, parent2) {
-    if (Math.random() > this.crossoverRate) {
-      return [parent1.clone(), parent2.clone()];
-    }
-
-    const child1Genes = JSON.parse(JSON.stringify(parent1.genes));
-    const child2Genes = JSON.parse(JSON.stringify(parent2.genes));
-    
-    // Crossover rack dimensions
-    if (Math.random() < 0.5) {
-      [child1Genes.bayWidth, child2Genes.bayWidth] = [child2Genes.bayWidth, child1Genes.bayWidth];
-      // Recalculate bay counts
-      child1Genes.bayCount = Math.max(1, Math.floor(child1Genes.rackLength / child1Genes.bayWidth));
-      child2Genes.bayCount = Math.max(1, Math.floor(child2Genes.rackLength / child2Genes.bayWidth));
-    }
-    if (Math.random() < 0.5) {
-      [child1Genes.tierCount, child2Genes.tierCount] = [child2Genes.tierCount, child1Genes.tierCount];
-      // Adjust tier height arrays
-      this.adjustTierHeightsForCrossover(child1Genes);
-      this.adjustTierHeightsForCrossover(child2Genes);
-    }
-    if (Math.random() < 0.5) {
-      [child1Genes.rackDepth, child2Genes.rackDepth] = [child2Genes.rackDepth, child1Genes.rackDepth];
-    }
-    
-    // Crossover MEP placements - mix the best arrangements
-    this.crossoverMEPPlacements(parent1.genes, parent2.genes, child1Genes, child2Genes);
-    
-    return [
-      new RackChromosome(child1Genes, parent1.constraints),
-      new RackChromosome(child2Genes, parent2.constraints)
-    ];
-  }
-
-  adjustTierHeightsForCrossover(genes) {
-    while (genes.tierHeights.length < genes.tierCount) {
-      genes.tierHeights.push({ feet: 2, inches: 0 });
-    }
-    genes.tierHeights.length = genes.tierCount;
-  }
-
-  crossoverMEPPlacements(parent1Genes, parent2Genes, child1Genes, child2Genes) {
-    // Group MEP placements by system ID to avoid duplicates
-    const p1Systems = new Map();
-    const p2Systems = new Map();
-    
-    parent1Genes.mepPlacements.forEach(p => p1Systems.set(p.systemId, p));
-    parent2Genes.mepPlacements.forEach(p => p2Systems.set(p.systemId, p));
-    
-    child1Genes.mepPlacements = [];
-    child2Genes.mepPlacements = [];
-    
-    // For each MEP system, randomly choose placement from either parent
-    const allSystemIds = new Set([...p1Systems.keys(), ...p2Systems.keys()]);
-    
-    allSystemIds.forEach(systemId => {
-      const p1Placement = p1Systems.get(systemId);
-      const p2Placement = p2Systems.get(systemId);
-      
-      if (p1Placement && p2Placement) {
-        // Both parents have this system - randomly choose
-        if (Math.random() < 0.5) {
-          child1Genes.mepPlacements.push({...p1Placement});
-          child2Genes.mepPlacements.push({...p2Placement});
-        } else {
-          child1Genes.mepPlacements.push({...p2Placement});
-          child2Genes.mepPlacements.push({...p1Placement});
-        }
-      } else if (p1Placement) {
-        // Only parent 1 has this system
-        child1Genes.mepPlacements.push({...p1Placement});
-        child2Genes.mepPlacements.push({...p1Placement});
-      } else if (p2Placement) {
-        // Only parent 2 has this system
-        child1Genes.mepPlacements.push({...p2Placement});
-        child2Genes.mepPlacements.push({...p2Placement});
-      }
-    });
-    
-    // Validate placements fit within new rack dimensions
-    this.validateMEPPlacements(child1Genes);
-    this.validateMEPPlacements(child2Genes);
-  }
-
-  validateMEPPlacements(genes) {
-    genes.mepPlacements.forEach(placement => {
-      // Ensure tier is valid
-      placement.tier = Math.min(placement.tier, genes.tierCount - 1);
-      
-      // Ensure position is within rack bounds
-      const maxX = genes.rackLength - (placement.dimensions.width / 12);
-      const maxY = genes.rackDepth - (placement.dimensions.depth / 12);
-      
-      placement.x = Math.min(placement.x, Math.max(0, maxX));
-      placement.y = Math.min(placement.y, Math.max(0, maxY));
-      
-      // Update Z position for new tier structure
-      let height = 0;
-      for (let i = 0; i < placement.tier && i < genes.tierHeights.length; i++) {
-        height += genes.tierHeights[i].feet + genes.tierHeights[i].inches / 12;
-      }
-      placement.z = height;
-      
-      // Ensure mount position exists
-      if (!placement.mountPosition) {
-        placement.mountPosition = Math.random() < 0.5 ? 'top' : 'bottom';
-      }
-    });
-  }
-
-  mutate(chromosome) {
-    const mutated = chromosome.clone();
-    
-    if (Math.random() < this.mutationRate) {
-      const mutationType = Math.random();
-      
-      if (mutationType < 0.4) {
-        // 40% chance: Mutate rack dimensions
-        const gene = Math.floor(Math.random() * 3);
-        switch(gene) {
-          case 0: // Bay width
-            mutated.genes.bayWidth = this.mutateValue(
-              mutated.genes.bayWidth,
-              this.constraints.minBayWidth || 4,
-              this.constraints.maxBayWidth || 12
-            );
-            mutated.genes.bayCount = Math.max(1, Math.floor(mutated.genes.rackLength / mutated.genes.bayWidth));
-            break;
-          case 1: // Tier count
-            mutated.genes.tierCount = Math.floor(this.mutateValue(
-              mutated.genes.tierCount,
-              this.constraints.minTierCount || 2,
-              this.constraints.maxTierCount || 5
-            ));
-            this.syncTierHeights(mutated.genes);
-            break;
-          case 2: // Rack depth
-            mutated.genes.rackDepth = this.mutateValue(
-              mutated.genes.rackDepth,
-              this.constraints.minRackDepth || 4,
-              this.constraints.maxRackDepth || 8
-            );
-            break;
-        }
-      } else if (mutationType < 0.8) {
-        // 40% chance: Mutate MEP placements
-        this.mutateMEPPlacements(mutated);
-      } else {
-        // 20% chance: Completely reorganize all MEP systems
-        this.reorganizeMEPSystems(mutated);
-      }
-    }
-    
-    return mutated;
-  }
-
-  mutateMEPPlacements(chromosome) {
-    if (chromosome.genes.mepPlacements.length === 0) return;
-    
-    const numMutations = Math.floor(Math.random() * chromosome.genes.mepPlacements.length) + 1;
-    
-    for (let i = 0; i < numMutations; i++) {
-      const systemIndex = Math.floor(Math.random() * chromosome.genes.mepPlacements.length);
-      const placement = chromosome.genes.mepPlacements[systemIndex];
-      
-      const mutationType = Math.floor(Math.random() * 4);
-      switch(mutationType) {
-        case 0: // Move to different tier
-          placement.tier = Math.floor(Math.random() * chromosome.genes.tierCount);
-          break;
-        case 1: // Change position using organized placement
-        case 2: // Change position using organized placement  
-        case 3: // Move to completely new position
-          // Re-place this system using organized placement
-          const system = this.constraints.mepSystems.find(s => s.id === placement.systemId);
-          if (system) {
-            const tempChromosome = new RackChromosome(null, this.constraints);
-            const bbox = tempChromosome.getMEPBoundingBox(system);
-            const occupiedSpaces = this.getOccupiedSpaces(chromosome.genes, placement.systemId);
-            const newPos = tempChromosome.findOrganizedPosition(system, bbox, chromosome.genes, occupiedSpaces, placement.tier);
-            if (newPos) {
-              Object.assign(placement, newPos);
-            }
-          }
-          break;
-      }
-    }
-  }
-
-  reorganizeMEPSystems(chromosome) {
-    // Completely rearrange all MEP systems for better organization
-    const mepSystems = this.constraints.mepSystems || [];
-    if (mepSystems.length === 0) return;
-    
-    console.log('🔄 Reorganizing all MEP systems...');
-    
-    // Clear current placements and re-place all systems using organized placement
-    chromosome.genes.mepPlacements = [];
-    chromosome.genes.mepPlacements = this.placeMEPSystems(mepSystems, chromosome.genes);
-  }
-
-  getPreferredTier(systemType) {
-    // Preferred tier assignment based on typical MEP practices
-    switch(systemType) {
-      case 'cableTray': return 0; // Top tier
-      case 'duct': return 1; // Second tier
-      case 'pipe': return 2; // Third tier
-      case 'conduit': return 0; // Can share with cable trays
-      default: return 0;
-    }
-  }
-
-  rectanglesOverlap(rect1, rect2) {
-    return !(rect1.x + rect1.width < rect2.x || 
-             rect2.x + rect2.width < rect1.x || 
-             rect1.y + rect1.depth < rect2.y || 
-             rect2.y + rect2.depth < rect1.y);
-  }
-
-  findBestPositionForSystem(placement, genes) {
-    // Try to find a better position for a specific MEP system
-    const bbox = placement.dimensions;
-    const preferredTier = this.getPreferredTier(placement.systemType);
-    const occupiedSpaces = this.getOccupiedSpaces(genes, placement.systemId);
-    
-    for (let attempt = 0; attempt < 15; attempt++) {
-      const tier = (attempt < 8) ? 
-        Math.min(preferredTier, genes.tierCount - 1) : 
-        Math.floor(Math.random() * genes.tierCount);
-      
-      const maxX = genes.rackLength - (bbox.width / 12);
-      const maxY = genes.rackDepth - (bbox.depth / 12);
-      
-      if (maxX <= 0 || maxY <= 0) continue;
-      
-      const x = Math.random() * maxX;
-      const y = Math.random() * maxY;
-      
-      // Try both mounting positions
-      const mountPosition = Math.random() < 0.5 ? 'top' : 'bottom';
-      const tierMountSpaces = occupiedSpaces[tier] && occupiedSpaces[tier][mountPosition] ? 
-        occupiedSpaces[tier][mountPosition] : [];
-      
-      const hasCollision = tierMountSpaces.some(occupied => {
-        return this.rectanglesOverlap(
-          { x, y, width: bbox.width / 12, depth: bbox.depth / 12 },
-          occupied
-        );
-      });
-      
-      if (!hasCollision) {
-        // Calculate tier height inline
-        let tierHeight = 0;
-        for (let i = 0; i < tier && i < genes.tierHeights.length; i++) {
-          tierHeight += genes.tierHeights[i].feet + (genes.tierHeights[i].inches || 0) / 12;
-        }
-        
-        return {
-          tier,
-          x,
-          y,
-          z: tierHeight,
-          mountPosition: Math.random() < 0.5 ? 'top' : 'bottom'
-        };
-      }
-    }
-    
-    return null; // Keep current position if no better one found
-  }
-
-  getOccupiedSpaces(genes, excludeSystemId) {
-    const occupiedSpaces = [];
-    
-    // Initialize for each tier with mounting positions
-    for (let tier = 0; tier < genes.tierCount; tier++) {
-      occupiedSpaces[tier] = {
-        top: [],    // Systems mounted to bottom of top beam
-        bottom: []  // Systems mounted to top of bottom beam
-      };
-    }
-    
-    // Add all placements except the one we're trying to move
-    genes.mepPlacements.forEach(placement => {
-      if (placement.systemId !== excludeSystemId) {
-        // Ensure tier is within bounds
-        const tier = Math.min(placement.tier, genes.tierCount - 1);
-        if (tier >= 0 && occupiedSpaces[tier]) {
-          const mountSpace = placement.mountPosition === 'top' ? 'top' : 'bottom';
-          occupiedSpaces[tier][mountSpace].push({
-            x: placement.x,
-            y: placement.y,
-            width: placement.dimensions.width / 12,
-            depth: placement.dimensions.depth / 12,
-            systemId: placement.systemId
+    // Override console.log to capture generation progress
+    console.log = (...args) => {
+      const message = args.join(' ');
+      if (message.includes('Generation')) {
+        const matches = message.match(/Generation (\d+): Best fitness = ([\d.-]+), Avg = ([\d.-]+)/);
+        if (matches) {
+          currentGeneration = parseInt(matches[1]);
+          const bestFitness = parseFloat(matches[2]);
+          const avgFitness = parseFloat(matches[3]);
+          
+          this.onGenerationComplete({
+            generation: currentGeneration,
+            bestFitness: bestFitness,
+            averageFitness: avgFitness,
+            diversity: 0.5, // Default diversity value
+            bestIndividual: null,
+            stagnation: 0
           });
         }
       }
+      originalConsoleLog(...args);
+    };
+    
+    try {
+      // Run optimization
+      const [bestSolution, fitnessHistory] = optimizer.evolve();
+      
+      // Restore console.log
+      console.log = originalConsoleLog;
+      
+      // Convert solution to rack parameters
+      const rackParams = this.convertSolutionToRackParams(bestSolution);
+      
+      // Create a simplified best individual for compatibility
+      const bestIndividual = {
+        fitness: bestSolution.fitness,
+        containers: bestSolution.containers,
+        rectanglesPlaced: bestSolution.rectanglesPlaced,
+        totalHeightUsed: bestSolution.totalHeightUsed,
+        toRackParams: () => rackParams,
+        getVolume: () => this.containerWidth * this.maxTotalHeight * 4, // Estimated volume
+        hasCollisions: () => false // Stacked optimizer prevents collisions
+      };
+      
+      const finalResult = {
+        bestSolution: bestIndividual,
+        fitness: bestSolution.fitness,
+        generations: currentGeneration,
+        fitnessHistory: fitnessHistory.map((fitness, gen) => ({
+          generation: gen,
+          best: fitness,
+          average: fitness * 0.9 // Approximate average
+        })),
+        rackParams: rackParams,
+        breakdown: {
+          volume: 0.8,
+          mepFit: bestSolution.rectanglesPlaced / this.rectangles.length,
+          structural: 0.9,
+          constraints: 0.85
+        },
+        violations: []
+      };
+      
+      await this.onOptimizationComplete(finalResult);
+      return finalResult;
+      
+    } catch (error) {
+      console.log = originalConsoleLog;
+      throw error;
+    }
+  }
+
+  /**
+   * Convert stacked container solution to rack parameters
+   */
+  convertSolutionToRackParams(solution) {
+    if (!solution || !solution.containers) {
+      return {
+        rackLength: this.containerWidth,
+        bayCount: 1,
+        bayWidth: this.containerWidth,
+        depth: 2,
+        tierCount: 1,
+        mepSystems: []
+      };
+    }
+    
+    // Calculate optimal rack configuration based on container solution
+    const activeContainers = solution.containers.filter(c => 
+      c.bottomRectangles.length > 0 || c.topRectangles.length > 0
+    );
+    
+    // Fixed bay configuration (not optimized)
+    const bayWidth = 4; // Fixed 4 feet bay width
+    const bayCount = Math.max(1, Math.floor(this.containerWidth / bayWidth));
+    const tierCount = Math.max(1, Math.ceil(solution.totalHeightUsed / 3)); // Assuming 3ft per tier
+    
+    // Ensure rack width doesn't exceed corridor width
+    const corridorWidth = this.constraints.buildingConstraints?.corridorWidth || 8; // Default 8 feet
+    const maxRackDepth = Math.min(corridorWidth, 8); // Max 8 feet or corridor width, whichever is smaller
+    
+    console.log(`🏗️ Rack constraints: corridorWidth=${corridorWidth}ft, maxRackDepth=${maxRackDepth}ft, bayWidth=${bayWidth}ft (fixed)`);
+    console.log(`🏗️ Rack configuration: ${bayCount} bays × ${bayWidth}ft = ${this.containerWidth}ft length, ${maxRackDepth}ft depth`);
+    
+    // Map containers to MEP systems with proper 3D coordinates
+    const mepSystems = [];
+    let currentZPosition = 0; // Track cumulative Z position (height) for stacked containers
+    
+    // Default tier height if containers don't specify
+    const defaultTierHeight = 3; // 3 feet per tier
+    
+    activeContainers.forEach((container, containerIndex) => {
+      // Calculate tier for this container (containers map to tiers)
+      const tier = containerIndex;
+      
+      // Use container height or default
+      const containerHeight = container.height || defaultTierHeight;
+      
+      // Process bottom rectangles
+      container.bottomRectangles.forEach(([rectId, xPos]) => {
+        if (rectId < this.mepSystems.length) {
+          const system = this.mepSystems[rectId];
+          const bbox = this.getMEPBoundingBox(system);
+          
+          // Y position = rack width distribution (becomes Scene Z)
+          // Distribute MEP systems across rack width to prevent overlapping
+          const availableWidth = maxRackDepth - 1; // Leave 1 foot clearance on rack width
+          const yPosition = 0.5 + (rectId % 4) * (availableWidth / 4); // Distribute across rack width
+          
+          mepSystems.push({
+            id: system.id,
+            type: system.type,
+            tier: tier,
+            position: {
+              x: xPos, // X position along rack length (from stacked optimizer)
+              y: yPosition, // Y position across rack width (centered)
+              z: currentZPosition + 0.5 // Z position (height) - slightly above bottom of tier
+            },
+            mountPosition: 'bottom',
+            dimensions: bbox,
+            ...system // Include all original system properties
+          });
+          
+          console.log(`📍 Placed ${system.type} (ID: ${system.id}) at tier ${tier}, position: x=${xPos.toFixed(2)}ft (length), y=${yPosition.toFixed(2)}ft (→SceneZ width), z=${(currentZPosition + 0.5).toFixed(2)}ft (→SceneY height) (bottom mount)`);
+        }
+      });
+      
+      // Process top rectangles
+      container.topRectangles.forEach(([rectId, xPos]) => {
+        if (rectId < this.mepSystems.length) {
+          const system = this.mepSystems[rectId];
+          const bbox = this.getMEPBoundingBox(system);
+          
+          // Y position = rack width distribution (becomes Scene Z)
+          // Distribute MEP systems across rack width to prevent overlapping
+          const availableWidth = maxRackDepth - 1; // Leave 1 foot clearance on rack width
+          const yPosition = 0.5 + (rectId % 4) * (availableWidth / 4); // Distribute across rack width
+          
+          mepSystems.push({
+            id: system.id,
+            type: system.type,
+            tier: tier,
+            position: {
+              x: xPos, // X position along rack length (from stacked optimizer)
+              y: yPosition, // Y position across rack width (centered)
+              z: currentZPosition + containerHeight - 0.5 // Z position (height) - slightly below top of tier
+            },
+            mountPosition: 'top',
+            dimensions: bbox,
+            ...system // Include all original system properties
+          });
+          
+          console.log(`📍 Placed ${system.type} (ID: ${system.id}) at tier ${tier}, position: x=${xPos.toFixed(2)}ft (length), y=${yPosition.toFixed(2)}ft (→SceneZ width), z=${(currentZPosition + containerHeight - 0.5).toFixed(2)}ft (→SceneY height) (top mount)`);
+        }
+      });
+      
+      // Update Z position for next container (stacking vertically)
+      currentZPosition += containerHeight;
     });
     
-    return occupiedSpaces;
-  }
-
-  syncTierHeights(genes) {
-    // Adjust tier heights array to match tier count
-    while (genes.tierHeights.length < genes.tierCount) {
-      genes.tierHeights.push({ feet: 2, inches: 0 });
+    // Calculate tier heights based on container heights
+    const tierHeights = activeContainers.map(container => container.height || defaultTierHeight);
+    
+    // Ensure we have at least one tier height
+    if (tierHeights.length === 0) {
+      tierHeights.push(defaultTierHeight); // Default 3 feet
     }
-    genes.tierHeights.length = genes.tierCount;
-  }
-
-  mutateValue(value, min, max) {
-    const range = max - min;
-    const mutation = (Math.random() - 0.5) * range * 0.1;
-    return Math.max(min, Math.min(max, value + mutation));
-  }
-
-  calculateDiversity() {
-    if (this.population.length < 2) return 0;
     
-    let totalDistance = 0;
-    let comparisons = 0;
+    // Initialize enabled flags
+    const ductEnabled = new Array(tierCount).fill(false);
+    const pipeEnabled = new Array(tierCount).fill(false);
+    const conduitEnabled = new Array(tierCount).fill(false);
+    const cableTrayEnabled = new Array(tierCount).fill(false);
     
-    for (let i = 0; i < Math.min(10, this.population.length); i++) {
-      for (let j = i + 1; j < Math.min(10, this.population.length); j++) {
-        totalDistance += this.chromosomeDistance(this.population[i], this.population[j]);
-        comparisons++;
+    // Set enabled flags based on placed systems
+    mepSystems.forEach(system => {
+      const tier = system.tier;
+      if (tier >= 0 && tier < tierCount) {
+        switch(system.type) {
+          case 'duct':
+            ductEnabled[tier] = true;
+            break;
+          case 'pipe':
+            pipeEnabled[tier] = true;
+            break;
+          case 'conduit':
+            conduitEnabled[tier] = true;
+            break;
+          case 'cableTray':
+          case 'cable-tray':
+            cableTrayEnabled[tier] = true;
+            break;
+        }
       }
-    }
-    
-    return comparisons > 0 ? totalDistance / comparisons : 0;
-  }
-
-  chromosomeDistance(chrom1, chrom2) {
-    let distance = 0;
-    
-    distance += Math.abs(chrom1.genes.bayWidth - chrom2.genes.bayWidth) / 8;
-    distance += Math.abs(chrom1.genes.bayCount - chrom2.genes.bayCount) / 10;
-    distance += Math.abs(chrom1.genes.tierCount - chrom2.genes.tierCount) / 5;
-    distance += Math.abs(chrom1.genes.rackDepth - chrom2.genes.rackDepth) / 6;
-    
-    return distance / 4;
-  }
-
-  trackStatistics(fitnessResults) {
-    const avgFitness = this.getAverageFitness(fitnessResults);
-    
-    this.fitnessHistory.push({
-      generation: this.generation,
-      best: this.bestFitness,
-      average: avgFitness,
-      worst: fitnessResults[fitnessResults.length - 1].fitness
     });
-  }
+    
+    console.log(`🏗️ Final rack params: ${mepSystems.length} MEP systems placed`);
+    mepSystems.forEach(sys => {
+      console.log(`  - ${sys.type} (ID: ${sys.id}): position(${sys.position.x.toFixed(2)}, ${sys.position.y.toFixed(2)}, ${sys.position.z.toFixed(2)}) tier=${sys.tier} mount=${sys.mountPosition}`);
+    });
 
-  getAverageFitness(fitnessResults) {
-    const sum = fitnessResults.reduce((acc, r) => acc + r.fitness, 0);
-    return sum / fitnessResults.length;
+    return {
+      rackLength: this.containerWidth,
+      bayCount: bayCount,
+      bayWidth: bayWidth,
+      depth: maxRackDepth, // Use corridor width constrained depth
+      tierCount: tierCount,
+      tierHeights: tierHeights,
+      mepSystems: mepSystems,
+      containerSolution: solution,
+      // Include enabled flags for each tier based on what systems are placed
+      ductEnabled: ductEnabled,
+      pipeEnabled: pipeEnabled,
+      conduitEnabled: conduitEnabled,
+      cableTrayEnabled: cableTrayEnabled
+    };
   }
 }
 

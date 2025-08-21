@@ -1,13 +1,10 @@
 /**
- * Export main genetic algorithm components
+ * Export stacked container optimization components
  */
 
-import { RackChromosome } from './Chromosome';
-import { FitnessEvaluator } from './FitnessFunction';
-import { GeneticOperators } from './GeneticOperators';
 import { RackOptimizationGA } from './GeneticAlgorithm';
 
-export { RackChromosome, FitnessEvaluator, GeneticOperators, RackOptimizationGA };
+export { RackOptimizationGA };
 
 // Convenience function to create and configure optimizer
 export function createRackOptimizer(config = {}) {

@@ -411,7 +411,7 @@ const RackOptimizationPanel = ({
             )}
           </div>
           
-          {optimizationResult.bestSolution?.genes && (
+          {optimizationResult.rackParams && (
             <button 
               className="apply-button"
               onClick={applyOptimizedConfiguration}
