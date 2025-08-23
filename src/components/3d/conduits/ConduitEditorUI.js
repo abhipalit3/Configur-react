@@ -208,7 +208,7 @@ export const ConduitEditorUI = ({
   }, [])
 
   const handleSave = () => {
-    console.log(`⚡ ConduitEditor: handleSave called with dimensions:`, dimensions)
+    // console.log(`⚡ ConduitEditor: handleSave called with dimensions:`, dimensions)
     if (onSave) {
       onSave(dimensions)
     }
@@ -224,7 +224,7 @@ export const ConduitEditorUI = ({
     // For count field, use parseInt; for others, use parseFloat
     const numValue = field === 'count' ? parseInt(value) || 1 : parseFloat(value)
     
-    console.log(`⚡ ConduitEditor: handleInputChange called with field=${field}, value=${value}, numValue=${numValue}`)
+    // console.log(`⚡ ConduitEditor: handleInputChange called with field=${field}, value=${value}, numValue=${numValue}`)
     
     // For tier changes, handle immediately like pipe editor
     if (field === 'tier') {
@@ -269,8 +269,8 @@ export const ConduitEditorUI = ({
               }
             }
             
-            console.log(`🔧 Positioning conduit for tier ${tierValue}`)
-            console.log('🔧 Available tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.centerY.toFixed(3)}`))
+            // console.log(`🔧 Positioning conduit for tier ${tierValue}`)
+            // console.log('🔧 Available tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.centerY.toFixed(3)}`))
             
             // Find the tier space that corresponds to the selected tier number
             const selectedTierSpace = tierSpaces.find(space => space.tierIndex === tierValue)
@@ -283,7 +283,7 @@ export const ConduitEditorUI = ({
               // Position conduit so its bottom sits on the bottom beam of the tier space
               const newYPosition = selectedTierSpace.bottom + radius
               
-              console.log(`🔧 Moving conduit to tier ${tierValue} at Y: ${newYPosition.toFixed(3)} (tier bottom: ${selectedTierSpace.bottom.toFixed(3)})`)
+              // console.log(`🔧 Moving conduit to tier ${tierValue} at Y: ${newYPosition.toFixed(3)} (tier bottom: ${selectedTierSpace.bottom.toFixed(3)})`)
               
               // Update conduit position
               selectedConduit.position.y = newYPosition

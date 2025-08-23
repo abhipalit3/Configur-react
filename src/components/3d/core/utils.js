@@ -13,7 +13,7 @@ const IN2M = 0.0254;
 
 export const ft2m  = ft   => {
   if (!isFinite(ft)) {
-    console.warn('❌ Invalid feet value for conversion:', ft)
+    // console.warn('❌ Invalid feet value for conversion:', ft)
     return 0
   }
   return ft * FT2M
@@ -21,7 +21,7 @@ export const ft2m  = ft   => {
 
 export const in2m  = inch => {
   if (!isFinite(inch)) {
-    console.warn('❌ Invalid inches value for conversion:', inch)
+    // console.warn('❌ Invalid inches value for conversion:', inch)
     return 0
   }
   return inch * IN2M
@@ -29,7 +29,7 @@ export const in2m  = inch => {
 
 export const ft2in = ft   => {
   if (!isFinite(ft)) {
-    console.warn('❌ Invalid feet value for conversion:', ft)
+    // console.warn('❌ Invalid feet value for conversion:', ft)
     return 0
   }
   return ft * 12
@@ -87,14 +87,14 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
   const convertToFeet = (feetInches) => {
     if (typeof feetInches === 'number') {
       if (!isFinite(feetInches)) {
-        console.warn('❌ Invalid numeric feet value:', feetInches)
+        // console.warn('❌ Invalid numeric feet value:', feetInches)
         return 0
       }
       return feetInches; // backwards compatibility
     }
     
     if (!feetInches || typeof feetInches !== 'object') {
-      console.warn('❌ Invalid feetInches object:', feetInches)
+      // console.warn('❌ Invalid feetInches object:', feetInches)
       return 0
     }
     
@@ -102,7 +102,7 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
     const inches = feetInches.inches || 0
     
     if (!isFinite(feet) || !isFinite(inches)) {
-      console.warn('❌ Invalid feet/inches values:', { feet, inches })
+      // console.warn('❌ Invalid feet/inches values:', { feet, inches })
       return 0
     }
     
@@ -115,12 +115,12 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
   
   // Validate dimensions before calculations
   if (!isFinite(totalLengthFeet) || totalLengthFeet <= 0) {
-    console.error('❌ Invalid total length:', totalLengthFeet)
+    // console.error('❌ Invalid total length:', totalLengthFeet)
     return new THREE.Group() // Return empty group
   }
   
   if (!isFinite(standardBayFeet) || standardBayFeet <= 0) {
-    console.error('❌ Invalid standard bay width:', standardBayFeet)
+    // console.error('❌ Invalid standard bay width:', standardBayFeet)
     return new THREE.Group()
   }
   
@@ -131,7 +131,7 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
   
   // Validate calculated values
   if (!isFinite(bayCount) || bayCount <= 0) {
-    console.error('❌ Invalid bay count:', bayCount)
+    // console.error('❌ Invalid bay count:', bayCount)
     return new THREE.Group()
   }
 
@@ -144,12 +144,12 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
   
   // Validate metric dimensions
   if (!isFinite(lenM) || lenM <= 0) {
-    console.error('❌ Invalid rack length (meters):', lenM)
+    // console.error('❌ Invalid rack length (meters):', lenM)
     return new THREE.Group()
   }
   
   if (!isFinite(depthM) || depthM <= 0) {
-    console.error('❌ Invalid rack depth (meters):', depthM)
+    // console.error('❌ Invalid rack depth (meters):', depthM)
     return new THREE.Group()
   }
   
@@ -181,7 +181,7 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
       // Validate beam depth to avoid NaN issues
       if (isFinite(corridorHeightFt) && isFinite(beamDepthFt) && corridorHeightFt > 0) {
         topClearanceFt = corridorHeightFt - beamDepthFt;
-        console.log(`📐 Deck mounted rack positioned: corridor=${corridorHeightFt}ft, beam=${beamDepthFt}ft, clearance=${topClearanceFt}ft`)
+        // console.log(`📐 Deck mounted rack positioned: corridor=${corridorHeightFt}ft, beam=${beamDepthFt}ft, clearance=${topClearanceFt}ft`)
       } else {
         console.warn('❌ Invalid building context values, using default topClearance')
       }

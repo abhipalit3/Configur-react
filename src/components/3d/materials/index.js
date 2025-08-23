@@ -52,7 +52,7 @@ export function createMaterials(textures = {}) {
   })
 
   materials.ceilingMaterial = new THREE.MeshStandardMaterial({ 
-    color: '#f5f5f5a8', 
+    color: '#e0e0e0', 
     metalness: 0.2, 
     roughness: 0.6, 
     transparent: true, 

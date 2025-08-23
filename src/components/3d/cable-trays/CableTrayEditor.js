@@ -34,7 +34,7 @@ export const CableTrayEditor = ({
   useEffect(() => {
     if (selectedCableTray?.userData?.cableTrayData) {
       const cableTrayData = selectedCableTray.userData.cableTrayData
-      console.log('🔌 CableTrayEditor: Loading cable tray data:', cableTrayData)
+      // console.log('🔌 CableTrayEditor: Loading cable tray data:', cableTrayData)
       setDimensions({
         width: cableTrayData.width || 12,
         height: cableTrayData.height || 4,
@@ -46,9 +46,9 @@ export const CableTrayEditor = ({
   
   // Log when component mounts/unmounts
   useEffect(() => {
-    console.log('🔌 CableTrayEditor: Component mounted, visible:', visible)
+    // console.log('🔌 CableTrayEditor: Component mounted, visible:', visible)
     return () => {
-      console.log('🔌 CableTrayEditor: Component unmounted')
+      // console.log('🔌 CableTrayEditor: Component unmounted')
     }
   }, [])
 
@@ -167,14 +167,14 @@ export const CableTrayEditor = ({
   }
 
   const handleTrayTypeChange = (newTrayType) => {
-    console.log('🔌 CableTrayEditor: trayType changed to:', newTrayType)
-    console.log('🔌 CableTrayEditor: Current dimensions before change:', dimensions)
+    // console.log('🔌 CableTrayEditor: trayType changed to:', newTrayType)
+    // console.log('🔌 CableTrayEditor: Current dimensions before change:', dimensions)
     setDimensions(prev => {
       const newDimensions = {
         ...prev,
         trayType: newTrayType
       }
-      console.log('🔌 CableTrayEditor: New dimensions after change:', newDimensions)
+      // console.log('🔌 CableTrayEditor: New dimensions after change:', newDimensions)
       return newDimensions
     })
   }
@@ -331,7 +331,7 @@ export const CableTrayEditor = ({
   }
 
   const handleSave = () => {
-    console.log('🔌 CableTrayEditor: handleSave called with dimensions:', dimensions)
+    // console.log('🔌 CableTrayEditor: handleSave called with dimensions:', dimensions)
     if (onSave) {
       onSave(dimensions)
     } else {
@@ -534,7 +534,7 @@ export const CableTrayEditor = ({
         </button>
         <button
           onClick={(e) => {
-            console.log('🔌 CableTrayEditor: Save button clicked!')
+            // console.log('🔌 CableTrayEditor: Save button clicked!')
             e.preventDefault()
             e.stopPropagation()
             handleSave()

@@ -100,7 +100,7 @@ export const getProjectManifest = () => {
     saveProjectManifest(newManifest)
     return newManifest
   } catch (error) {
-    console.error('Error loading project manifest:', error)
+    // console.error('Error loading project manifest:', error)
     const fallbackManifest = createInitialManifest()
     saveProjectManifest(fallbackManifest)
     return fallbackManifest
@@ -547,7 +547,7 @@ export const getProjectStatistics = () => {
  * Initialize project manifest on app start
  */
 export const initializeProject = () => {
-  console.log('🚀 Initializing project manifest system...')
+  // console.log('🚀 Initializing project manifest system...')
   
   try {
     // Project manifest system initialized
@@ -559,12 +559,12 @@ export const initializeProject = () => {
     // Save updated manifest
     saveProjectManifest(manifest)
     
-    console.log('✅ Project manifest initialized successfully:', {
-      projectId: manifest.projectId,
-      version: manifest.version,
-      mepItemsCount: manifest.mepItems.totalCount,
-      configurationsCount: manifest.tradeRacks.totalCount
-    })
+    // console.log('✅ Project manifest initialized successfully:', {
+    //   projectId: manifest.projectId,
+    //   version: manifest.version,
+    //   mepItemsCount: manifest.mepItems.totalCount,
+    //   configurationsCount: manifest.tradeRacks.totalCount
+    // })
     
     return manifest
   } catch (error) {

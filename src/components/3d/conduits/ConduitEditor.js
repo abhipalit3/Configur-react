@@ -22,7 +22,7 @@ export class ConduitEditor {
     // Clipboard for copy/paste
     this.clipboard = null
     
-    console.log('⚡ ConduitEditor initialized')
+    // console.log('⚡ ConduitEditor initialized')
   }
 
   /**
@@ -37,7 +37,7 @@ export class ConduitEditor {
     // Highlight the conduit being edited
     this.conduitGeometry.updateConduitAppearance(conduit, 'selected')
     
-    console.log('⚡ Edit mode enabled for conduit:', conduit.userData.conduitData)
+    // console.log('⚡ Edit mode enabled for conduit:', conduit.userData.conduitData)
   }
 
   /**
@@ -51,7 +51,7 @@ export class ConduitEditor {
     this.editMode = false
     this.editingConduit = null
     
-    console.log('⚡ Edit mode disabled')
+    // console.log('⚡ Edit mode disabled')
   }
 
   /**
@@ -79,7 +79,7 @@ export class ConduitEditor {
     // Rebuild the conduit with new properties
     this.rebuildConduit(this.editingConduit)
     
-    console.log('⚡ Conduit properties updated:', conduitData)
+    // console.log('⚡ Conduit properties updated:', conduitData)
   }
 
   /**
@@ -162,7 +162,7 @@ export class ConduitEditor {
       conduitsGroup.add(newConduitGroup)
     }
     
-    console.log('⚡ Conduit duplicated:', conduitData.id)
+    // console.log('⚡ Conduit duplicated:', conduitData.id)
     return newConduitGroup
   }
 
@@ -177,7 +177,7 @@ export class ConduitEditor {
       position: conduit.position.clone()
     }
     
-    console.log('⚡ Conduit copied to clipboard')
+    // console.log('⚡ Conduit copied to clipboard')
   }
 
   /**
@@ -209,7 +209,7 @@ export class ConduitEditor {
       conduitsGroup.add(newConduitGroup)
     }
     
-    console.log('⚡ Conduit pasted:', conduitData.id)
+    // console.log('⚡ Conduit pasted:', conduitData.id)
     return newConduitGroup
   }
 
@@ -239,7 +239,7 @@ export class ConduitEditor {
       this.disableEditMode()
     }
     
-    console.log('⚡ Conduit deleted')
+    // console.log('⚡ Conduit deleted')
   }
 
   /**
@@ -267,7 +267,7 @@ export class ConduitEditor {
         z: conduit.position.z
       }
       
-      console.log(`⚡ Conduit moved to Tier ${tierNumber}`)
+      // console.log(`⚡ Conduit moved to Tier ${tierNumber}`)
     }
   }
 
@@ -363,7 +363,7 @@ export class ConduitEditor {
       conduitsGroup.add(group)
     }
     
-    console.log('⚡ Conduits grouped:', group.name)
+    // console.log('⚡ Conduits grouped:', group.name)
     return group
   }
 
@@ -388,7 +388,7 @@ export class ConduitEditor {
     // Remove empty group
     conduitsGroup.remove(group)
     
-    console.log('⚡ Conduits ungrouped')
+    // console.log('⚡ Conduits ungrouped')
   }
 
   /**
@@ -397,6 +397,6 @@ export class ConduitEditor {
   dispose() {
     this.disableEditMode()
     this.clipboard = null
-    console.log('⚡ ConduitEditor disposed')
+    // console.log('⚡ ConduitEditor disposed')
   }
 }

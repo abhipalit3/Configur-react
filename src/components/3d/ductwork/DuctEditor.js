@@ -221,8 +221,8 @@ export const DuctEditor = ({
           }
         }
         
-        console.log(`🔧 Positioning duct for tier ${tierValue}`)
-        console.log('🔧 Available tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.centerY.toFixed(3)}`))
+        // console.log(`🔧 Positioning duct for tier ${tierValue}`)
+        // console.log('🔧 Available tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.centerY.toFixed(3)}`))
         
         // Find the tier space that corresponds to the selected tier number
         const selectedTierSpace = tierSpaces.find(space => space.tierIndex === tierValue)
@@ -236,7 +236,7 @@ export const DuctEditor = ({
           // Position duct so its bottom sits on the bottom beam of the tier space
           const newYPosition = selectedTierSpace.bottom + (totalHeight / 2)
           
-          console.log(`🔧 Moving duct to tier ${tierValue} at Y: ${newYPosition.toFixed(3)} (tier bottom: ${selectedTierSpace.bottom.toFixed(3)})`)
+          // console.log(`🔧 Moving duct to tier ${tierValue} at Y: ${newYPosition.toFixed(3)} (tier bottom: ${selectedTierSpace.bottom.toFixed(3)})`)
           
           // Update duct position
           selectedDuct.position.y = newYPosition
@@ -288,20 +288,20 @@ export const DuctEditor = ({
         // Get all horizontal snap lines and sort them by Y position (top to bottom)
         const allHorizontalLines = snapLines.horizontal.sort((a, b) => b.y - a.y)
         
-        console.log('🔧 All horizontal snap lines:', allHorizontalLines.map(h => `${h.type}: ${h.y.toFixed(3)}`))
+        // console.log('🔧 All horizontal snap lines:', allHorizontalLines.map(h => `${h.type}: ${h.y.toFixed(3)}`))
         
         // Group beam_top and beam_bottom pairs to identify tiers
         const beamTops = allHorizontalLines.filter(line => line.type === 'beam_top')
         const beamBottoms = allHorizontalLines.filter(line => line.type === 'beam_bottom')
         
-        console.log('🔧 Found beam tops:', beamTops.length, 'beam bottoms:', beamBottoms.length)
+        // console.log('🔧 Found beam tops:', beamTops.length, 'beam bottoms:', beamBottoms.length)
         
         // Each tier should have a space between two beams where ducts can be placed
         // We need to identify distinct tier levels by analyzing the Y positions
         
         // Combine all beam positions and group them to find tier spaces
         const allBeamPositions = [...beamTops, ...beamBottoms].map(b => b.y).sort((a, b) => b - a)
-        console.log('🔧 All beam Y positions:', allBeamPositions.map(y => y.toFixed(3)))
+        // console.log('🔧 All beam Y positions:', allBeamPositions.map(y => y.toFixed(3)))
         
         // Find tier spaces - look for gaps between beams that are large enough for ducts
         const tierSpaces = []
@@ -323,11 +323,11 @@ export const DuctEditor = ({
           }
         }
         
-        console.log('🔧 Found tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.height.toFixed(3)}m height`))
+        // console.log('🔧 Found tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.height.toFixed(3)}m height`))
         
         if (tierSpaces.length > 0) {
           const tierCount = tierSpaces.length
-          console.log('🔧 DuctEditor - Calculated tierCount from tier spaces:', tierCount)
+          // console.log('🔧 DuctEditor - Calculated tierCount from tier spaces:', tierCount)
           return Array.from({ length: tierCount }, (_, i) => i + 1)
         }
         
@@ -336,7 +336,7 @@ export const DuctEditor = ({
           // For multi-tier racks, typically each tier has 2 beams, but there might be shared beams
           // Use a more conservative estimate
           const tierCount = Math.max(1, Math.ceil(beamTops.length / 2))
-          console.log('🔧 DuctEditor - Fallback tierCount from beam count:', tierCount, 'from', beamTops.length, 'beam tops')
+          // console.log('🔧 DuctEditor - Fallback tierCount from beam count:', tierCount, 'from', beamTops.length, 'beam tops')
           return Array.from({ length: tierCount }, (_, i) => i + 1)
         }
       }
@@ -345,7 +345,7 @@ export const DuctEditor = ({
     }
     
     // Final fallback
-    console.log('🔧 DuctEditor - Using default tierCount: 2')
+    // console.log('🔧 DuctEditor - Using default tierCount: 2')
     return [1, 2]
   }
 

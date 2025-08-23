@@ -61,14 +61,14 @@ export const PipeEditor = ({
           
           if (tierSpaces.length > 0) {
             const tierCount = tierSpaces.length
-            console.log('🔧 PipeEditor - Calculated tierCount from tier spaces:', tierCount)
+            // console.log('🔧 PipeEditor - Calculated tierCount from tier spaces:', tierCount)
             return Array.from({ length: tierCount }, (_, i) => i + 1)
           }
           
           // Fallback: if we can't identify tier spaces, use beam count heuristic
           if (beamTops.length > 0) {
             const tierCount = Math.max(1, Math.ceil(beamTops.length / 2))
-            console.log('🔧 PipeEditor - Fallback tierCount from beam count:', tierCount)
+            // console.log('🔧 PipeEditor - Fallback tierCount from beam count:', tierCount)
             return Array.from({ length: tierCount }, (_, i) => i + 1)
           }
         }
@@ -79,7 +79,7 @@ export const PipeEditor = ({
     
     // Final fallback - use rackParams or default
     const tierCount = rackParams?.tierCount || 2
-    console.log('🔧 PipeEditor - Using fallback tierCount:', tierCount)
+    // console.log('🔧 PipeEditor - Using fallback tierCount:', tierCount)
     return Array.from({ length: tierCount }, (_, i) => i + 1)
   }
 
@@ -217,8 +217,8 @@ export const PipeEditor = ({
             }
           }
           
-          console.log(`🔧 Positioning pipe for tier ${tierValue}`)
-          console.log('🔧 Available tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.centerY.toFixed(3)}`))
+          // console.log(`🔧 Positioning pipe for tier ${tierValue}`)
+          // console.log('🔧 Available tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.centerY.toFixed(3)}`))
           
           // Find the tier space that corresponds to the selected tier number
           const selectedTierSpace = tierSpaces.find(space => space.tierIndex === tierValue)
@@ -233,7 +233,7 @@ export const PipeEditor = ({
             // Position pipe so its bottom sits on the bottom beam of the tier space
             const newYPosition = selectedTierSpace.bottom + radius
             
-            console.log(`🔧 Moving pipe to tier ${tierValue} at Y: ${newYPosition.toFixed(3)} (tier bottom: ${selectedTierSpace.bottom.toFixed(3)})`)
+            // console.log(`🔧 Moving pipe to tier ${tierValue} at Y: ${newYPosition.toFixed(3)} (tier bottom: ${selectedTierSpace.bottom.toFixed(3)})`)
             
             // Update pipe position
             selectedPipe.position.y = newYPosition

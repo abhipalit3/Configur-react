@@ -56,7 +56,7 @@ const AppPage = (props) => {
       const savedUIState = manifest.uiState || {}
       return savedUIState
     } catch (error) {
-      console.error('❌ Error loading UI state from manifest:', error)
+      // console.error('❌ Error loading UI state from manifest:', error)
       return {}
     }
   }
@@ -96,15 +96,15 @@ const AppPage = (props) => {
       const savedBuildingShell = manifest.buildingShell?.parameters
       
       if (savedBuildingShell) {
-        console.log('🏢 Loading saved building shell parameters:', savedBuildingShell)
+        // console.log('🏢 Loading saved building shell parameters:', savedBuildingShell)
         return savedBuildingShell
       }
       
       // Fall back to defaults
-      console.log('🏢 Using default building shell parameters')
+      // console.log('🏢 Using default building shell parameters')
       return buildingShellDefaults
     } catch (error) {
-      console.error('❌ Error loading building shell parameters:', error)
+      // console.error('❌ Error loading building shell parameters:', error)
       return buildingShellDefaults
     }
   })
@@ -159,14 +159,14 @@ const AppPage = (props) => {
       const parsedItems = savedItems ? JSON.parse(savedItems) : []
       return parsedItems
     } catch (error) {
-      console.error('❌ Error loading MEP items:', error)
+      // console.error('❌ Error loading MEP items:', error)
       return []
     }
   })
 
   // Initialize project manifest on component mount
   React.useEffect(() => {
-    console.log('🔧 AppPage: Starting initialization...')
+    // console.log('🔧 AppPage: Starting initialization...')
     
     // Initialize project and check if we need to seed data
     const manifest = initializeProject()
@@ -176,12 +176,12 @@ const AppPage = (props) => {
     syncMEPItemsWithLocalStorage()
     
     // Debug: Check localStorage contents
-    console.log('📊 LocalStorage Debug:', {
-      projectManifest: localStorage.getItem('projectManifest') ? 'exists' : 'missing',
-      configurMepItems: localStorage.getItem('configurMepItems') ? 'exists' : 'missing', 
-      rackParameters: localStorage.getItem('rackParameters') ? 'exists' : 'missing',
-      tradeRackConfigurations: localStorage.getItem('tradeRackConfigurations') ? 'exists' : 'missing'
-    })
+    // console.log('📊 LocalStorage Debug:', {
+    //   projectManifest: localStorage.getItem('projectManifest') ? 'exists' : 'missing',
+    //   configurMepItems: localStorage.getItem('configurMepItems') ? 'exists' : 'missing', 
+    //   rackParameters: localStorage.getItem('rackParameters') ? 'exists' : 'missing',
+    //   tradeRackConfigurations: localStorage.getItem('tradeRackConfigurations') ? 'exists' : 'missing'
+    // })
     
     // Make measurement update function available globally for the measurement tool
     window.updateManifestMeasurements = (measurements) => {
@@ -233,7 +233,7 @@ const AppPage = (props) => {
   React.useEffect(() => {
     // Wait a brief moment to ensure all initialization is complete
     const timer = setTimeout(() => {
-      console.log('🔧 Configuration marked as loaded')
+      // console.log('🔧 Configuration marked as loaded')
       setIsConfigLoaded(true)
     }, 50) // Very short delay to ensure state initialization is complete
     
@@ -305,7 +305,7 @@ const AppPage = (props) => {
   // Update trade rack when building shell parameters change
   React.useEffect(() => {
     if (rackParams && tradeRack.update && isConfigLoaded) {
-      console.log('🏢 Building shell parameters changed, updating trade rack...')
+      // console.log('🏢 Building shell parameters changed, updating trade rack...')
       
       // Switch building shell mode based on mount type
       if (buildingShell.switchMode) {
@@ -406,7 +406,7 @@ const AppPage = (props) => {
       window.ductworkRendererInstance.updateDuctwork([])
     }
     
-    console.log('🗑️ All MEP elements deleted')
+    // console.log('🗑️ All MEP elements deleted')
   }
 
   // Handler for clicking MEP items in the panel (for duct and pipe selection)
@@ -692,7 +692,7 @@ const AppPage = (props) => {
   
   // Handler for view mode change (2D/3D)
   const handleViewModeChange = (mode) => {
-    console.log('Changing view mode to:', mode)
+    // console.log('Changing view mode to:', mode)
     setViewMode(mode) // Update local state for persistence
     if (window.sceneViewModeHandler) {
       window.sceneViewModeHandler(mode)
@@ -701,7 +701,7 @@ const AppPage = (props) => {
   
   // Handler for fit view
   const handleFitView = () => {
-    console.log('Fitting view to content')
+    // console.log('Fitting view to content')
     if (window.sceneFitViewHandler) {
       window.sceneFitViewHandler()
     }
@@ -765,7 +765,7 @@ const AppPage = (props) => {
     
     // Building shell parameters are now stored independently in the manifest
     // Configurations will always reference the current building shell parameters
-    console.log('✅ Building shell parameters saved to manifest (independent of rack configurations)')
+    // console.log('✅ Building shell parameters saved to manifest (independent of rack configurations)')
   }
 
   // Handler for trade rack save
@@ -839,8 +839,8 @@ const AppPage = (props) => {
     
     // Note: Building shell parameters are NOT restored from configurations
     // The rack will use the current building shell parameters from the manifest
-    console.log('📦 Restoring rack configuration:', config.name || `Configuration ${id}`)
-    console.log('🏢 Using current building shell parameters (not from configuration)')
+    // console.log('📦 Restoring rack configuration:', config.name || `Configuration ${id}`)
+    // console.log('🏢 Using current building shell parameters (not from configuration)')
     
     // Store current rack parameters in localStorage for tier calculations
     localStorage.setItem('rackParameters', JSON.stringify(configParams))

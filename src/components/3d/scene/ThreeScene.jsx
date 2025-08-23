@@ -20,6 +20,7 @@ import { ConduitRenderer, ConduitEditorUI } from '../conduits'
 import { CableTrayRenderer } from '../cable-trays'
 import { CableTrayEditor } from '../cable-trays/CableTrayEditor'
 import { createMaterials, loadTextures, disposeMaterials } from '../materials'
+import { initializeMepSelectionManager } from '../core/MepSelectionManager.js'
 import '../styles/measurement-styles.css'
 
 
@@ -32,12 +33,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   const cableTrayRendererRef = useRef(null)
   const cameraRef = useRef(null)
   const rendererRef = useRef(null)
-  
-  // Debug logging
-  console.log('🔧 ThreeScene rendered with loaded configuration:', {
-    rackParams: initialRackParams,
-    buildingParams: initialBuildingParams
-  })
   
   // State for axis locking - only one axis can be locked at a time
   const [axisLock, setAxisLock] = useState({
@@ -78,7 +73,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   })
 
   useEffect(() => {
-    console.log('🚀 Building scene with parameters:', { initialRackParams, initialBuildingParams })
+    // console.log('🚀 Building scene with parameters:', { initialRackParams, initialBuildingParams })
     
     // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
@@ -210,8 +205,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
 
     /* ---------- parameters ---------- */
     // Use passed rack and building parameters, with defaults as fallback
-    console.log('🔧 Scene building with rack params:', initialRackParams)
-    console.log('🔧 Scene building with building params:', initialBuildingParams)
+    // console.log('🔧 Scene building with rack params:', initialRackParams)
+    // console.log('🔧 Scene building with building params:', initialBuildingParams)
     
     const params = {
     // Building parameters
@@ -333,7 +328,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       }
       try {
         localStorage.setItem('cameraState', JSON.stringify(cameraState))
-        console.log('💾 Camera state saved:', cameraState)
+        // console.log('💾 Camera state saved:', cameraState)
       } catch (error) {
         console.warn('⚠️ Failed to save camera state:', error)
       }
@@ -344,7 +339,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         const saved = localStorage.getItem('cameraState')
         if (saved) {
           const cameraState = JSON.parse(saved)
-          console.log('📷 Loading saved camera state:', cameraState)
+          // console.log('📷 Loading saved camera state:', cameraState)
           return cameraState
         }
       } catch (error) {
@@ -384,7 +379,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     
     // View mode handler (2D/3D)
     window.sceneViewModeHandler = (mode) => {
-      console.log('🔧 Switching to view mode:', mode)
+      // console.log('🔧 Switching to view mode:', mode)
       currentViewMode = mode // Update tracked view mode
       window.currentViewMode = mode // Update global access
       
@@ -432,7 +427,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         
         // If still empty, use default bounds
         if (bbox.isEmpty()) {
-          console.log('🔧 Using default bounds for 2D view')
+          // console.log('🔧 Using default bounds for 2D view')
           bbox.min.set(-2, -1, -2)
           bbox.max.set(2, 3, 2)
         }
@@ -440,8 +435,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         const center = bbox.getCenter(new THREE.Vector3())
         const size = bbox.getSize(new THREE.Vector3())
         
-        console.log('🔧 2D View - Bounding box center:', center.x, center.y, center.z)
-        console.log('🔧 2D View - Bounding box size:', size.x, size.y, size.z)
+        // console.log('🔧 2D View - Bounding box center:', center.x, center.y, center.z)
+        // console.log('🔧 2D View - Bounding box size:', size.x, size.y, size.z)
         
         // Position camera to look from the right side (positive X direction)
         // This gives us a side elevation view
@@ -476,11 +471,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         camera.updateProjectionMatrix()
         controls.update()
         
-        console.log('🔧 2D View - Final camera position:', camera.position.x, camera.position.y, camera.position.z)
-        console.log('🔧 2D View - Final controls target:', controls.target.x, controls.target.y, controls.target.z)
-        console.log('🔧 2D View - Final camera zoom:', camera.zoom)
+        // console.log('🔧 2D View - Final camera position:', camera.position.x, camera.position.y, camera.position.z)
+        // console.log('🔧 2D View - Final controls target:', controls.target.x, controls.target.y, controls.target.z)
+        // console.log('🔧 2D View - Final camera zoom:', camera.zoom)
       } else if (mode === '3D') {
-        console.log('🔧 Restoring 3D view')
+        // console.log('🔧 Restoring 3D view')
         
         // Restore 3D view
         camera.position.copy(originalCameraSettings.position)
@@ -504,14 +499,14 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         // Save restored 3D state
         saveCameraState()
         
-        console.log('🔧 3D View restored - Camera position:', camera.position)
-        console.log('🔧 3D View restored - Controls target:', controls.target)
+        // console.log('🔧 3D View restored - Camera position:', camera.position)
+        // console.log('🔧 3D View restored - Controls target:', controls.target)
       }
     }
     
     // Fit view handler - only adjusts zoom, keeps camera angle
     window.sceneFitViewHandler = () => {
-      console.log('🔧 Fitting view to content (zoom only)')
+      // console.log('🔧 Fitting view to content (zoom only)')
       
       const bbox = new THREE.Box3()
       let hasContent = false
@@ -539,7 +534,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         const center = bbox.getCenter(new THREE.Vector3())
         const size = bbox.getSize(new THREE.Vector3())
         
-        console.log('🔧 Fit View - Bounding box:', { center, size })
+        // console.log('🔧 Fit View - Bounding box:', { center, size })
         
         // Calculate appropriate zoom to fit content
         // Get the camera's current direction and distance to determine zoom
@@ -563,9 +558,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         // Save the new zoom state
         saveCameraState()
         
-        console.log('🔧 Fit View - New zoom:', camera.zoom)
-        console.log('🔧 Fit View - Camera position unchanged:', camera.position)
-        console.log('🔧 Fit View - Camera target unchanged:', controls.target)
+        // console.log('🔧 Fit View - New zoom:', camera.zoom)
+        // console.log('🔧 Fit View - Camera position unchanged:', camera.position)
+        // console.log('🔧 Fit View - Camera target unchanged:', controls.target)
       } else {
         console.warn('⚠️ No content found for fit view')
       }
@@ -577,7 +572,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       
       // Restore view mode if it was 2D
       if (initialViewMode === '2D') {
-        console.log('🔧 Restoring 2D view mode on load')
+        // console.log('🔧 Restoring 2D view mode on load')
         window.sceneViewModeHandler('2D')
       }
     }, 100) // Small delay to ensure scene is fully initialized
@@ -858,7 +853,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     }
     
     const handleConduitEditorSave = (newDimensions) => {
-      console.log(`⚡ ThreeScene: handleConduitEditorSave called with:`, newDimensions)
+      // console.log(`⚡ ThreeScene: handleConduitEditorSave called with:`, newDimensions)
       if (conduitRenderer.conduitInteraction) {
         // Update the 3D conduit with new dimensions
         conduitRenderer.conduitInteraction.updateConduitDimensions(newDimensions)
@@ -926,7 +921,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     
     // Cable tray editor handlers
     const handleCableTrayEditorSave = (newDimensions) => {
-      console.log(`🔌 ThreeScene: handleCableTrayEditorSave called with:`, newDimensions)
+      // console.log(`🔌 ThreeScene: handleCableTrayEditorSave called with:`, newDimensions)
       
       // Set flag to prevent cable tray recreation
       setSkipCableTrayRecreation(true)
@@ -955,7 +950,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               const itemBaseId = item.id.toString().split('_')[0]
               
               if (itemBaseId === baseId && item.type === 'cableTray') {
-                console.log(`🔌 Found matching cable tray in localStorage to update:`, item)
+                // console.log(`🔌 Found matching cable tray in localStorage to update:`, item)
                 const currentPosition = {
                   x: selectedCableTray.position.x,
                   y: selectedCableTray.position.y, 
@@ -971,14 +966,14 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                   tierName: `Tier ${newDimensions.tier}`,
                   position: currentPosition
                 }
-                console.log(`🔌 Updated cable tray item:`, updatedItem)
+                // console.log(`🔌 Updated cable tray item:`, updatedItem)
                 return updatedItem
               }
               return item
             })
             
             localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-            console.log(`🔌 Updated cable tray ${selectedCableTrayData.id} in localStorage`)
+            // console.log(`🔌 Updated cable tray ${selectedCableTrayData.id} in localStorage`)
             
             // Dispatch storage event to update other components
             window.dispatchEvent(new Event('storage'))
@@ -1100,6 +1095,10 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       measurementTool.updateLabels()
     })()
 
+    // Initialize centralized MEP selection manager AFTER all interactions are set up
+    const mepSelectionManager = initializeMepSelectionManager(scene, camera, renderer)
+    console.log('🎯 MEP Selection Manager initialized in ThreeScene at end')
+
     // Cleanup
     return () => {
       window.removeEventListener('keydown', onKeyDown)
@@ -1121,6 +1120,10 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         measurementToolRef.current.dispose()
       }
       // Clean up global references
+      if (window.mepSelectionManager) {
+        window.mepSelectionManager.dispose()
+        delete window.mepSelectionManager
+      }
       if (window.measurementToolInstance) {
         delete window.measurementToolInstance
       }
@@ -1609,7 +1612,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           visible={showCableTrayEditor}
           rackParams={rackParams}
           onSave={(dimensions) => {
-            console.log(`🔌 ThreeScene: Cable tray editor save called with:`, dimensions)
+            // console.log(`🔌 ThreeScene: Cable tray editor save called with:`, dimensions)
             
             // Set flag to prevent cable tray recreation
             setSkipCableTrayRecreation(true)
@@ -1638,7 +1641,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                     const itemBaseId = item.id.toString().split('_')[0]
                     
                     if (itemBaseId === baseId && item.type === 'cableTray') {
-                      console.log(`🔌 Found matching cable tray in localStorage:`, item)
+                      // console.log(`🔌 Found matching cable tray in localStorage:`, item)
                       const currentPosition = {
                         x: selectedCableTray.position.x,
                         y: selectedCableTray.position.y,
@@ -1654,7 +1657,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                         )
                         if (detectedTier.tier) {
                           tierInfo = detectedTier
-                          console.log(`🔌 Auto-detected tier: ${tierInfo.tierName} for Y position ${currentPosition.y}`)
+                          // console.log(`🔌 Auto-detected tier: ${tierInfo.tierName} for Y position ${currentPosition.y}`)
                         }
                       }
                       
@@ -1667,14 +1670,14 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                         tierName: tierInfo.tierName,
                         position: currentPosition
                       }
-                      console.log(`🔌 Updated cable tray item:`, updatedItem)
+                      // console.log(`🔌 Updated cable tray item:`, updatedItem)
                       return updatedItem
                     }
                     return item
                   })
                   
                   localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-                  console.log(`🔌 Saved cable tray ${selectedCableTrayData.id} to localStorage`)
+                  // console.log(`🔌 Saved cable tray ${selectedCableTrayData.id} to localStorage`)
                   
                   // IMPORTANT: Also update the manifest to ensure consistency
                   if (window.updateMEPItemsManifest) {

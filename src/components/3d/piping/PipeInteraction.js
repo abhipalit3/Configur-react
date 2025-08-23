@@ -6,6 +6,7 @@
 
 import * as THREE from 'three'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import { getMepSelectionManager } from '../core/MepSelectionManager.js'
 
 /**
  * PipeInteraction - Handles mouse interactions and transform controls for pipes
@@ -28,6 +29,9 @@ export class PipeInteraction {
     
     this.setupTransformControls()
     this.setupEventListeners()
+    
+    // Register with central MEP selection manager
+    this.registerWithMepManager()
   }
 
   setupTransformControls() {
@@ -64,9 +68,34 @@ export class PipeInteraction {
   }
 
   setupEventListeners() {
-    this.domElement.addEventListener('click', this.onMouseClick.bind(this))
-    this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
+    // Only setup keyboard shortcuts - click/hover handled by central manager
     this.setupKeyboardShortcuts()
+  }
+  
+  /**
+   * Register with central MEP selection manager
+   */
+  registerWithMepManager() {
+    const tryRegister = () => {
+      const mepManager = getMepSelectionManager()
+      if (mepManager) {
+        mepManager.registerHandler('piping', this)
+        return true
+      }
+      return false
+    }
+    
+    // Try immediate registration
+    if (!tryRegister()) {
+      // Retry after a delay
+      setTimeout(() => {
+        if (!tryRegister()) {
+          // Fallback to individual event handlers
+          this.domElement.addEventListener('click', this.onMouseClick.bind(this))
+          this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
+        }
+      }, 200)
+    }
   }
 
   setupKeyboardShortcuts() {
@@ -108,6 +137,8 @@ export class PipeInteraction {
     const intersects = this.raycaster.intersectObjects(pipingGroup.children, true)
     
     if (intersects.length > 0) {
+      // Sort intersections by distance to get the closest one
+      intersects.sort((a, b) => a.distance - b.distance)
       const pipeGroup = this.findPipeGroup(intersects[0].object)
       if (pipeGroup && pipeGroup !== this.selectedPipe) {
         this.selectPipe(pipeGroup)
@@ -151,8 +182,10 @@ export class PipeInteraction {
       }
     })
 
-    // Apply hover effect
+    // Apply hover effect only to the closest object
     if (intersects.length > 0) {
+      // Sort intersections by distance to get the closest one
+      intersects.sort((a, b) => a.distance - b.distance)
       const pipeGroup = this.findPipeGroup(intersects[0].object)
       if (pipeGroup && pipeGroup !== this.selectedPipe) {
         this.pipeGeometry.updatePipeAppearance(pipeGroup, 'hover')
@@ -195,7 +228,7 @@ export class PipeInteraction {
     this.createPipeMeasurements()
 
     const pipeData = pipeGroup.userData.pipeData
-    console.log('🔧 Pipe selected:', pipeData)
+    // console.log('🔧 Pipe selected:', pipeData)
   }
 
   deselectPipe() {
@@ -331,7 +364,7 @@ export class PipeInteraction {
       // For now, just ensure position is valid
       const position = this.selectedPipe.position
       if (!isFinite(position.x) || !isFinite(position.y) || !isFinite(position.z)) {
-        console.warn('❌ Invalid pipe position during measurement update:', position)
+        // console.warn('❌ Invalid pipe position during measurement update:', position)
         return
       }
     } catch (error) {
@@ -411,7 +444,7 @@ export class PipeInteraction {
       this.selectedPipe.userData.tier = tierInfo.tier
       this.selectedPipe.userData.tierName = tierInfo.tierName
 
-      console.log('🔧 Pipe tier updated:', tierInfo)
+      // console.log('🔧 Pipe tier updated:', tierInfo)
     } catch (error) {
       console.error('❌ Error updating pipe tier info:', error)
     }
@@ -525,7 +558,7 @@ export class PipeInteraction {
       }
     })
 
-    console.log('🔧 All pipe tier info updated')
+    // console.log('🔧 All pipe tier info updated')
   }
 
   /**
@@ -537,7 +570,7 @@ export class PipeInteraction {
     try {
       const pipeData = this.selectedPipe.userData.pipeData
       if (!pipeData) {
-        console.error('❌ No pipe data found for selected pipe')
+        // console.error('❌ No pipe data found for selected pipe')
         return
       }
 
@@ -585,7 +618,7 @@ export class PipeInteraction {
       // Update tier information
       this.updatePipeTierInfo()
 
-      console.log('🔧 Pipe dimensions updated:', updatedPipeData)
+      // console.log('🔧 Pipe dimensions updated:', updatedPipeData)
 
     } catch (error) {
       console.error('❌ Error updating pipe dimensions:', error)

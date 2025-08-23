@@ -6,6 +6,7 @@
 
 import * as THREE from 'three'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import { getMepSelectionManager } from '../core/MepSelectionManager.js'
 
 /**
  * DuctInteraction - Handles mouse interactions and transform controls for ducts
@@ -22,6 +23,9 @@ export class DuctInteraction {
     this.selectedDuct = null
     this.transformControls = null
     this.raycaster = new THREE.Raycaster()
+    this.raycaster.near = 0.01 // Very close to camera
+    this.raycaster.far = 1000 // Far from camera
+    this.raycaster.camera = camera
     this.mouse = new THREE.Vector2()
     this.domElement = renderer.domElement
     
@@ -33,6 +37,9 @@ export class DuctInteraction {
     
     this.setupTransformControls()
     this.setupEventListeners()
+    
+    // Register with central MEP selection manager
+    this.registerWithMepManager()
   }
 
   setupTransformControls() {
@@ -66,51 +73,40 @@ export class DuctInteraction {
   }
 
   setupEventListeners() {
-    this.domElement.addEventListener('click', this.onMouseClick.bind(this))
-    this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
+    // Only setup keyboard shortcuts - click/hover handled by central manager
     this.setupKeyboardShortcuts()
   }
+  
+  /**
+   * Register with central MEP selection manager
+   */
+  registerWithMepManager() {
+    const tryRegister = () => {
+      const mepManager = getMepSelectionManager()
+      if (mepManager) {
+        mepManager.registerHandler('ductwork', this)
+        return true
+      }
+      return false
+    }
+    
+    // Try immediate registration
+    if (!tryRegister()) {
+      // Retry after a short delay
+      setTimeout(() => {
+        if (!tryRegister()) {
+          // Fallback to individual event handlers
+          this.domElement.addEventListener('click', this.onMouseClick.bind(this))
+          this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
+        }
+      }, 150)
+    }
+  }
 
+  // These methods are now handled by the central MEP selection manager
+  // Keep them for fallback compatibility
   onMouseClick(event) {
-    console.log('🎯 DUCTWORK CLICK EVENT RECEIVED')
-    if (this.transformControls?.dragging) return
-
-    this.updateMousePosition(event)
-    this.raycaster.setFromCamera(this.mouse, this.camera)
-
-    // Handle duct selection/deselection (measurement clicks are handled by global handler with event capture)
-    let ductworkGroup = null
-    this.scene.traverse((child) => {
-      if (child.isGroup && child.name === 'DuctworkGroup') {
-        ductworkGroup = child
-      }
-    })
-
-    if (!ductworkGroup) return
-
-    const intersects = this.raycaster.intersectObjects(ductworkGroup.children, true)
-    
-    if (intersects.length > 0) {
-      const ductGroup = this.findDuctGroup(intersects[0].object)
-      if (ductGroup && ductGroup !== this.selectedDuct) {
-        this.selectDuct(ductGroup)
-        return // Early return if duct was selected
-      }
-    }
-
-    // If no duct was found, check for cable trays
-    console.log('🎯 No duct found, checking for cable trays')
-    if (window.cableTrayInteractionInstance) {
-      const cableTraySelected = window.cableTrayInteractionInstance.handleClick(event)
-      if (cableTraySelected) {
-        console.log('🎯 Cable tray was selected, deselecting duct')
-        this.deselectDuct() // Deselect duct if cable tray was selected
-        return
-      }
-    }
-    
-    // If neither duct nor cable tray was selected, deselect everything
-    this.deselectDuct()
+    // Fallback implementation if central manager isn't available
   }
 
   onMouseMove(event) {
@@ -324,30 +320,59 @@ export class DuctInteraction {
   handleHover() {
     this.raycaster.setFromCamera(this.mouse, this.camera)
     
-    let ductworkGroup = null
+    // Get ALL MEP groups for unified raycasting
+    const allMepGroups = []
     this.scene.traverse((child) => {
-      if (child.isGroup && child.name === 'DuctworkGroup') {
-        ductworkGroup = child
+      if (child.isGroup && (
+        child.name === 'DuctworkGroup' || 
+        child.name === 'PipingGroup' || 
+        child.name === 'ConduitsGroup' || 
+        child.name === 'CableTraysGroup' ||
+        child.name === 'DuctsGroup' ||
+        child.name === 'PipesGroup' ||
+        child.name === 'ConduitGroup' ||
+        child.name === 'CableTrayGroup'
+      )) {
+        allMepGroups.push(child)
       }
     })
-
-    if (!ductworkGroup) return
-
-    const intersects = this.raycaster.intersectObjects(ductworkGroup.children, true)
 
     // Reset all ducts to normal (except selected)
-    ductworkGroup.children.forEach(ductGroup => {
-      if (ductGroup !== this.selectedDuct) {
-        this.ductGeometry.updateDuctAppearance(ductGroup, 'normal')
-      }
+    const ductworkGroup = allMepGroups.find(g => g.name === 'DuctworkGroup')
+    if (ductworkGroup) {
+      ductworkGroup.children.forEach(ductGroup => {
+        if (ductGroup !== this.selectedDuct) {
+          this.ductGeometry.updateDuctAppearance(ductGroup, 'normal')
+        }
+      })
+    }
+
+    // Collect all intersections from all MEP groups
+    const allIntersects = []
+    allMepGroups.forEach(group => {
+      const groupIntersects = this.raycaster.intersectObjects(group.children, true)
+      groupIntersects.forEach(intersect => {
+        intersect.mepGroup = group
+        allIntersects.push(intersect)
+      })
     })
 
-    // Apply hover effect
-    if (intersects.length > 0) {
-      const ductGroup = this.findDuctGroup(intersects[0].object)
-      if (ductGroup && ductGroup !== this.selectedDuct) {
-        this.ductGeometry.updateDuctAppearance(ductGroup, 'hover')
-        this.domElement.style.cursor = 'pointer'
+    // Apply hover effect only to the closest object across all MEP types
+    if (allIntersects.length > 0) {
+      // Sort ALL intersections by distance to get the absolute closest one
+      allIntersects.sort((a, b) => a.distance - b.distance)
+      const closestIntersect = allIntersects[0]
+      
+      // Only apply hover if it's a duct
+      if (closestIntersect.mepGroup.name === 'DuctworkGroup') {
+        const ductGroup = this.findDuctGroup(closestIntersect.object)
+        if (ductGroup && ductGroup !== this.selectedDuct) {
+          this.ductGeometry.updateDuctAppearance(ductGroup, 'hover')
+          this.domElement.style.cursor = 'pointer'
+        }
+      } else {
+        // Closest object is not a duct, so no hover for ducts
+        this.domElement.style.cursor = 'default'
       }
     } else if (!this.selectedDuct) {
       this.domElement.style.cursor = 'default'
@@ -458,7 +483,7 @@ export class DuctInteraction {
       
       // Validate duct height
       if (!isFinite(ductHeight) || ductHeight <= 0) {
-        console.warn('⚠️ Invalid duct height, using fallback:', ductHeight)
+        // console.warn('⚠️ Invalid duct height, using fallback:', ductHeight)
         ductHeight = 8
       }
       
@@ -466,7 +491,7 @@ export class DuctInteraction {
       let tolerance = ductHeightM / 2 // Half duct height tolerance
       
       if (!isFinite(tolerance)) {
-        console.warn('⚠️ Invalid tolerance, using fallback')
+        // console.warn('⚠️ Invalid tolerance, using fallback')
         tolerance = 0.1 // 10cm fallback
       }
       
@@ -509,7 +534,7 @@ export class DuctInteraction {
       return { tier: null, tierName: 'No Tier' }
       
     } catch (error) {
-      console.error('Error calculating tier from geometry:', error)
+      // console.error('Error calculating tier from geometry:', error)
       return { tier: null, tierName: 'No Tier' }
     }
   }
@@ -578,7 +603,7 @@ export class DuctInteraction {
           detail: { updatedItems }
         }))
         
-        console.log('📊 Updated tier information for all ducts')
+        // console.log('📊 Updated tier information for all ducts')
       }
     } catch (error) {
       console.error('Error updating all duct tier info:', error)
@@ -796,7 +821,7 @@ export class DuctInteraction {
       return
     }
 
-    console.log(`⚡ Deleting duct with ID: ${ductData.id}`)
+    // console.log(`⚡ Deleting duct with ID: ${ductData.id}`)
 
     // Remove from MEP data storage
     try {
@@ -808,7 +833,7 @@ export class DuctInteraction {
       
       // Save updated items to localStorage
       localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-      console.log(`⚡ Duct ${ductData.id} removed from MEP data storage`)
+      // console.log(`⚡ Duct ${ductData.id} removed from MEP data storage`)
       
       // Update manifest if function available
       if (window.updateMEPItemsManifest) {
@@ -841,7 +866,7 @@ export class DuctInteraction {
 
       // Remove from scene
       ductGroup.remove(this.selectedDuct)
-      console.log('⚡ Duct deleted from scene')
+      // console.log('⚡ Duct deleted from scene')
     }
 
     // Clear measurements

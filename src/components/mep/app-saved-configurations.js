@@ -57,6 +57,7 @@ const AppSavedConfigurations = (props) => {
   }
 
   const formatDimension = (dimension) => {
+    if (!dimension) return "0'"
     if (typeof dimension === 'number') return `${dimension}'`
     return `${dimension.feet}'${dimension.inches}"`
   }

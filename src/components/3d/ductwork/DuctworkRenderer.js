@@ -143,7 +143,8 @@ export class DuctworkRenderer {
     } else {
       // Calculate default position within tier
       const yPos = this.calculateDuctYPosition(ductData, tier, position)
-      ductPosition = new THREE.Vector3(0, yPos, 0)
+      const columnDepth = this.getColumnDepth()
+      ductPosition = new THREE.Vector3(columnDepth / 2, yPos, 0)
       
       // Calculate tier info for new position
       if (this.ductInteraction) {
@@ -248,6 +249,24 @@ export class DuctworkRenderer {
           child.material.dispose()
         }
       }
+    }
+  }
+
+  /**
+   * Get column depth in meters for x-axis positioning
+   */
+  getColumnDepth() {
+    try {
+      // Try to get column size from rack parameters
+      const columnSize = this.rackParams.postSize || this.rackParams.columnSize || 3 // Default 3 inches
+      
+      // Convert inches to meters
+      const columnDepthM = columnSize * 0.0254
+      
+      return columnDepthM
+    } catch (error) {
+      // Fallback to 3 inches (7.62 cm) in meters
+      return 3 * 0.0254
     }
   }
 

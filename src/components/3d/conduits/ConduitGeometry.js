@@ -108,7 +108,7 @@ export class ConduitGeometry {
   // Utility functions
   in2m(inches) { 
     if (!isFinite(inches)) {
-      console.warn('❌ Invalid inches value for conversion:', inches)
+      // console.warn('❌ Invalid inches value for conversion:', inches)
       return 0
     }
     return inches * 0.0254 
@@ -120,23 +120,23 @@ export class ConduitGeometry {
   createConduitGeometry(length, diameter, segments = 16) {
     // Validate inputs
     if (!isFinite(length) || length <= 0) {
-      console.error('❌ Invalid geometry length:', length)
+      // console.error('❌ Invalid geometry length:', length)
       return new THREE.CylinderGeometry(0.01, 0.01, 0.1, segments) // Fallback geometry
     }
     
     if (!isFinite(diameter) || diameter <= 0) {
-      console.error('❌ Invalid geometry diameter:', diameter)
+      // console.error('❌ Invalid geometry diameter:', diameter)
       return new THREE.CylinderGeometry(0.01, 0.01, length, segments) // Fallback geometry
     }
     
     const radius = diameter / 2
     
     if (!isFinite(radius) || radius <= 0) {
-      console.error('❌ Invalid geometry radius:', radius, 'from diameter:', diameter)
+      // console.error('❌ Invalid geometry radius:', radius, 'from diameter:', diameter)
       return new THREE.CylinderGeometry(0.01, 0.01, length, segments) // Fallback geometry
     }
     
-    console.log(`⚡ Creating conduit geometry: length=${length.toFixed(3)}m, diameter=${diameter.toFixed(3)}m, radius=${radius.toFixed(3)}m`)
+    // console.log(`⚡ Creating conduit geometry: length=${length.toFixed(3)}m, diameter=${diameter.toFixed(3)}m, radius=${radius.toFixed(3)}m`)
     return new THREE.CylinderGeometry(radius, radius, length, segments)
   }
 
@@ -169,27 +169,27 @@ export class ConduitGeometry {
 
     // Validate input parameters
     if (!isFinite(diameter) || diameter <= 0) {
-      console.error('❌ Invalid conduit diameter:', diameter)
+      // console.error('❌ Invalid conduit diameter:', diameter)
       return new THREE.Group() // Return empty group
     }
     
     if (!isFinite(conduitLength) || conduitLength <= 0) {
-      console.error('❌ Invalid conduit length:', conduitLength)
+      // console.error('❌ Invalid conduit length:', conduitLength)
       return new THREE.Group()
     }
     
     if (!isFinite(spacing) || spacing < 0) {
-      console.error('❌ Invalid conduit spacing:', spacing)
+      // console.error('❌ Invalid conduit spacing:', spacing)
       return new THREE.Group()
     }
     
     if (!isFinite(count) || count <= 0) {
-      console.error('❌ Invalid conduit count:', count)
+      // console.error('❌ Invalid conduit count:', count)
       return new THREE.Group()
     }
 
-    console.log(`⚡ Creating multi-conduit group with ${count} conduits, spacing: ${spacing}`)
-    console.log(`⚡ Conduit parameters: diameter=${diameter}", length=${conduitLength}", type=${conduitType}`)
+    // console.log(`⚡ Creating multi-conduit group with ${count} conduits, spacing: ${spacing}`)
+    // console.log(`⚡ Conduit parameters: diameter=${diameter}", length=${conduitLength}", type=${conduitType}`)
 
     // Create individual conduits and add them to the group
     for (let i = 0; i < count; i++) {
@@ -212,12 +212,12 @@ export class ConduitGeometry {
       
       // Validate parameters before creating geometry
       if (!isFinite(diameterM) || diameterM <= 0) {
-        console.error('❌ Invalid conduit diameter (meters):', diameterM, 'from inches:', diameter)
+        // console.error('❌ Invalid conduit diameter (meters):', diameterM, 'from inches:', diameter)
         continue // Skip this conduit
       }
       
       if (!isFinite(lengthM) || lengthM <= 0) {
-        console.error('❌ Invalid conduit length (meters):', lengthM, 'from inches:', conduitLength)
+        // console.error('❌ Invalid conduit length (meters):', lengthM, 'from inches:', conduitLength)
         continue // Skip this conduit
       }
       
@@ -233,7 +233,7 @@ export class ConduitGeometry {
           opacity: 0.9,
           side: THREE.DoubleSide
         })
-        console.log(`⚡ Using custom color for conduit ${conduitId}:`, color)
+        // console.log(`⚡ Using custom color for conduit ${conduitId}:`, color)
       } else {
         // Use default material for conduit type
         const materialKey = conduitType?.toLowerCase() || 'emt'
@@ -263,7 +263,7 @@ export class ConduitGeometry {
     // Position the entire group at the base position
     if (basePosition && isFinite(basePosition.x) && isFinite(basePosition.y) && isFinite(basePosition.z)) {
       multiConduitGroup.position.copy(basePosition)
-      console.log(`⚡ Group positioned at:`, basePosition)
+      // console.log(`⚡ Group positioned at:`, basePosition)
     } else {
       console.warn('⚠️ Invalid base position for multi-conduit group:', basePosition)
     }
@@ -363,7 +363,7 @@ export class ConduitGeometry {
       })
     }
     
-    console.log(`✅ Multi-conduit group created with ${multiConduitGroup.children.length} conduits`)
+    // console.log(`✅ Multi-conduit group created with ${multiConduitGroup.children.length} conduits`)
     return multiConduitGroup
   }
 
@@ -382,12 +382,12 @@ export class ConduitGeometry {
 
     // Validate input parameters
     if (!isFinite(diameter) || diameter <= 0) {
-      console.error('❌ Invalid conduit diameter:', diameter)
+      // console.error('❌ Invalid conduit diameter:', diameter)
       return new THREE.Group() // Return empty group
     }
     
     if (!isFinite(conduitLength) || conduitLength <= 0) {
-      console.error('❌ Invalid conduit length:', conduitLength)
+      // console.error('❌ Invalid conduit length:', conduitLength)
       return new THREE.Group()
     }
 
@@ -408,7 +408,7 @@ export class ConduitGeometry {
       if (isFinite(position.x) && isFinite(position.y) && isFinite(position.z)) {
         conduitGroup.position.copy(position)
       } else {
-        console.warn('⚠️ Invalid position values, using default:', position)
+        // console.warn('⚠️ Invalid position values, using default:', position)
         conduitGroup.position.set(0, 0, 0)
       }
     } else {

@@ -64,28 +64,28 @@ export class CableTrayGeometry {
     // Validate parameters
     if (!isFinite(widthM) || !isFinite(heightM) || !isFinite(lengthM) ||
         widthM <= 0 || heightM <= 0 || lengthM <= 0) {
-      console.error('❌ Invalid cable tray dimensions:', { width, height, length })
+      // console.error('❌ Invalid cable tray dimensions:', { width, height, length })
       return group
     }
 
     const material = this.getMaterial(trayType)
     
-    console.log('🔌 CableTrayGeometry: Creating tray with type:', trayType)
+    // console.log('🔌 CableTrayGeometry: Creating tray with type:', trayType)
     switch (trayType.toLowerCase()) {
       case 'ladder':
-        console.log('🔌 Creating LADDER tray (blue)')
+        // console.log('🔌 Creating LADDER tray (blue)')
         this.createLadderTray(group, widthM, heightM, lengthM, material)
         break
       case 'solid bottom':
-        console.log('🔌 Creating SOLID BOTTOM tray (green)')
+        // console.log('🔌 Creating SOLID BOTTOM tray (green)')
         this.createSolidBottomTray(group, widthM, heightM, lengthM, material)
         break
       case 'wire mesh':
-        console.log('🔌 Creating WIRE MESH tray (red)')
+        // console.log('🔌 Creating WIRE MESH tray (red)')
         this.createWireMeshTray(group, widthM, heightM, lengthM, material)
         break
       default:
-        console.log('🔌 Creating DEFAULT LADDER tray (blue)')
+        // console.log('🔌 Creating DEFAULT LADDER tray (blue)')
         this.createLadderTray(group, widthM, heightM, lengthM, material)
     }
 
@@ -238,17 +238,17 @@ export class CableTrayGeometry {
 
     // Validate input parameters
     if (!isFinite(width) || width <= 0) {
-      console.error('❌ Invalid cable tray width:', width)
+      // console.error('❌ Invalid cable tray width:', width)
       return new THREE.Group()
     }
     
     if (!isFinite(height) || height <= 0) {
-      console.error('❌ Invalid cable tray height:', height)
+      // console.error('❌ Invalid cable tray height:', height)
       return new THREE.Group()
     }
     
     if (!isFinite(cableTrayLength) || cableTrayLength <= 0) {
-      console.error('❌ Invalid cable tray length:', cableTrayLength)
+      // console.error('❌ Invalid cable tray length:', cableTrayLength)
       return new THREE.Group()
     }
 
@@ -304,7 +304,7 @@ export class CableTrayGeometry {
    * Add transparent cover surfaces (top, front, back) for easier interaction
    */
   addTransparentCover(cableTrayGroup, width, height, length) {
-    console.log('🔌 Adding transparent cover surfaces for interaction')
+    // console.log('🔌 Adding transparent cover surfaces for interaction')
     // Convert inches to meters
     const widthM = this.in2m(width)
     const heightM = this.in2m(height)
@@ -346,7 +346,7 @@ export class CableTrayGeometry {
    * Add snap points for cable tray geometry - extracts corners and edges from cable tray rectangle
    */
   addCableTraySnapPoints(cableTrayGroup) {
-    console.log('🔌 Adding cable tray snap points for measurements')
+    // console.log('🔌 Adding cable tray snap points for measurements')
     
     try {
       // Update matrix world for accurate snap point calculations
@@ -356,7 +356,7 @@ export class CableTrayGeometry {
       // representing the cable tray's outer bounds for measurements
       const cableTrayData = cableTrayGroup.userData.cableTrayData
       if (!cableTrayData) {
-        console.warn('⚠️ No cable tray data found for snap points')
+        // console.warn('⚠️ No cable tray data found for snap points')
         return
       }
       
@@ -393,7 +393,7 @@ export class CableTrayGeometry {
         cableTrayId: cableTrayData.id
       })))
       
-      console.log(`🔌 Added ${corners.length} corner points and ${edges.length} edge points for cable tray ${cableTrayData.id}`)
+      // console.log(`🔌 Added ${corners.length} corner points and ${edges.length} edge points for cable tray ${cableTrayData.id}`)
       
     } catch (error) {
       console.error('❌ Error adding cable tray snap points:', error)
@@ -410,7 +410,7 @@ export class CableTrayGeometry {
       const rackLength = rackParams.length || 24 // Default 24 feet
       return rackLength * 12 // Convert feet to inches
     } catch (error) {
-      console.warn('⚠️ Error getting rack length for cable tray snap points, using default:', error)
+      // console.warn('⚠️ Error getting rack length for cable tray snap points, using default:', error)
       return 24 * 12 // Default 24 feet in inches
     }
   }

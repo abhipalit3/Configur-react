@@ -206,7 +206,7 @@ export class MeasurementTool {
     this.axisLock = { x: false, y: false, z: false }
     this.axisLock[axis] = !wasLocked
     this.updateAxisLockVisuals()
-    console.log(`Axis ${axis.toUpperCase()} lock ${this.axisLock[axis] ? 'ON' : 'OFF'}`)
+    // console.log(`Axis ${axis.toUpperCase()} lock ${this.axisLock[axis] ? 'ON' : 'OFF'}`)
   }
 
   toggleButtonAndAxis(buttonId, axisToLock) {
@@ -228,7 +228,7 @@ export class MeasurementTool {
     this.axisLock = { x: false, y: false, z: false }
     this.buttonActive = { x: false, y: false, z: false }
     this.updateAxisLockVisuals()
-    console.log('All axis locks cleared')
+    // console.log('All axis locks cleared')
   }
 
   updateAxisLockVisuals() {
@@ -399,100 +399,51 @@ export class MeasurementTool {
   }
 
   /**
-   * Filter snap points to only show those within a range from camera in X-axis for 2D view
+   * Filter snap points for 2D view - set all X values to 0 and filter unique points
    */
   filterSnapPointsFor2D(snapPoints) {
     if (!snapPoints || snapPoints.length === 0) return snapPoints
     
-    // Configuration for 2D filtering
-    const groupTolerance = 0.01 // 1cm tolerance for grouping points into X-layers
-    const rangeFromCamera = 2.0 // 2m range from closest layer (tighter filtering)
-
-    // Group snap points by their X coordinate (with small tolerance for floating point)
-    const xGroups = new Map()
+    const uniqueKeys = new Set()
+    const filteredPoints = []
+    const THREE = window.THREE
     
     for (const snapPoint of snapPoints) {
-      let x = null
-      
-      // Handle different snap point types
+      // Clone and process the snap point with X=0
       if (snapPoint.type === 'edge' && snapPoint.start && snapPoint.end) {
-        // For edge points, use the average X position of start and end
-        x = (snapPoint.start.x + snapPoint.end.x) / 2
-      } else if (snapPoint.point && snapPoint.point.isVector3) {
-        // For vertex points
-        x = snapPoint.point.x
-      } else if (snapPoint.isVector3) {
-        // Direct vector3 point
-        x = snapPoint.x
-      }
-      
-      if (x === null) continue // Skip invalid points
-      
-      let foundGroup = false
-      
-      // Check if this X value matches an existing group
-      for (const [groupX, points] of xGroups.entries()) {
-        if (Math.abs(x - groupX) < groupTolerance) {
-          points.push(snapPoint)
-          foundGroup = true
-          break
+        const start = snapPoint.start.clone ? snapPoint.start.clone() : new THREE.Vector3(0, snapPoint.start.y, snapPoint.start.z)
+        const end = snapPoint.end.clone ? snapPoint.end.clone() : new THREE.Vector3(0, snapPoint.end.y, snapPoint.end.z)
+        start.x = 0
+        end.x = 0
+        
+        const key = `${start.y.toFixed(2)}_${start.z.toFixed(2)}_${end.y.toFixed(2)}_${end.z.toFixed(2)}`
+        if (!uniqueKeys.has(key)) {
+          uniqueKeys.add(key)
+          filteredPoints.push({ ...snapPoint, start, end })
+        }
+      } else {
+        // Get the point reference
+        const originalPoint = snapPoint.point || snapPoint
+        let point
+        
+        // Create a new Vector3 with X=0
+        if (originalPoint.clone) {
+          point = originalPoint.clone()
+        } else if (originalPoint.x !== undefined && originalPoint.y !== undefined && originalPoint.z !== undefined) {
+          point = new THREE.Vector3(0, originalPoint.y, originalPoint.z)
+        } else {
+          continue // Skip invalid points
+        }
+        
+        point.x = 0
+        
+        const key = `${point.y.toFixed(2)}_${point.z.toFixed(2)}`
+        if (!uniqueKeys.has(key)) {
+          uniqueKeys.add(key)
+          filteredPoints.push(snapPoint.point ? { ...snapPoint, point } : point)
         }
       }
-      
-      // Create new group if no match found
-      if (!foundGroup) {
-        xGroups.set(x, [snapPoint])
-      }
     }
-    
-    if (xGroups.size === 0) return snapPoints
-    
-    // Debug: Log X-layer distribution
-    const allXLayers = Array.from(xGroups.keys()).sort((a, b) => a - b)
-    console.log(`🔌 Found ${xGroups.size} X-layers:`, allXLayers.map(x => x.toFixed(2)))
-    
-    // Get camera position to determine range
-    const cameraX = this.camera.position.x
-    console.log(`🔌 Camera X position: ${cameraX.toFixed(2)}`)
-    
-    // Find the closest X layer to the camera first
-    let closestX = null
-    let minDistance = Infinity
-    
-    for (const [groupX] of xGroups.entries()) {
-      const distance = Math.abs(cameraX - groupX)
-      if (distance < minDistance) {
-        minDistance = distance
-        closestX = groupX
-      }
-    }
-    
-    if (closestX === null) return snapPoints
-    
-    // Collect all X-layers within range from the closest layer
-    const filteredPoints = []
-    let includedLayers = []
-    let excludedLayers = []
-    
-    console.log(`🔌 Closest layer: ${closestX.toFixed(2)}, Range: ±${rangeFromCamera}m`)
-    
-    for (const [groupX, points] of xGroups.entries()) {
-      const distanceFromClosest = Math.abs(groupX - closestX)
-      if (distanceFromClosest <= rangeFromCamera) {
-        filteredPoints.push(...points)
-        includedLayers.push(`${groupX.toFixed(2)} (${points.length}pts)`)
-        console.log(`🔌 ✅ Including layer ${groupX.toFixed(2)} - distance: ${distanceFromClosest.toFixed(2)}m, points: ${points.length}`)
-      } else {
-        excludedLayers.push(`${groupX.toFixed(2)} (${points.length}pts)`)
-        console.log(`🔌 ❌ Excluding layer ${groupX.toFixed(2)} - distance: ${distanceFromClosest.toFixed(2)}m, points: ${points.length}`)
-      }
-    }
-    
-    // Sort layers for better logging
-    includedLayers.sort((a, b) => parseFloat(a) - parseFloat(b))
-    
-    console.log(`🔌 2D View Range Filter: ${snapPoints.length} → ${filteredPoints.length} points`)
-    console.log(`🔌 Included X-layers: [${includedLayers.join(', ')}] (range: ±${rangeFromCamera}m from closest)`)
     
     return filteredPoints
   }
@@ -515,7 +466,7 @@ export class MeasurementTool {
     const is2DView = this.isIn2DView()
     if (is2DView) {
       activeSnapPoints = this.filterSnapPointsFor2D(this.snapPoints)
-      console.log('🔌 2D View Active: Using filtered snap points for measurements')
+      // console.log('🔌 2D View Active: Using filtered snap points for measurements')
     }
 
     const rect = this.domElement.getBoundingClientRect()
@@ -601,8 +552,6 @@ export class MeasurementTool {
     
     return null
   }
-
-
 
   onClick(event) {
     // First try to find a snap point for measurement creation
@@ -1237,7 +1186,6 @@ export class MeasurementTool {
     return testPositions[0]
   }
 
-
   updateLabels() {
     // Update labels to follow their 3D positions smoothly
     for (const label of this.labels) {
@@ -1431,23 +1379,24 @@ export class MeasurementTool {
           element.style.setProperty('color', '#FFFFFF', 'important')
         })
       } else {
-        label.element.style.setProperty('background-color', this.colors.background, 'important')
-        label.element.style.setProperty('border-color', this.colors.border, 'important')
-        label.element.style.setProperty('color', this.colors.text, 'important')
-        label.element.style.setProperty('font-weight', 'normal', 'important')
-        label.element.style.setProperty('box-shadow', '0 2px 8px rgba(0, 0, 0, 0.1)', 'important')
+        // When deselecting, restore to dark background with white text (matching CSS)
+        label.element.style.setProperty('background-color', 'rgba(44, 62, 80, 0.9)', 'important')
+        label.element.style.setProperty('border', 'none', 'important')
+        label.element.style.setProperty('color', '#ffffff', 'important')
+        label.element.style.setProperty('font-weight', '500', 'important')
+        label.element.style.setProperty('box-shadow', '0 2px 8px rgba(0, 0, 0, 0.3)', 'important')
         label.element.style.cursor = 'pointer'
         
-        // Restore original value text color
+        // Keep value text white
         const valueElement = label.element.querySelector('.measurement-value')
         if (valueElement) {
-          valueElement.style.setProperty('color', '#1A202C', 'important')
+          valueElement.style.setProperty('color', '#ffffff', 'important')
         }
         
-        // Restore original colors for all text elements
+        // Keep all text elements white
         const allTextElements = label.element.querySelectorAll('*')
         allTextElements.forEach(element => {
-          element.style.setProperty('color', '#1A202C', 'important')
+          element.style.setProperty('color', '#ffffff', 'important')
         })
       }
     }
@@ -1551,7 +1500,7 @@ export class MeasurementTool {
     // Check if a measurement controls panel already exists in the DOM
     const existingPanel = document.querySelector('.measurement-controls-panel')
     if (existingPanel) {
-      console.log('Measurement controls panel already exists, modifying existing buttons')
+      // console.log('Measurement controls panel already exists, modifying existing buttons')
       this.modifyExistingControlsPanel(existingPanel)
       return
     }
@@ -1742,7 +1691,7 @@ export class MeasurementTool {
       z: Array.from(buttons).find(btn => btn.textContent.trim() === 'Z')
     }
     
-    console.log('Modified existing controls panel with Y/Z swapped functionality')
+    // console.log('Modified existing controls panel with Y/Z swapped functionality')
     
     // Update button states to reflect current axis locks
     this.updateControlsPanelState()
@@ -1752,7 +1701,7 @@ export class MeasurementTool {
     // For existing React-managed panels, we don't remove them, just clear our references
     if (this.controlsPanel && this.controlsPanel.querySelector) {
       // This is likely a React-managed panel, don't remove it
-      console.log('Not removing React-managed controls panel')
+      // console.log('Not removing React-managed controls panel')
       this.controlsPanel = null
       this.axisButtons = null
       return

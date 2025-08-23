@@ -6,6 +6,7 @@
 
 import * as THREE from 'three'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
+import { getMepSelectionManager } from '../core/MepSelectionManager.js'
 
 /**
  * ConduitInteraction - Handles user interactions with conduits
@@ -33,9 +34,9 @@ export class ConduitInteraction {
     const gizmo = this.transformControls.getHelper()
     this.scene.add(gizmo)
     
-    console.log('⚡ Transform controls initialized:', this.transformControls)
-    console.log('⚡ Transform controls gizmo added to scene:', gizmo)
-    console.log('⚡ Scene children count:', this.scene.children.length)
+    // console.log('⚡ Transform controls initialized:', this.transformControls)
+    // console.log('⚡ Transform controls gizmo added to scene:', gizmo)
+    // console.log('⚡ Scene children count:', this.scene.children.length)
 
     // Raycaster for mouse interaction
     this.raycaster = new THREE.Raycaster()
@@ -58,6 +59,9 @@ export class ConduitInteraction {
 
     // Add event listeners
     this.setupEventListeners()
+    
+    // Register with central MEP selection manager
+    this.registerWithMepManager()
 
     // Handle transform controls interaction with orbit controls
     this.transformControls.addEventListener('dragging-changed', (event) => {
@@ -81,16 +85,41 @@ export class ConduitInteraction {
       }
     })
 
-    console.log('⚡ ConduitInteraction initialized')
+    // console.log('⚡ ConduitInteraction initialized')
   }
 
   /**
    * Setup event listeners
    */
   setupEventListeners() {
-    this.renderer.domElement.addEventListener('mousemove', this.onMouseMove)
-    this.renderer.domElement.addEventListener('click', this.onMouseClick)
+    // Only setup keyboard - click/hover handled by central manager
     window.addEventListener('keydown', this.onKeyDown)
+  }
+  
+  /**
+   * Register with central MEP selection manager
+   */
+  registerWithMepManager() {
+    const tryRegister = () => {
+      const mepManager = getMepSelectionManager()
+      if (mepManager) {
+        mepManager.registerHandler('conduits', this)
+        return true
+      }
+      return false
+    }
+    
+    // Try immediate registration
+    if (!tryRegister()) {
+      // Retry after a delay
+      setTimeout(() => {
+        if (!tryRegister()) {
+          // Fallback to individual event handlers
+          this.renderer.domElement.addEventListener('mousemove', this.onMouseMove)
+          this.renderer.domElement.addEventListener('click', this.onMouseClick)
+        }
+      }, 300)
+    }
   }
 
   /**
@@ -110,6 +139,9 @@ export class ConduitInteraction {
     if (!conduitGroup) return
 
     const intersects = this.raycaster.intersectObjects(conduitGroup.children, true)
+
+    // Sort intersections by distance to get the closest one first
+    intersects.sort((a, b) => a.distance - b.distance)
 
     // Find the first conduit in the intersections and its parent group
     let newHoveredConduit = null
@@ -140,7 +172,7 @@ export class ConduitInteraction {
       // Clear previous hover
       if (this.hoveredGroup && this.hoveredGroup !== this.selectedConduitGroup) {
         this.updateGroupAppearance(this.hoveredGroup, 'normal')
-        console.log('⚡ Cleared hover from group:', this.hoveredGroup.name)
+        // console.log('⚡ Cleared hover from group:', this.hoveredGroup.name)
       }
 
       // Set new hover
@@ -149,7 +181,7 @@ export class ConduitInteraction {
       if (this.hoveredGroup && this.hoveredGroup !== this.selectedConduitGroup) {
         this.updateGroupAppearance(this.hoveredGroup, 'hover')
         this.renderer.domElement.style.cursor = 'pointer'
-        console.log('⚡ Hovering over group:', this.hoveredGroup.name)
+        // console.log('⚡ Hovering over group:', this.hoveredGroup.name)
       } else if (!this.hoveredGroup) {
         this.renderer.domElement.style.cursor = 'default'
       }
@@ -172,23 +204,26 @@ export class ConduitInteraction {
 
     const conduitGroup = this.scene.getObjectByName('ConduitsGroup')
     if (!conduitGroup) {
-      console.log('⚡ No ConduitsGroup found')
+      // console.log('⚡ No ConduitsGroup found')
       return
     }
 
-    console.log('⚡ ConduitsGroup children count:', conduitGroup.children.length)
+    // console.log('⚡ ConduitsGroup children count:', conduitGroup.children.length)
     const intersects = this.raycaster.intersectObjects(conduitGroup.children, true)
-    console.log('⚡ Intersects found:', intersects.length)
+    // console.log('⚡ Intersects found:', intersects.length)
+
+    // Sort intersections by distance to get the closest one first
+    intersects.sort((a, b) => a.distance - b.distance)
 
     // Find clicked conduit
     let clickedConduit = null
     for (const intersect of intersects) {
-      console.log('⚡ Checking intersect object:', intersect.object.name, intersect.object.userData)
+      // console.log('⚡ Checking intersect object:', intersect.object.name, intersect.object.userData)
       let obj = intersect.object
       while (obj && obj.parent) {
         if (obj.userData && obj.userData.type === 'conduit') {
           clickedConduit = obj
-          console.log('⚡ Found conduit:', obj.name)
+          // console.log('⚡ Found conduit:', obj.name)
           break
         }
         obj = obj.parent
@@ -198,10 +233,10 @@ export class ConduitInteraction {
 
     // Handle selection
     if (clickedConduit) {
-      console.log('⚡ Selecting conduit:', clickedConduit.name)
+      // console.log('⚡ Selecting conduit:', clickedConduit.name)
       this.selectConduit(clickedConduit)
     } else {
-      console.log('⚡ No conduit clicked, deselecting')
+      // console.log('⚡ No conduit clicked, deselecting')
       this.deselectConduit()
     }
   }
@@ -241,15 +276,15 @@ export class ConduitInteraction {
     // Update visual appearance
     this.updateGroupAppearance(multiConduitGroup, 'selected')
 
-    console.log(`⚡ Selected multi-conduit group: ${multiConduitGroup.children.length} conduits`)
-    console.log('⚡ Group bounding box:', multiConduitGroup.userData.boundingBox)
+    // console.log(`⚡ Selected multi-conduit group: ${multiConduitGroup.children.length} conduits`)
+    // console.log('⚡ Group bounding box:', multiConduitGroup.userData.boundingBox)
 
     // Reset position tracking
     this.lastSelectedConduitPosition = null
 
     // Attach transform controls to the group
-    console.log('⚡ Attaching transform controls to group:', multiConduitGroup.name)
-    console.log('⚡ Group position:', multiConduitGroup.position)
+    // console.log('⚡ Attaching transform controls to group:', multiConduitGroup.name)
+    // console.log('⚡ Group position:', multiConduitGroup.position)
     
     this.transformControls.attach(multiConduitGroup)
     this.transformControls.enabled = true
@@ -259,22 +294,22 @@ export class ConduitInteraction {
     
     // Check if transform controls are in scene
     const controlsInScene = this.scene.children.includes(this.transformControls)
-    console.log('⚡ Transform controls in scene:', controlsInScene)
+    // console.log('⚡ Transform controls in scene:', controlsInScene)
     
     // Try to make gizmo more visible
     setTimeout(() => {
       this.transformControls.visible = true
       this.transformControls.enabled = true
-      console.log('⚡ Transform controls after timeout - visible:', this.transformControls.visible)
+      // console.log('⚡ Transform controls after timeout - visible:', this.transformControls.visible)
     }, 100)
     
     // Log selection info
-    console.log('⚡ Multi-conduit group selected:', multiConduitGroup.userData.conduitData)
-    console.log('⚡ Transform controls enabled:', this.transformControls.enabled)
-    console.log('⚡ Transform controls visible:', this.transformControls.visible)
-    console.log('⚡ Transform controls object:', this.transformControls.object)
-    console.log('⚡ Transform controls position:', this.transformControls.position)
-    console.log('⚡ Transform controls children:', this.transformControls.children ? this.transformControls.children.length : 'undefined')
+    // console.log('⚡ Multi-conduit group selected:', multiConduitGroup.userData.conduitData)
+    // console.log('⚡ Transform controls enabled:', this.transformControls.enabled)
+    // console.log('⚡ Transform controls visible:', this.transformControls.visible)
+    // console.log('⚡ Transform controls object:', this.transformControls.object)
+    // console.log('⚡ Transform controls position:', this.transformControls.position)
+    // console.log('⚡ Transform controls children:', this.transformControls.children ? this.transformControls.children.length : 'undefined')
     
     // Create measurement lines
     this.createConduitMeasurements()
@@ -359,11 +394,11 @@ export class ConduitInteraction {
     // Get conduit data for deletion from MEP storage
     const conduitData = this.selectedConduitGroup.userData.conduitData
     if (!conduitData || !conduitData.id) {
-      console.error('❌ Cannot delete conduit: missing conduit data or ID')
+      // console.error('❌ Cannot delete conduit: missing conduit data or ID')
       return
     }
 
-    console.log(`⚡ Deleting conduit group with ID: ${conduitData.id}`)
+    // console.log(`⚡ Deleting conduit group with ID: ${conduitData.id}`)
 
     // Remove from MEP data storage
     try {
@@ -375,7 +410,7 @@ export class ConduitInteraction {
       
       // Save updated items to localStorage
       localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-      console.log(`⚡ Conduit ${conduitData.id} removed from MEP data storage`)
+      // console.log(`⚡ Conduit ${conduitData.id} removed from MEP data storage`)
       
       // Update manifest if function available
       if (window.updateMEPItemsManifest) {
@@ -408,7 +443,7 @@ export class ConduitInteraction {
 
       // Remove from scene
       conduitGroup.remove(this.selectedConduitGroup)
-      console.log('⚡ Multi-conduit group deleted from scene')
+      // console.log('⚡ Multi-conduit group deleted from scene')
     }
 
     // Deselect
@@ -430,7 +465,7 @@ export class ConduitInteraction {
       }
     }
     
-    console.log('⚡ Conduit group copied')
+    // console.log('⚡ Conduit group copied')
   }
 
   /**
@@ -446,7 +481,7 @@ export class ConduitInteraction {
     }
 
     // This would need to be connected to the main renderer
-    console.log('⚡ Paste conduit:', newConduitData)
+    // console.log('⚡ Paste conduit:', newConduitData)
   }
 
   /**
@@ -468,7 +503,7 @@ export class ConduitInteraction {
     `
 
     // This would update a UI element to display the info
-    console.log('⚡ Multi-Conduit Group Info:', info)
+    // console.log('⚡ Multi-Conduit Group Info:', info)
   }
 
   /**
@@ -476,7 +511,7 @@ export class ConduitInteraction {
    */
   clearInfoDisplay() {
     // This would clear the UI element
-    console.log('⚡ Info display cleared')
+    // console.log('⚡ Info display cleared')
   }
 
   /**
@@ -495,7 +530,7 @@ export class ConduitInteraction {
         conduit.userData.conduitData.tierName = tierInfo.tierName
       }
 
-      console.log('⚡ Conduit tier updated:', tierInfo)
+      // console.log('⚡ Conduit tier updated:', tierInfo)
     } catch (error) {
       console.error('❌ Error updating conduit tier info:', error)
     }
@@ -509,7 +544,7 @@ export class ConduitInteraction {
     try {
       // Validate yPosition input
       if (!isFinite(yPosition)) {
-        console.warn('❌ Invalid yPosition for tier calculation:', yPosition)
+        // console.warn('❌ Invalid yPosition for tier calculation:', yPosition)
         return { tier: null, tierName: 'No Tier' }
       }
 
@@ -531,7 +566,7 @@ export class ConduitInteraction {
           
           // Validate beam positions
           if (!isFinite(topY) || !isFinite(bottomY)) {
-            console.warn('❌ Invalid beam position:', { topY, bottomY })
+            // console.warn('❌ Invalid beam position:', { topY, bottomY })
             continue
           }
           
@@ -602,7 +637,7 @@ export class ConduitInteraction {
       }
       
     } catch (error) {
-      console.error('❌ Error calculating conduit tier:', error)
+      // console.error('❌ Error calculating conduit tier:', error)
       return { tier: null, tierName: 'Error' }
     }
   }
@@ -733,7 +768,7 @@ export class ConduitInteraction {
       this.selectedConduitGroup.position.set(posX, posY, posZ)
       // Update the group's bounding box
       this.selectedConduitGroup.userData.boundingBox = new THREE.Box3().setFromObject(this.selectedConduitGroup)
-      console.log(`⚡ Applied snap to conduit group: Y=${posY.toFixed(3)}, Z=${posZ.toFixed(3)}`)
+      // console.log(`⚡ Applied snap to conduit group: Y=${posY.toFixed(3)}, Z=${posZ.toFixed(3)}`)
     }
   }
   
@@ -816,10 +851,10 @@ export class ConduitInteraction {
         detail: { updatedItems, updatedConduitId: selectedConduitData.id }
       }))
       
-      console.log('⚡ Conduit position and tier saved:', {
-        position: this.selectedConduit.userData.conduitData.position,
-        tier: tierInfo
-      })
+      // console.log('⚡ Conduit position and tier saved:', {
+      //   position: this.selectedConduit.userData.conduitData.position,
+      //   tier: tierInfo
+      // })
       
     } catch (error) {
       console.error('❌ Error saving conduit position:', error)
@@ -894,7 +929,7 @@ export class ConduitInteraction {
           detail: { updatedItems }
         }))
         
-        console.log('📊 Updated tier information for all conduits')
+        // console.log('📊 Updated tier information for all conduits')
       }
     } catch (error) {
       console.error('Error updating all conduit tier info:', error)
@@ -1017,8 +1052,8 @@ export class ConduitInteraction {
     if (!this.selectedConduitGroup || !this.selectedConduitGroup.children.length) return
     
     try {
-      console.log(`⚡ Updating dimensions for ${this.selectedConduitGroup.children.length} conduits in group`)
-      console.log('⚡ New dimensions received:', newDimensions)
+      // console.log(`⚡ Updating dimensions for ${this.selectedConduitGroup.children.length} conduits in group`)
+      // console.log('⚡ New dimensions received:', newDimensions)
       
       // Check if count or spacing has changed - if so, we need to recreate the entire group
       const currentCount = this.selectedConduitGroup.children.length
@@ -1026,11 +1061,11 @@ export class ConduitInteraction {
       const currentSpacing = this.selectedConduitGroup.userData.conduitData.spacing || 4
       const newSpacing = newDimensions.spacing || currentSpacing
       
-      console.log(`⚡ Count comparison: current=${currentCount}, new=${newCount}`)
-      console.log(`⚡ Spacing comparison: current=${currentSpacing}, new=${newSpacing}`)
+      // console.log(`⚡ Count comparison: current=${currentCount}, new=${newCount}`)
+      // console.log(`⚡ Spacing comparison: current=${currentSpacing}, new=${newSpacing}`)
       
       if (newCount !== currentCount || newSpacing !== currentSpacing) {
-        console.log(`⚡ Count or spacing changed (count: ${currentCount} -> ${newCount}, spacing: ${currentSpacing} -> ${newSpacing}), recreating conduit group`)
+        // console.log(`⚡ Count or spacing changed (count: ${currentCount} -> ${newCount}, spacing: ${currentSpacing} -> ${newSpacing}), recreating conduit group`)
         
         // Get the group conduit data
         const groupConduitData = this.selectedConduitGroup.userData.conduitData
@@ -1085,7 +1120,7 @@ export class ConduitInteraction {
           
           if (newMultiConduitGroup && newMultiConduitGroup.children.length > 0) {
             window.conduitRendererInstance.conduitsGroup.add(newMultiConduitGroup)
-            console.log('✅ Multi-conduit group recreated with', newCount, 'conduits')
+            // console.log('✅ Multi-conduit group recreated with', newCount, 'conduits')
             
             // Select the new group
             setTimeout(() => {
@@ -1105,7 +1140,7 @@ export class ConduitInteraction {
       this.selectedConduitGroup.children.forEach(conduit => {
         const conduitData = conduit.userData.conduitData
         if (!conduitData) {
-          console.warn('❌ No conduit data found for conduit:', conduit.name)
+          // console.warn('❌ No conduit data found for conduit:', conduit.name)
           return
         }
 
@@ -1188,7 +1223,7 @@ export class ConduitInteraction {
       // Refresh measurements for the primary conduit
       this.updateConduitMeasurements()
 
-      console.log('⚡ Conduit group dimensions updated for', this.selectedConduitGroup.children.length, 'conduits')
+      // console.log('⚡ Conduit group dimensions updated for', this.selectedConduitGroup.children.length, 'conduits')
       
     } catch (error) {
       console.error('❌ Error updating conduit group dimensions:', error)
@@ -1214,6 +1249,6 @@ export class ConduitInteraction {
       this.transformControls.dispose()
     }
 
-    console.log('⚡ ConduitInteraction disposed')
+    // console.log('⚡ ConduitInteraction disposed')
   }
 }

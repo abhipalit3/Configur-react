@@ -36,7 +36,7 @@ export class ConduitRenderer {
       bayWidth: { feet: 3, inches: 0 }
     }
 
-    console.log('⚡ ConduitRenderer initialized')
+    // console.log('⚡ ConduitRenderer initialized')
   }
 
   /**
@@ -64,7 +64,7 @@ export class ConduitRenderer {
       // Filter conduit items
       const conduitItems = mepItems.filter(item => item.type === 'conduit')
       
-      console.log('⚡ Updating conduits display with', conduitItems.length, 'conduits')
+      // console.log('⚡ Updating conduits display with', conduitItems.length, 'conduits')
 
       // Create conduits
       conduitItems.forEach((conduitData, index) => {
@@ -90,7 +90,7 @@ export class ConduitRenderer {
     try {
       // Validate conduit data
       if (!conduitData || typeof conduitData !== 'object') {
-        console.error('❌ Invalid conduit data:', conduitData)
+        // console.error('❌ Invalid conduit data:', conduitData)
         return
       }
 
@@ -101,7 +101,7 @@ export class ConduitRenderer {
       const conduitType = conduitData.conduitType || 'emt'
       const fillPercentage = isFinite(conduitData.fillPercentage) ? parseFloat(conduitData.fillPercentage) : 0
 
-      console.log('⚡ Creating conduit group:', { diameter, spacing, count, conduitType, fillPercentage })
+      // console.log('⚡ Creating conduit group:', { diameter, spacing, count, conduitType, fillPercentage })
 
       // Use rack length parameter directly to match user input
       const rackLength = this.calculateRackLength()
@@ -119,7 +119,7 @@ export class ConduitRenderer {
 
       if (multiConduitGroup && multiConduitGroup.children.length > 0) {
         this.conduitsGroup.add(multiConduitGroup)
-        console.log('✅ Multi-conduit group created:', conduitData.id, `with ${count} conduits`)
+        // console.log('✅ Multi-conduit group created:', conduitData.id, `with ${count} conduits`)
       } else {
         console.warn('⚠️ Failed to create multi-conduit group for:', conduitData.id)
       }
@@ -147,7 +147,7 @@ export class ConduitRenderer {
             isFinite(savedPosition.position.x) && 
             isFinite(savedPosition.position.y) && 
             isFinite(savedPosition.position.z)) {
-          console.log(`⚡ Using saved individual position for conduit ${conduitData.id}:`, savedPosition.position)
+          // console.log(`⚡ Using saved individual position for conduit ${conduitData.id}:`, savedPosition.position)
           return new THREE.Vector3(
             savedPosition.position.x,
             savedPosition.position.y,
@@ -189,13 +189,14 @@ export class ConduitRenderer {
         y = y + conduitRadius
       }
 
-      // Offset conduits slightly from rack center
-      x = 0 // Center along rack length
+      // Offset conduits by half column depth from rack center
+      const columnDepth = this.getColumnDepth()
+      x = columnDepth / 2 // Offset by half column depth along rack length
       z = z - (this.getRackWidth() / 2) + 0.2 // Position along rack width with offset
 
       return new THREE.Vector3(x, y, z)
     } catch (error) {
-      console.error('❌ Error calculating conduit position:', error)
+      // console.error('❌ Error calculating conduit position:', error)
       return new THREE.Vector3(0, 1, conduitIndex * 0.1) // Fallback position
     }
   }
@@ -249,7 +250,7 @@ export class ConduitRenderer {
       const tierHeightMeters = tierHeightFeet * 0.3048
       return { y: (tierNumber - 1) * tierHeightMeters } // Subtract 1 to start at ground level
     } catch (error) {
-      console.error('❌ Error calculating tier position:', error)
+      // console.error('❌ Error calculating tier position:', error)
       return { y: (tierNumber - 1) * 0.6 } // Fallback
     }
   }
@@ -277,7 +278,7 @@ export class ConduitRenderer {
       
       return bayCount * bayWidthFeet
     } catch (error) {
-      console.error('❌ Error calculating rack length:', error)
+      // console.error('❌ Error calculating rack length:', error)
       return 12 // Fallback 12 feet
     }
   }
@@ -295,11 +296,29 @@ export class ConduitRenderer {
   }
 
   /**
+   * Get column depth in meters for x-axis positioning
+   */
+  getColumnDepth() {
+    try {
+      // Try to get column size from rack parameters
+      const columnSize = this.rackParams.postSize || this.rackParams.columnSize || 3 // Default 3 inches
+      
+      // Convert inches to meters
+      const columnDepthM = columnSize * 0.0254
+      
+      return columnDepthM
+    } catch (error) {
+      // Fallback to 3 inches (7.62 cm) in meters
+      return 3 * 0.0254
+    }
+  }
+
+  /**
    * Update rack parameters
    */
   updateRackParams(params) {
     this.rackParams = { ...this.rackParams, ...params }
-    console.log('⚡ Conduit rack parameters updated:', this.rackParams)
+    // console.log('⚡ Conduit rack parameters updated:', this.rackParams)
   }
 
   /**
@@ -327,7 +346,7 @@ export class ConduitRenderer {
         this.conduitInteraction.deselectConduit()
       }
       
-      console.log('⚡ Conduits cleared')
+      // console.log('⚡ Conduits cleared')
     } catch (error) {
       console.error('❌ Error clearing conduits:', error)
     }
@@ -364,7 +383,7 @@ export class ConduitRenderer {
         this.conduitInteraction.dispose()
       }
       
-      console.log('⚡ ConduitRenderer disposed')
+      // console.log('⚡ ConduitRenderer disposed')
     } catch (error) {
       console.error('❌ Error disposing conduit renderer:', error)
     }

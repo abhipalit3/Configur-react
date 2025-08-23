@@ -6,6 +6,7 @@
 
 import * as THREE from 'three'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
+import { getMepSelectionManager } from '../core/MepSelectionManager.js'
 
 /**
  * CableTrayInteraction - Handles user interactions with cable trays (selection, movement, editing)
@@ -33,6 +34,9 @@ export class CableTrayInteraction {
     
     // Setup event listeners
     this.setupEventListeners()
+    
+    // Register with central MEP selection manager
+    this.registerWithMepManager()
     
   }
 
@@ -93,10 +97,6 @@ export class CableTrayInteraction {
   setupEventListeners() {
     this.domElement = this.renderer.domElement
     
-    // Only setup mouse move for hover effects - click is handled by ductwork system
-    this.boundMoveHandler = this.onMouseMove.bind(this)
-    this.domElement.addEventListener('mousemove', this.boundMoveHandler)
-    
     // Setup keyboard event handler for cable tray operations (like ducts)
     this.onKeyDown = (event) => {
       // Only handle keyboard events when a cable tray is selected
@@ -118,25 +118,51 @@ export class CableTrayInteraction {
     document.addEventListener('keydown', this.onKeyDown)
     this.keyboardHandler = this.onKeyDown
   }
+  
+  /**
+   * Register with central MEP selection manager
+   */
+  registerWithMepManager() {
+    const tryRegister = () => {
+      const mepManager = getMepSelectionManager()
+      if (mepManager) {
+        mepManager.registerHandler('cableTrays', this)
+        return true
+      }
+      return false
+    }
+    
+    // Try immediate registration
+    if (!tryRegister()) {
+      // Retry after a delay
+      setTimeout(() => {
+        if (!tryRegister()) {
+          // Fallback to individual event handlers
+          this.boundMoveHandler = this.onMouseMove.bind(this)
+          this.domElement.addEventListener('mousemove', this.boundMoveHandler)
+        }
+      }, 400)
+    }
+  }
 
   /**
    * Handle mouse click events for cable tray selection
    */
   onMouseClick(event) {
-    console.log('🖱️ Cable tray click event received')
+    // console.log('🖱️ Cable tray click event received')
     
     // Only handle clicks if not dragging transform controls
     if (this.transformControls.dragging) {
-      console.log('🖱️ Click ignored - transform controls dragging')
+      // console.log('🖱️ Click ignored - transform controls dragging')
       return
     }
 
-    console.log('🖱️ Processing cable tray click')
+    // console.log('🖱️ Processing cable tray click')
     const result = this.handleClick(event)
     
     // If we successfully selected a cable tray, prevent other handlers from running
     if (result) {
-      console.log('🖱️ Cable tray selected - preventing event propagation')
+      // console.log('🖱️ Cable tray selected - preventing event propagation')
       event.stopPropagation()
       event.preventDefault()
     }
@@ -165,6 +191,8 @@ export class CableTrayInteraction {
       const intersects = this.raycaster.intersectObjects(cableTraysGroup.children, true)
 
       if (intersects.length > 0) {
+        // Sort intersections by distance to get the closest one
+        intersects.sort((a, b) => a.distance - b.distance)
         // Find the cable tray group that was hovered
         let cableTrayGroup = intersects[0].object
         while (cableTrayGroup && !cableTrayGroup.userData?.isCableTrayGroup) {
@@ -193,7 +221,7 @@ export class CableTrayInteraction {
    */
   handleClick(event) {
     try {
-      console.log('🔌 CableTrayInteraction: handleClick called')
+      // console.log('🔌 CableTrayInteraction: handleClick called')
       // Update mouse coordinates
       const rect = this.renderer.domElement.getBoundingClientRect()
       this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
@@ -204,11 +232,13 @@ export class CableTrayInteraction {
 
       // Get all cable tray objects
       const cableTraysGroup = this.cableTrayRenderer.getCableTraysGroup()
-      console.log('🔌 Cable trays group children count:', cableTraysGroup.children.length)
+      // console.log('🔌 Cable trays group children count:', cableTraysGroup.children.length)
       const intersects = this.raycaster.intersectObjects(cableTraysGroup.children, true)
-      console.log('🔌 Intersects found:', intersects.length)
+      // console.log('🔌 Intersects found:', intersects.length)
 
       if (intersects.length > 0) {
+        // Sort intersections by distance to get the closest one
+        intersects.sort((a, b) => a.distance - b.distance)
         // Find the cable tray group that was clicked
         let cableTrayGroup = intersects[0].object
         while (cableTrayGroup && !cableTrayGroup.userData?.isCableTrayGroup) {
@@ -331,9 +361,9 @@ export class CableTrayInteraction {
     }
     
     try {
-      console.log('⚡ CableTrayInteraction: updateCableTrayDimensions called')
-      console.log('⚡ New dimensions received:', newDimensions)
-      console.log('⚡ Current cable tray data:', this.selectedCableTrayGroup.userData.cableTrayData)
+      // console.log('⚡ CableTrayInteraction: updateCableTrayDimensions called')
+      // console.log('⚡ New dimensions received:', newDimensions)
+      // console.log('⚡ Current cable tray data:', this.selectedCableTrayGroup.userData.cableTrayData)
       
       const cableTrayData = this.selectedCableTrayGroup.userData.cableTrayData
       if (!cableTrayData) {
@@ -355,7 +385,7 @@ export class CableTrayInteraction {
       
       // If only color is changing, update material without recreating geometry
       if (newDimensions.color && Object.keys(newDimensions).length === 1) {
-        console.log('⚡ Taking color-only update path')
+        // console.log('⚡ Taking color-only update path')
         // Just update the material color
         this.selectedCableTrayGroup.traverse((child) => {
           if (child.isMesh) {
@@ -370,7 +400,7 @@ export class CableTrayInteraction {
           }
         })
       } else {
-        console.log('⚡ Taking full geometry recreation path')
+        // console.log('⚡ Taking full geometry recreation path')
         // Store current position
         const currentPosition = this.selectedCableTrayGroup.position.clone()
         const currentRotation = this.selectedCableTrayGroup.rotation.clone()
@@ -387,7 +417,7 @@ export class CableTrayInteraction {
         }
 
         // Create a completely new cable tray group with updated dimensions
-        console.log('⚡ Creating new cable tray group with trayType:', updatedCableTrayData.trayType || 'ladder')
+        // console.log('⚡ Creating new cable tray group with trayType:', updatedCableTrayData.trayType || 'ladder')
         const newCableTrayGroup = this.cableTrayRenderer.cableTrayGeometry.createCableTrayGroup(
           updatedCableTrayData,
           cableTrayLength,
@@ -406,8 +436,8 @@ export class CableTrayInteraction {
         this.selectedCableTrayGroup.rotation.copy(currentRotation)
         
         // Log the children count to verify covers were added
-        console.log('🔌 Cable tray group children after update:', this.selectedCableTrayGroup.children.length)
-        console.log('🔌 Cable tray group rotation:', this.selectedCableTrayGroup.rotation)
+        // console.log('🔌 Cable tray group children after update:', this.selectedCableTrayGroup.children.length)
+        // console.log('🔌 Cable tray group rotation:', this.selectedCableTrayGroup.rotation)
 
         // Update appearance to maintain selection state
         this.cableTrayRenderer.cableTrayGeometry.updateCableTrayAppearance(this.selectedCableTrayGroup, 'selected')
@@ -426,8 +456,8 @@ export class CableTrayInteraction {
         }
       }
 
-      console.log('⚡ Cable tray dimensions updated')
-      console.log('⚡ Selection maintained:', this.selectedCableTray !== null)
+      // console.log('⚡ Cable tray dimensions updated')
+      // console.log('⚡ Selection maintained:', this.selectedCableTray !== null)
       
     } catch (error) {
       console.error('❌ Error updating cable tray dimensions:', error)
@@ -517,7 +547,7 @@ export class CableTrayInteraction {
             const tierInfo = this.calculateCableTrayTierFromPosition(currentYPosition, item.height || 4)
             
             if (item.tier !== tierInfo.tier || item.tierName !== tierInfo.tierName) {
-              console.log(`🔌 Updating cable tray ${item.id} tier from ${item.tier} to ${tierInfo.tier}`)
+              // console.log(`🔌 Updating cable tray ${item.id} tier from ${item.tier} to ${tierInfo.tier}`)
               updated = true
               return {
                 ...item,
@@ -549,7 +579,7 @@ export class CableTrayInteraction {
           detail: { updatedItems, reason: 'tier-update' }
         }))
         
-        console.log('🔌 Updated cable tray tier information')
+        // console.log('🔌 Updated cable tray tier information')
       }
       
     } catch (error) {
@@ -806,7 +836,7 @@ export class CableTrayInteraction {
       // Calculate tier info based on current Y position
       const currentYPosition = this.selectedCableTrayGroup.position.y
       const tierInfo = this.calculateCableTrayTierFromPosition(currentYPosition, selectedCableTrayData.height || 4)
-      console.log(`🔌 Cable tray at Y=${currentYPosition} detected as ${tierInfo.tierName}`)
+      // console.log(`🔌 Cable tray at Y=${currentYPosition} detected as ${tierInfo.tierName}`)
       
       // Handle ID matching - cable tray ID might have suffixes
       const baseId = selectedCableTrayData.id.toString().split('_')[0]
@@ -931,7 +961,7 @@ export class CableTrayInteraction {
       return
     }
 
-    console.log(`🔌 Deleting cable tray with ID: ${cableTrayData.id}`)
+    // console.log(`🔌 Deleting cable tray with ID: ${cableTrayData.id}`)
 
     // Remove from MEP data storage
     try {
@@ -945,7 +975,7 @@ export class CableTrayInteraction {
       
       // Save updated items to localStorage
       localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-      console.log(`🔌 Cable tray ${cableTrayData.id} removed from MEP data storage`)
+      // console.log(`🔌 Cable tray ${cableTrayData.id} removed from MEP data storage`)
       
       // Update manifest if function available
       if (window.updateMEPItemsManifest) {
@@ -982,7 +1012,7 @@ export class CableTrayInteraction {
       
       // Remove from scene
       cableTraysGroup.remove(this.selectedCableTrayGroup)
-      console.log(`🔌 Cable tray ${cableTrayData.id} removed from 3D scene`)
+      // console.log(`🔌 Cable tray ${cableTrayData.id} removed from 3D scene`)
     }
 
     // Clear selection and measurements
@@ -994,7 +1024,7 @@ export class CableTrayInteraction {
     // Trigger selection event to update UI
     this.triggerSelectionEvent()
     
-    console.log(`✅ Cable tray ${cableTrayData.id} deleted successfully`)
+    // console.log(`✅ Cable tray ${cableTrayData.id} deleted successfully`)
   }
 
   /**

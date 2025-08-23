@@ -124,7 +124,8 @@ export class CableTrayRenderer {
   calculateCableTrayPosition(cableTrayData, index) {
     try {
       // Default position at origin
-      let x = 0
+      const columnDepth = this.getColumnDepth()
+      let x = columnDepth / 2 // Offset by half column depth along rack length
       let y = 2.5 // Default height of 2.5 meters (higher than conduits)
       let z = index * 0.3 // Space cable trays 0.3m apart
 
@@ -273,6 +274,25 @@ export class CableTrayRenderer {
         acc[type] = (acc[type] || 0) + 1
         return acc
       }, {})
+    }
+  }
+
+  /**
+   * Get column depth in meters for x-axis positioning
+   */
+  getColumnDepth() {
+    try {
+      // Try to get column size from rack parameters or fallback
+      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      const columnSize = rackParams.postSize || rackParams.columnSize || 3 // Default 3 inches
+      
+      // Convert inches to meters
+      const columnDepthM = columnSize * 0.0254
+      
+      return columnDepthM
+    } catch (error) {
+      // Fallback to 3 inches (7.62 cm) in meters
+      return 3 * 0.0254
     }
   }
 

@@ -36,7 +36,7 @@ export class PipingRenderer {
       bayWidth: { feet: 3, inches: 0 }
     }
 
-    console.log('🔧 PipingRenderer initialized')
+    // console.log('🔧 PipingRenderer initialized')
   }
 
   /**
@@ -64,7 +64,7 @@ export class PipingRenderer {
       // Filter pipe items
       const pipeItems = mepItems.filter(item => item.type === 'pipe')
       
-      console.log('🔧 Updating piping display with', pipeItems.length, 'pipes')
+      // console.log('🔧 Updating piping display with', pipeItems.length, 'pipes')
 
       // Create pipes
       pipeItems.forEach((pipeData, index) => {
@@ -99,7 +99,7 @@ export class PipingRenderer {
       const count = isFinite(pipeData.count) ? parseInt(pipeData.count) : 1
       const pipeType = pipeData.pipeType || 'copper'
 
-      console.log('🔧 Creating pipes:', { diameter, insulation, spacing, count, pipeType })
+      // console.log('🔧 Creating pipes:', { diameter, insulation, spacing, count, pipeType })
 
       // Use rack length parameter directly to match user input
       const rackLength = this.calculateRackLength()
@@ -130,7 +130,7 @@ export class PipingRenderer {
 
         if (pipeGroup && pipeGroup.children.length > 0) {
           this.pipingGroup.add(pipeGroup)
-          console.log('✅ Pipe created:', pipeId)
+          // console.log('✅ Pipe created:', pipeId)
         } else {
           console.warn('⚠️ Failed to create pipe geometry for:', pipeId)
         }
@@ -180,13 +180,14 @@ export class PipingRenderer {
         y = y + pipeRadius
       }
 
-      // Offset pipes slightly from rack center (like ducts)
-      x = 0 // Center along rack length
+      // Offset pipes by half column depth from rack center
+      const columnDepth = this.getColumnDepth()
+      x = columnDepth / 2 // Offset by half column depth along rack length
       z = z - (this.getRackWidth() / 2) + 0.3 // Position along rack width with offset (similar to ducts)
 
       return new THREE.Vector3(x, y, z)
     } catch (error) {
-      console.error('❌ Error calculating pipe position:', error)
+      // console.error('❌ Error calculating pipe position:', error)
       return new THREE.Vector3(0, 1, pipeIndex * 0.15) // Fallback position
     }
   }
@@ -241,7 +242,7 @@ export class PipingRenderer {
       const tierHeightMeters = tierHeightFeet * 0.3048
       return { y: (tierNumber - 1) * tierHeightMeters } // Subtract 1 to start at ground level
     } catch (error) {
-      console.error('❌ Error calculating tier position:', error)
+      // console.error('❌ Error calculating tier position:', error)
       return { y: (tierNumber - 1) * 0.6 } // Fallback
     }
   }
@@ -269,7 +270,7 @@ export class PipingRenderer {
       
       return bayCount * bayWidthFeet
     } catch (error) {
-      console.error('❌ Error calculating rack length:', error)
+      // console.error('❌ Error calculating rack length:', error)
       return 12 // Fallback 12 feet
     }
   }
@@ -287,11 +288,29 @@ export class PipingRenderer {
   }
 
   /**
+   * Get column depth in meters for x-axis positioning
+   */
+  getColumnDepth() {
+    try {
+      // Try to get column size from rack parameters
+      const columnSize = this.rackParams.postSize || this.rackParams.columnSize || 3 // Default 3 inches
+      
+      // Convert inches to meters
+      const columnDepthM = columnSize * 0.0254
+      
+      return columnDepthM
+    } catch (error) {
+      // Fallback to 3 inches (7.62 cm) in meters
+      return 3 * 0.0254
+    }
+  }
+
+  /**
    * Update rack parameters
    */
   updateRackParams(params) {
     this.rackParams = { ...this.rackParams, ...params }
-    console.log('🔧 Piping rack parameters updated:', this.rackParams)
+    // console.log('🔧 Piping rack parameters updated:', this.rackParams)
   }
 
   /**
@@ -319,7 +338,7 @@ export class PipingRenderer {
         this.pipeInteraction.deselectPipe()
       }
       
-      console.log('🔧 Piping cleared')
+      // console.log('🔧 Piping cleared')
     } catch (error) {
       console.error('❌ Error clearing piping:', error)
     }
@@ -356,7 +375,7 @@ export class PipingRenderer {
         this.pipeInteraction.dispose()
       }
       
-      console.log('🔧 PipingRenderer disposed')
+      // console.log('🔧 PipingRenderer disposed')
     } catch (error) {
       console.error('❌ Error disposing piping renderer:', error)
     }
