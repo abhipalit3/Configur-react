@@ -120,9 +120,17 @@ export class DuctworkRenderer {
       position = 'bottom'
     } = ductData
 
-    // Use rack length parameter directly to match user input
-    const rackLengthFt = this.snapLineManager.getRackLength()
-    const ductLength = this.snapLineManager.ft2m(rackLengthFt)
+    // Get duct length from snapLineManager - already accounts for posts and validation
+    const ductLength = this.snapLineManager.getAvailableDuctLength()
+    
+    // Log parameters for debugging if needed
+    if (ductLength <= 0.1) {
+      console.warn('⚠️ Duct length is at minimum viable value:', {
+        ductLength,
+        rackLength: this.snapLineManager.getRackLength(),
+        postSize: this.snapLineManager.getPostSize()
+      })
+    }
 
     let ductPosition
     let calculatedTierInfo = null
@@ -143,8 +151,14 @@ export class DuctworkRenderer {
     } else {
       // Calculate default position within tier
       const yPos = this.calculateDuctYPosition(ductData, tier, position)
-      const columnDepth = this.getColumnDepth()
-      ductPosition = new THREE.Vector3(columnDepth / 2, yPos, 0)
+      
+      // Get post size to calculate X offset
+      const postSizeInches = this.snapLineManager.getPostSize()
+      const postSizeM = this.snapLineManager.in2m(postSizeInches)
+      
+      // Position duct offset by -postSize/2 in X to align with rack
+      const xPos = postSizeM / 2
+      ductPosition = new THREE.Vector3(xPos, yPos, 0)
       
       // Calculate tier info for new position
       if (this.ductInteraction) {

@@ -7,6 +7,7 @@
 import * as THREE from 'three'
 import { PipeGeometry } from './PipeGeometry.js'
 import { PipeInteraction } from './PipeInteraction.js'
+import { getColumnSize } from '../core/mepUtils'
 
 /**
  * PipingRenderer - Main class for managing 3D piping system
@@ -103,6 +104,11 @@ export class PipingRenderer {
 
       // Use rack length parameter directly to match user input
       const rackLength = this.calculateRackLength()
+      
+      // Get column size using consistent utility function
+      const columnSize = getColumnSize(this.rackParams) // inches
+      
+      // Pipe length equals rack length (converted to inches)
       const pipeLength = rackLength * 12 // Convert feet to inches
 
       // Create multiple pipes based on count
@@ -119,7 +125,7 @@ export class PipingRenderer {
         }
 
         // Calculate position
-        const position = this.calculatePipePosition(individualPipeData, i, spacing)
+        const position = this.calculatePipePosition(individualPipeData, i, spacing, pipeLength)
         
         // Create pipe group
         const pipeGroup = this.pipeGeometry.createPipeGroup(
@@ -144,7 +150,7 @@ export class PipingRenderer {
   /**
    * Calculate pipe position based on tier and spacing
    */
-  calculatePipePosition(pipeData, pipeIndex, spacing) {
+  calculatePipePosition(pipeData, pipeIndex, spacing, pipeLength) {
     try {
       // Default position at origin
       let x = 0
@@ -180,9 +186,12 @@ export class PipingRenderer {
         y = y + pipeRadius
       }
 
-      // Offset pipes by half column depth from rack center
-      const columnDepth = this.getColumnDepth()
-      x = columnDepth / 2 // Offset by half column depth along rack length
+      // Get column size to calculate X offset (same as ducts)
+      const columnSize = getColumnSize(this.rackParams) // inches
+      const columnSizeM = columnSize * 0.0254 // convert to meters
+      
+      // Position pipe offset by postSize/2 in X to align with rack (same as ducts)
+      x = columnSizeM / 2
       z = z - (this.getRackWidth() / 2) + 0.3 // Position along rack width with offset (similar to ducts)
 
       return new THREE.Vector3(x, y, z)
@@ -292,8 +301,8 @@ export class PipingRenderer {
    */
   getColumnDepth() {
     try {
-      // Try to get column size from rack parameters
-      const columnSize = this.rackParams.postSize || this.rackParams.columnSize || 3 // Default 3 inches
+      // Get column size using consistent utility function
+      const columnSize = getColumnSize(this.rackParams) // inches
       
       // Convert inches to meters
       const columnDepthM = columnSize * 0.0254

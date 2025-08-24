@@ -47,13 +47,16 @@ export class CableTrayInteraction {
     this.transformControls = new TransformControls(this.camera, this.renderer.domElement)
     
     this.transformControls.addEventListener('change', () => {
-      if (this.selectedCableTrayGroup) {
+      if (this.selectedCableTrayGroup && this.selectedCableTrayGroup.parent) {
         this.applyRealTimeSnapping()
         this.updateCableTrayPosition()
         // Update measurements during transform (like ducts do)
         this.updateCableTrayMeasurements()
+        this.renderer.render(this.scene, this.camera)
+      } else if (this.transformControls.object) {
+        // If the object is no longer in the scene, detach it
+        this.transformControls.detach()
       }
-      this.renderer.render(this.scene, this.camera)
     })
     
     this.transformControls.addEventListener('dragging-changed', (event) => {
@@ -284,8 +287,14 @@ export class CableTrayInteraction {
       
       // Ensure transform controls are in translate mode when selecting (like ducts)
       this.transformControls.setMode('translate')
-      this.transformControls.attach(cableTrayGroup)
-      cableTrayGroup.position.copy(originalPosition)
+      
+      // Only attach if the cable tray group is in the scene
+      if (cableTrayGroup.parent) {
+        this.transformControls.attach(cableTrayGroup)
+        cableTrayGroup.position.copy(originalPosition)
+      } else {
+        console.warn('Cable tray group is not in the scene, cannot attach transform controls')
+      }
       
       // Force render to update display
       this.renderer.render(this.scene, this.camera)
@@ -450,8 +459,8 @@ export class CableTrayInteraction {
         // The selectedCableTray reference might have been lost during recreation
         this.selectedCableTray = this.selectedCableTrayGroup
         
-        // Ensure transform controls stay attached
-        if (this.transformControls && this.selectedCableTrayGroup) {
+        // Ensure transform controls stay attached (only if in scene)
+        if (this.transformControls && this.selectedCableTrayGroup && this.selectedCableTrayGroup.parent) {
           this.transformControls.attach(this.selectedCableTrayGroup)
         }
       }

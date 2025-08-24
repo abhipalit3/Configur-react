@@ -7,6 +7,7 @@
 import * as THREE from 'three'
 import { ConduitGeometry } from './ConduitGeometry.js'
 import { ConduitInteraction } from './ConduitInteraction.js'
+import { getColumnSize } from '../core/mepUtils'
 
 /**
  * ConduitRenderer - Main class for managing 3D conduit system
@@ -300,8 +301,8 @@ export class ConduitRenderer {
    */
   getColumnDepth() {
     try {
-      // Try to get column size from rack parameters
-      const columnSize = this.rackParams.postSize || this.rackParams.columnSize || 3 // Default 3 inches
+      // Get column size using consistent utility function
+      const columnSize = getColumnSize(this.rackParams) // inches
       
       // Convert inches to meters
       const columnDepthM = columnSize * 0.0254

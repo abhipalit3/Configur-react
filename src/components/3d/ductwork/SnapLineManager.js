@@ -86,20 +86,122 @@ export class SnapLineManager {
   }
 
   getRackLength() {
+    let rackLength = null
+    
     try {
+      // Priority 1: Check manifest for most up-to-date values
       const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
       const activeConfig = manifest.tradeRacks?.active
       
       if (activeConfig?.rackLength) {
-        return this.convertToFeet(activeConfig.rackLength)
+        rackLength = this.convertToFeet(activeConfig.rackLength)
       } else if (activeConfig?.totalLength) {
-        return this.convertToFeet(activeConfig.totalLength)
+        rackLength = this.convertToFeet(activeConfig.totalLength)
+      }
+      
+      // Priority 2: Check rackParams as fallback
+      if (!rackLength && this.rackParams) {
+        if (this.rackParams.rackLength) {
+          rackLength = this.convertToFeet(this.rackParams.rackLength)
+        } else if (this.rackParams.totalLength) {
+          rackLength = this.convertToFeet(this.rackParams.totalLength)
+        }
       }
     } catch (error) {
       console.error('Error reading rack config:', error)
     }
     
-    return (this.rackParams.bayCount || 4) * (this.rackParams.bayWidth || 3)
+    // Priority 3: Calculate from bay dimensions as last resort
+    if (!rackLength || rackLength <= 0) {
+      const bayCount = this.rackParams?.bayCount || 4
+      const bayWidth = this.rackParams?.bayWidth || 3
+      rackLength = bayCount * bayWidth
+      console.warn(`Using calculated rack length: ${rackLength}ft (${bayCount} bays × ${bayWidth}ft)`)
+    }
+    
+    return rackLength
+  }
+
+  /**
+   * Get post/column size in inches from rack parameters or manifest
+   * Returns the size in inches for consistency with rack parameters
+   */
+  getPostSize() {
+    let postSize = null
+    
+    try {
+      // Priority 1: Check rackParams for post/column size
+      // Handle both old format (postSize/columnSize) and new format (columnSizes with columnType)
+      if (this.rackParams?.postSize && this.rackParams.postSize > 0) {
+        postSize = this.rackParams.postSize
+      } else if (this.rackParams?.columnSize && this.rackParams.columnSize > 0) {
+        postSize = this.rackParams.columnSize
+      } else if (this.rackParams?.columnSizes && this.rackParams?.columnType) {
+        // New format: columnSizes is an object with sizes for different types
+        postSize = this.rackParams.columnSizes[this.rackParams.columnType]
+      }
+      
+      // Priority 2: Try to get from manifest as backup
+      if (!postSize) {
+        const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+        const activeConfig = manifest.tradeRacks?.active
+        
+        if (activeConfig?.postSize && activeConfig.postSize > 0) {
+          postSize = activeConfig.postSize
+        } else if (activeConfig?.columnSize && activeConfig.columnSize > 0) {
+          postSize = activeConfig.columnSize
+        } else if (activeConfig?.columnSizes && activeConfig?.columnType) {
+          // New format in manifest
+          postSize = activeConfig.columnSizes[activeConfig.columnType]
+        }
+      }
+      
+      // Priority 3: Try localStorage rackParameters directly
+      if (!postSize) {
+        const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+        if (rackParams?.columnSizes && rackParams?.columnType) {
+          postSize = rackParams.columnSizes[rackParams.columnType]
+        }
+      }
+    } catch (error) {
+      console.error('Error reading post size:', error)
+    }
+    
+    // Default to 3 inches if not found
+    if (!postSize || postSize <= 0) {
+      postSize = 3
+      // Only log once to avoid spam
+      if (!this._hasLoggedDefaultPostSize) {
+        console.info('ℹ️ Post size not found in config, using default: 3 inches')
+        this._hasLoggedDefaultPostSize = true
+      }
+    }
+    
+    return postSize
+  }
+
+  /**
+   * Calculate the available duct length
+   * Returns length in meters
+   */
+  getAvailableDuctLength() {
+    const rackLengthFt = this.getRackLength()
+    const rackLengthM = this.ft2m(rackLengthFt)
+    
+    // Duct length equals rack length
+    const ductLength = rackLengthM
+    
+    // Ensure minimum viable length
+    if (ductLength <= 0) {
+      console.error('Invalid duct length calculation:', {
+        rackLengthFt,
+        rackLengthM,
+        calculated: ductLength
+      })
+      return 0.1 // Return minimum viable length
+    }
+    
+    return ductLength
   }
 
   /**

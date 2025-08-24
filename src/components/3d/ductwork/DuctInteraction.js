@@ -46,7 +46,12 @@ export class DuctInteraction {
     this.transformControls = new TransformControls(this.camera, this.domElement)
     
     this.transformControls.addEventListener('change', () => {
-      this.onTransformChange()
+      if (this.selectedDuct && this.selectedDuct.parent) {
+        this.onTransformChange()
+      } else if (this.transformControls.object && !this.transformControls.object.parent) {
+        // If the object is no longer in the scene, detach it
+        this.transformControls.detach()
+      }
     })
 
     this.transformControls.addEventListener('dragging-changed', (event) => {

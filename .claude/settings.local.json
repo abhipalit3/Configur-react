@@ -11,7 +11,8 @@
       "WebSearch",
       "Bash(find:*)",
       "Bash(grep:*)",
-      "Bash(npm run deploy:*)"
+      "Bash(npm run deploy:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

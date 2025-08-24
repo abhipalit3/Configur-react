@@ -6,6 +6,7 @@
 
 import * as THREE from 'three'
 import { CableTrayGeometry } from './CableTrayGeometry'
+import { getColumnSize } from '../core/mepUtils'
 
 /**
  * CableTrayRenderer - Manages 3D rendering of cable trays in the scene
@@ -97,10 +98,16 @@ export class CableTrayRenderer {
 
       // Use rack length parameter directly to match user input
       const rackLength = this.calculateRackLength()
+      
+      // Get column size using consistent utility function
+      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      const columnSize = getColumnSize(rackParams) // inches
+      
+      // Cable tray length equals rack length (converted to inches)
       const cableTrayLength = rackLength * 12 // Convert feet to inches
 
       // Calculate base position for the cable tray
-      const basePosition = this.calculateCableTrayPosition(cableTrayData, index)
+      const basePosition = this.calculateCableTrayPosition(cableTrayData, index, cableTrayLength)
       
       // Create single cable tray group
       const cableTrayGroup = this.cableTrayGeometry.createCableTrayGroup(
@@ -121,11 +128,16 @@ export class CableTrayRenderer {
   /**
    * Calculate cable tray position based on tier
    */
-  calculateCableTrayPosition(cableTrayData, index) {
+  calculateCableTrayPosition(cableTrayData, index, cableTrayLength) {
     try {
       // Default position at origin
-      const columnDepth = this.getColumnDepth()
-      let x = columnDepth / 2 // Offset by half column depth along rack length
+      // Get column size to calculate X offset (same as ducts and pipes)
+      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      const columnSize = getColumnSize(rackParams) // inches
+      const columnSizeM = columnSize * 0.0254 // convert to meters
+      
+      // Position cable tray offset by postSize/2 in X to align with rack (same as ducts)
+      let x = columnSizeM / 2
       let y = 2.5 // Default height of 2.5 meters (higher than conduits)
       let z = index * 0.3 // Space cable trays 0.3m apart
 
@@ -144,9 +156,22 @@ export class CableTrayRenderer {
 
       // Try to get tier-based position if snap line manager is available
       if (this.snapLineManager && cableTrayData.tier) {
-        const tierPosition = this.snapLineManager.getTierPosition(cableTrayData.tier)
-        if (tierPosition && isFinite(tierPosition.y)) {
-          y = tierPosition.y + 0.3 // Offset above the tier
+        try {
+          // Get snap lines from rack geometry
+          const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
+          
+          // Get beam top surfaces (where cable trays sit)
+          const beamTops = snapLines.horizontal
+            .filter(line => line.type === 'beam-top')
+            .sort((a, b) => b.y - a.y) // Sort from top to bottom
+          
+          // Find the correct tier (tier 1 = topmost)
+          const tierIndex = (cableTrayData.tier || 1) - 1
+          if (beamTops[tierIndex]) {
+            y = beamTops[tierIndex].y + 0.3 // Offset above the tier
+          }
+        } catch (err) {
+          console.warn('Could not get tier position from snap lines:', err)
         }
       }
 
@@ -284,7 +309,7 @@ export class CableTrayRenderer {
     try {
       // Try to get column size from rack parameters or fallback
       const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
-      const columnSize = rackParams.postSize || rackParams.columnSize || 3 // Default 3 inches
+      const columnSize = getColumnSize(rackParams) // inches
       
       // Convert inches to meters
       const columnDepthM = columnSize * 0.0254

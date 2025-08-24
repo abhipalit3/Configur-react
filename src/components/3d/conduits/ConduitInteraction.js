@@ -80,8 +80,11 @@ export class ConduitInteraction {
 
     // Update conduit position after transform
     this.transformControls.addEventListener('change', () => {
-      if (this.selectedConduit) {
+      if (this.selectedConduit && this.selectedConduitGroup && this.selectedConduitGroup.parent) {
         this.onTransformChange()
+      } else if (this.transformControls.object && !this.transformControls.object.parent) {
+        // If the object is no longer in the scene, detach it
+        this.transformControls.detach()
       }
     })
 
@@ -286,9 +289,14 @@ export class ConduitInteraction {
     // console.log('⚡ Attaching transform controls to group:', multiConduitGroup.name)
     // console.log('⚡ Group position:', multiConduitGroup.position)
     
-    this.transformControls.attach(multiConduitGroup)
-    this.transformControls.enabled = true
-    this.transformControls.visible = true
+    // Only attach if the conduit group is in the scene
+    if (multiConduitGroup.parent) {
+      this.transformControls.attach(multiConduitGroup)
+      this.transformControls.enabled = true
+      this.transformControls.visible = true
+    } else {
+      console.warn('Conduit group is not in the scene, cannot attach transform controls')
+    }
     this.transformControls.setMode('translate')
     this.transformControls.setSize(0.8)
     
@@ -1069,7 +1077,9 @@ export class ConduitInteraction {
         
         // Get the group conduit data
         const groupConduitData = this.selectedConduitGroup.userData.conduitData
-        const baseId = groupConduitData.id.split('_')[0]
+        // Ensure id is a string before splitting
+        const conduitId = groupConduitData.id || ''
+        const baseId = typeof conduitId === 'string' ? conduitId.split('_')[0] : conduitId.toString()
         
         // Store the position of the group
         const groupPosition = this.selectedConduitGroup.position.clone()
