@@ -73,6 +73,8 @@ const AppPage = (props) => {
   const [isSavedConfigsVisible, setIsSavedConfigsVisible] = useState(true)
   // State to trigger refresh of saved configurations
   const [savedConfigsRefresh, setSavedConfigsRefresh] = useState(0)
+  // State to track current rack configuration for potential saving
+  const [currentRackConfiguration, setCurrentRackConfiguration] = useState(null)
   // State to track measurement tool activation - restore from manifest
   const [isMeasurementActive, setIsMeasurementActive] = useState(
     initialUIState.isMeasurementActive || false
@@ -768,8 +770,8 @@ const AppPage = (props) => {
     // console.log('✅ Building shell parameters saved to manifest (independent of rack configurations)')
   }
 
-  // Handler for trade rack save
-  const handleRackSave = (params) => {
+  // Handler for adding rack to scene (without saving to configurations)
+  const handleAddRack = (params) => {
     setRackParams(params)
     
     // Store current rack parameters in localStorage for tier calculations
@@ -805,29 +807,24 @@ const AppPage = (props) => {
         }
       }, 200)
     }
+    
+    // Store current rack configuration for potential saving (but don't auto-save)
+    setCurrentRackConfiguration(combinedParams)
+    
+    // Close the properties panel after adding rack
+    setIsRackPropertiesVisible(false)
+  }
 
-    // Save configuration to localStorage
-    try {
-      const savedConfigs = JSON.parse(localStorage.getItem('tradeRackConfigurations') || '[]')
-      const newConfig = {
-        id: Date.now(),
-        name: `Rack Configuration ${savedConfigs.length + 1}`,
-        ...params,
-        totalHeight: calculateTotalHeight(params),
-        savedAt: new Date().toISOString()
-      }
-      savedConfigs.push(newConfig)
-      localStorage.setItem('tradeRackConfigurations', JSON.stringify(savedConfigs))
-      
-      // Update manifest with new trade rack configuration (mark as new save)
-      updateTradeRackConfiguration(combinedParams, true)
-      
-      
-      // Trigger refresh of saved configurations panel
-      setSavedConfigsRefresh(prev => prev + 1)
-    } catch (error) {
-      console.error('Error saving rack configuration:', error)
-    }
+  // Handler for when configuration is saved from the saved configurations panel
+  const handleConfigurationSaved = (config) => {
+    // Trigger refresh of saved configurations panel
+    setSavedConfigsRefresh(prev => prev + 1)
+    
+    // Update manifest with new trade rack configuration (mark as new save)
+    updateTradeRackConfiguration(config, true)
+    
+    // Set this as the active configuration
+    setActiveConfiguration(config.id)
   }
 
   // Handler for restoring saved rack configuration
@@ -1096,7 +1093,7 @@ const AppPage = (props) => {
           <AppRackProperties 
             rootClassName="app-rack-propertiesroot-class-name2" 
             initial={rackParams}
-            onSave={handleRackSave}
+            onAddRack={handleAddRack}
             onClose={() => setIsRackPropertiesVisible(false)}
           />
         )}
@@ -1104,6 +1101,8 @@ const AppPage = (props) => {
           rootClassName="app-saved-configurationsroot-class-name" 
           onRestoreConfiguration={handleRestoreConfiguration}
           refreshTrigger={savedConfigsRefresh}
+          currentRackConfiguration={currentRackConfiguration}
+          onConfigurationSaved={handleConfigurationSaved}
         />
         <AppTierMEP 
           rootClassName="app-tier-me-proot-class-name" 

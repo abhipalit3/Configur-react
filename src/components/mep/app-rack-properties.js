@@ -127,14 +127,14 @@ const AppRackProperties = (props) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSave = () => {
-    if (validateForm() && props.onSave) {
+  const handleAddRack = () => {
+    if (validateForm() && props.onAddRack) {
       // Add calculated bay info to form data
-      const saveData = {
+      const rackData = {
         ...formData,
         calculatedBays: bayInfo
       }
-      props.onSave(saveData)
+      props.onAddRack(rackData)
     }
   }
 
@@ -459,15 +459,15 @@ const AppRackProperties = (props) => {
           {renderTierHeightInputs()}
         </div>
 
-        {/* Save section matching MEP panels */}
+        {/* Add Rack section */}
         <div className="app-rack-properties-save">
           <button 
             type="button" 
             className="app-rack-properties-button save-button"
-            onClick={handleSave}
+            onClick={handleAddRack}
             disabled={Object.keys(errors).length > 0}
           >
-            <span className="app-rack-properties-save-text">Save</span>
+            <span className="app-rack-properties-save-text">Add Rack</span>
           </button>
         </div>
       </div>
@@ -507,6 +507,9 @@ AppRackProperties.propTypes = {
   numberTiers2: PropTypes.element,
   initialMountType: PropTypes.oneOf(['deck', 'floor']),
   onMountTypeChange: PropTypes.func,
+  onAddRack: PropTypes.func,
+  initial: PropTypes.object,
+  onClose: PropTypes.func,
 }
 
 export default AppRackProperties

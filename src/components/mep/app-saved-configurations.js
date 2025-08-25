@@ -13,6 +13,7 @@ import './app-saved-configurations.css'
 const AppSavedConfigurations = (props) => {
   const [savedConfigs, setSavedConfigs] = useState([])
   const [activeConfigId, setActiveConfigId] = useState(null)
+  const [configurationName, setConfigurationName] = useState('')
 
   // Load saved configurations from localStorage on mount and when refreshTrigger changes
   useEffect(() => {
@@ -37,6 +38,48 @@ const AppSavedConfigurations = (props) => {
     if (props.onRestoreConfiguration) {
       props.onRestoreConfiguration(config)
       setActiveConfigId(config.id) // Update local state immediately for better UX
+    }
+  }
+
+  const handleSaveConfiguration = () => {
+    if (!configurationName.trim()) {
+      alert('Please enter a configuration name')
+      return
+    }
+    
+    if (!props.currentRackConfiguration) {
+      alert('No rack configuration to save. Please add a rack first.')
+      return
+    }
+    
+    const newConfig = {
+      ...props.currentRackConfiguration,
+      id: Date.now(),
+      name: configurationName.trim(),
+      savedAt: new Date().toISOString(),
+      totalHeight: props.currentRackConfiguration.totalHeight || calculateTotalHeight(props.currentRackConfiguration)
+    }
+    
+    const updatedConfigs = [...savedConfigs, newConfig]
+    setSavedConfigs(updatedConfigs)
+    
+    try {
+      // Update localStorage
+      localStorage.setItem('tradeRackConfigurations', JSON.stringify(updatedConfigs))
+      
+      // Update manifest by syncing with localStorage (this ensures consistency)
+      syncManifestWithLocalStorage()
+      
+      // Clear the name input after saving
+      setConfigurationName('')
+      
+      // Notify parent component if callback exists
+      if (props.onConfigurationSaved) {
+        props.onConfigurationSaved(newConfig)
+      }
+    } catch (error) {
+      console.error('Error saving configuration:', error)
+      alert('Failed to save configuration. Please try again.')
     }
   }
 
@@ -103,11 +146,45 @@ const AppSavedConfigurations = (props) => {
         </div>
       </div>
 
+      {/* Save Configuration Section */}
+      <div className="app-saved-configurations-save-section">
+        <div className="app-saved-configurations-save-input-group">
+          <input
+            type="text"
+            placeholder="Enter configuration name..."
+            value={configurationName}
+            onChange={(e) => setConfigurationName(e.target.value)}
+            className="app-saved-configurations-name-input"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSaveConfiguration()
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleSaveConfiguration}
+            className="app-saved-configurations-save-btn"
+            disabled={!configurationName.trim() || !props.currentRackConfiguration}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V6h10v3z"/>
+            </svg>
+            Save Configuration
+          </button>
+        </div>
+      </div>
+
       <div className="app-saved-configurations-content">
         {savedConfigs.length === 0 ? (
           <div className="app-saved-configurations-empty">
             <p className="app-saved-configurations-empty-text">
-              No saved configurations yet. Save a rack configuration to see it here.
+              No saved configurations yet. Add a rack and save the configuration to see it here.
             </p>
           </div>
         ) : (
@@ -204,12 +281,16 @@ AppSavedConfigurations.defaultProps = {
   rootClassName: '',
   onRestoreConfiguration: () => {},
   refreshTrigger: 0,
+  currentRackConfiguration: null,
+  onConfigurationSaved: () => {},
 }
 
 AppSavedConfigurations.propTypes = {
   rootClassName: PropTypes.string,
   onRestoreConfiguration: PropTypes.func,
   refreshTrigger: PropTypes.number,
+  currentRackConfiguration: PropTypes.object,
+  onConfigurationSaved: PropTypes.func,
 }
 
 export default AppSavedConfigurations

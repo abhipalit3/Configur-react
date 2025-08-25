@@ -726,10 +726,10 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       if (ductworkRenderer.ductInteraction && mepItems.length > 0) {
         ductworkRenderer.ductInteraction.updateAllDuctTierInfo()
       }
-      // Temporarily disabled pipe tier updates to fix selection issues
-      // if (pipingRenderer.pipeInteraction && mepItems.length > 0) {
-      //   pipingRenderer.pipeInteraction.updateAllPipeTierInfo()
-      // }
+      // Update pipe tier information (now with Above/Below rack detection)
+      if (pipingRenderer.pipeInteraction && mepItems.length > 0) {
+        pipingRenderer.pipeInteraction.updateAllPipeTierInfo()
+      }
       
       // Update cable tray tier information
       if (cableTrayRenderer.cableTrayInteraction && mepItems.length > 0) {

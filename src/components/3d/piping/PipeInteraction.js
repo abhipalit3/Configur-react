@@ -443,13 +443,15 @@ export class PipeInteraction {
 
     try {
       const yPosition = this.selectedPipe.position.y
-      const tierInfo = this.calculatePipeTier(yPosition)
+      const pipeData = this.selectedPipe.userData.pipeData
+      const pipeDiameter = pipeData?.diameter || 2
+      const tierInfo = this.calculatePipeTier(yPosition, pipeDiameter)
       
       // Update pipe userData
       this.selectedPipe.userData.tier = tierInfo.tier
       this.selectedPipe.userData.tierName = tierInfo.tierName
 
-      // console.log('🔧 Pipe tier updated:', tierInfo)
+      // console.log('🔧 PIPE: Tier info updated to:', tierInfo)
     } catch (error) {
       console.error('❌ Error updating pipe tier info:', error)
     }
@@ -458,7 +460,7 @@ export class PipeInteraction {
   /**
    * Calculate which tier a pipe is in based on its Y position using snap line geometry
    */
-  calculatePipeTier(yPosition) {
+  calculatePipeTier(yPosition, pipeDiameter = null) {
     try {
       // Validate yPosition input
       if (!isFinite(yPosition)) {
@@ -469,13 +471,13 @@ export class PipeInteraction {
       // Use the snap line manager to get actual tier spaces from geometry
       const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
       
-      if (!snapLines || !Array.isArray(snapLines.horizontal)) {
-        console.warn('⚠️ Invalid snap lines data')
+      if (!snapLines || !snapLines.horizontal || !Array.isArray(snapLines.horizontal)) {
+        // Return 'No Tier' if no snap lines available, but don't warn (consistent with ducts)
         return { tier: null, tierName: 'No Tier' }
       }
       
-      // Use the same tier space detection logic as DuctInteraction
-      const allHorizontalLines = snapLines.horizontal.filter(line => isFinite(line.y)).sort((a, b) => b.y - a.y)
+      // Use the same tier space detection logic as DuctInteraction (more resilient)
+      const allHorizontalLines = snapLines.horizontal.filter(line => line && isFinite(line.y)).sort((a, b) => b.y - a.y)
       const allBeamPositions = [...allHorizontalLines].map(b => b.y).filter(y => isFinite(y)).sort((a, b) => b - a)
 
       // Find tier spaces
@@ -495,18 +497,36 @@ export class PipeInteraction {
         const gap = topY - bottomY
         
         if (gap >= minTierHeight && isFinite(gap)) {
-          tierSpaces.push({
+          const tierSpace = {
             tierIndex: tierSpaces.length + 1,
             top: topY,
             bottom: bottomY,
             height: gap,
             centerY: isFinite(topY + bottomY) ? (topY + bottomY) / 2 : topY
-          })
+          }
+          tierSpaces.push(tierSpace)
         }
       }
       
       // Find which tier space the pipe Y position falls into
-      const tolerance = 0.1 // 10cm tolerance for pipes (smaller than ducts)
+      // Use dynamic tolerance based on pipe diameter (similar to how ducts use duct height)
+      let diameter = pipeDiameter
+      if (!diameter) {
+        const pipeData = this.selectedPipe?.userData?.pipeData
+        diameter = pipeData?.diameter || 2 // Default 2 inches
+      }
+      
+      // Validate pipe diameter
+      if (!isFinite(diameter) || diameter <= 0) {
+        diameter = 2 // Fallback to 2 inches
+      }
+      
+      const pipeDiameterM = diameter * 0.0254 // Convert inches to meters
+      let tolerance = pipeDiameterM / 2 // Half pipe diameter tolerance
+      
+      if (!isFinite(tolerance)) {
+        tolerance = 0.05 // 5cm fallback (same as conduits)
+      }
       
       for (const tierSpace of tierSpaces) {
         // Check if pipe position is within the tier space bounds + tolerance
@@ -532,6 +552,18 @@ export class PipeInteraction {
         }
       }
       
+      // Check if pipe is above or below the rack (like ducts, conduits, and cable trays)
+      if (tierSpaces.length > 0) {
+        const topTier = tierSpaces[0]
+        const bottomTier = tierSpaces[tierSpaces.length - 1]
+        
+        if (yPosition > topTier.top + tolerance) {
+          return { tier: null, tierName: 'Above Rack' }
+        } else if (yPosition < bottomTier.bottom - tolerance) {
+          return { tier: null, tierName: 'Below Rack' }
+        }
+      }
+      
       return { tier: null, tierName: 'No Tier' }
     } catch (error) {
       console.error('❌ Error calculating pipe tier:', error)
@@ -543,27 +575,77 @@ export class PipeInteraction {
    * Update tier information for all pipes
    */
   updateAllPipeTierInfo() {
-    let pipingGroup = null
-    this.scene.traverse((child) => {
-      if (child.isGroup && child.name === 'PipingGroup') {
-        pipingGroup = child
-      }
-    })
-
-    if (!pipingGroup) return
-
-    pipingGroup.children.forEach(pipeGroup => {
-      if (pipeGroup.userData.type === 'pipe') {
-        const yPosition = pipeGroup.position.y
-        const tierInfo = this.calculatePipeTier(yPosition)
+    try {
+      const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      let updated = false
+      
+      // Get all pipe groups from the scene to access their current positions
+      const pipeGroups = []
+      this.scene.traverse((child) => {
+        if (child.isGroup && child.name === 'PipingGroup') {
+          child.children.forEach(pipeGroup => {
+            if (pipeGroup.userData?.pipeData) {
+              pipeGroups.push(pipeGroup)
+            }
+          })
+        }
+      })
+      
+      const updatedItems = storedMepItems.map(item => {
+        if (item.type === 'pipe') {
+          // Find the corresponding 3D pipe group
+          const baseId = item.id.toString().split('_')[0]
+          const pipeGroup = pipeGroups.find(group => {
+            const groupBaseId = group.userData.pipeData.id.toString().split('_')[0]
+            return groupBaseId === baseId || group.userData.pipeData.id === item.id
+          })
+          
+          if (pipeGroup) {
+            // Calculate tier info based on current 3D position
+            const currentYPosition = pipeGroup.position.y
+            const pipeDiameter = item.diameter || 2
+            const tierInfo = this.calculatePipeTier(currentYPosition, pipeDiameter)
+            
+            // Update pipe userData in 3D scene
+            pipeGroup.userData.tier = tierInfo.tier
+            pipeGroup.userData.tierName = tierInfo.tierName
+            
+            if (item.tier !== tierInfo.tier || item.tierName !== tierInfo.tierName) {
+              updated = true
+              return {
+                ...item,
+                tier: tierInfo.tier,
+                tierName: tierInfo.tierName,
+                position: {
+                  x: pipeGroup.position.x,
+                  y: pipeGroup.position.y,
+                  z: pipeGroup.position.z
+                }
+              }
+            }
+          }
+        }
+        return item
+      })
+      
+      if (updated) {
+        localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
         
-        // Update pipe userData
-        pipeGroup.userData.tier = tierInfo.tier
-        pipeGroup.userData.tierName = tierInfo.tierName
+        // Update manifest if function available
+        if (window.updateMEPItemsManifest) {
+          window.updateMEPItemsManifest(updatedItems)
+        }
+        
+        // Dispatch events to update MEP panel
+        window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+          detail: { updatedItems }
+        }))
+        
+        // console.log('📊 Updated tier information for all pipes')
       }
-    })
-
-    // console.log('🔧 All pipe tier info updated')
+    } catch (error) {
+      console.error('Error updating all pipe tier info:', error)
+    }
   }
 
   /**

@@ -672,6 +672,18 @@ export class DuctInteraction {
         }
       }
       
+      // Check if duct is above or below the rack (missing logic!)
+      if (tierSpaces.length > 0) {
+        const topTier = tierSpaces[0]
+        const bottomTier = tierSpaces[tierSpaces.length - 1]
+        
+        if (yPosition > topTier.top + tolerance) {
+          return { tier: null, tierName: 'Above Rack' }
+        } else if (yPosition < bottomTier.bottom - tolerance) {
+          return { tier: null, tierName: 'Below Rack' }
+        }
+      }
+      
       return { tier: null, tierName: 'No Tier' }
       
     } catch (error) {
