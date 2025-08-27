@@ -63,6 +63,11 @@ const AppPage = (props) => {
 
   const initialUIState = getInitialUIState()
 
+  // State to track project name - restore from localStorage or use default
+  const [projectName, setProjectName] = useState(() => {
+    return localStorage.getItem('projectName') || 'Office Building'
+  })
+
   // State to track which panel is currently active - restore from manifest
   const [activePanel, setActivePanel] = useState(initialUIState.activePanel || null)
   // State to track if rack properties is visible - restore from manifest, default to true
@@ -713,6 +718,12 @@ const AppPage = (props) => {
     // UI state will be automatically saved by the useEffect
   }
 
+  // Handler for updating project name
+  const handleProjectNameChange = (newName) => {
+    setProjectName(newName)
+    localStorage.setItem('projectName', newName)
+  }
+
   // Handler for building shell save
   const handleBuildingSave = (params) => {
     setBuildingParams(params)
@@ -1074,7 +1085,11 @@ const AppPage = (props) => {
         />
       </Helmet>
 
-      <AppTopMainMenu rootClassName="app-top-main-menuroot-class-name1" />
+      <AppTopMainMenu 
+        rootClassName="app-top-main-menuroot-class-name1" 
+        projectName={projectName}
+        onProjectNameChange={handleProjectNameChange}
+      />
       
       <AppButtonLeftMenu 
         rootClassName="app-button-left-menuroot-class-name1"

@@ -4,9 +4,9 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { deleteTradeRackConfiguration, syncManifestWithLocalStorage, getProjectManifest, setActiveConfiguration } from '../../utils/projectManifest'
+import { syncManifestWithLocalStorage, getProjectManifest, setActiveConfiguration } from '../../utils/projectManifest'
 import { calculateTotalHeight } from '../../types/tradeRack'
 import './app-saved-configurations.css'
 
