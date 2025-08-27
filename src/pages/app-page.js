@@ -73,8 +73,6 @@ const AppPage = (props) => {
   const [isSavedConfigsVisible, setIsSavedConfigsVisible] = useState(true)
   // State to trigger refresh of saved configurations
   const [savedConfigsRefresh, setSavedConfigsRefresh] = useState(0)
-  // State to track current rack configuration for potential saving
-  const [currentRackConfiguration, setCurrentRackConfiguration] = useState(null)
   // State to track measurement tool activation - restore from manifest
   const [isMeasurementActive, setIsMeasurementActive] = useState(
     initialUIState.isMeasurementActive || false
@@ -808,9 +806,6 @@ const AppPage = (props) => {
       }, 200)
     }
     
-    // Store current rack configuration for potential saving (but don't auto-save)
-    setCurrentRackConfiguration(combinedParams)
-    
     // Close the properties panel after adding rack
     setIsRackPropertiesVisible(false)
   }
@@ -1101,7 +1096,6 @@ const AppPage = (props) => {
           rootClassName="app-saved-configurationsroot-class-name" 
           onRestoreConfiguration={handleRestoreConfiguration}
           refreshTrigger={savedConfigsRefresh}
-          currentRackConfiguration={currentRackConfiguration}
           onConfigurationSaved={handleConfigurationSaved}
         />
         <AppTierMEP 

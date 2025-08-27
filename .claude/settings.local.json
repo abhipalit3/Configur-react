@@ -12,7 +12,8 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(npm run deploy:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npm start)"
     ],
     "deny": [],
     "ask": []

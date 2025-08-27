@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { deleteTradeRackConfiguration, syncManifestWithLocalStorage, getProjectManifest } from '../../utils/projectManifest'
+import { deleteTradeRackConfiguration, syncManifestWithLocalStorage, getProjectManifest, setActiveConfiguration } from '../../utils/projectManifest'
 import { calculateTotalHeight } from '../../types/tradeRack'
 import './app-saved-configurations.css'
 
@@ -14,13 +14,22 @@ const AppSavedConfigurations = (props) => {
   const [savedConfigs, setSavedConfigs] = useState([])
   const [activeConfigId, setActiveConfigId] = useState(null)
   const [configurationName, setConfigurationName] = useState('')
+  const [editingConfigId, setEditingConfigId] = useState(null)
+  const [editingName, setEditingName] = useState('')
 
   // Load saved configurations from localStorage on mount and when refreshTrigger changes
   useEffect(() => {
     try {
       const saved = localStorage.getItem('tradeRackConfigurations')
       if (saved) {
-        setSavedConfigs(JSON.parse(saved))
+        const configs = JSON.parse(saved)
+        // Sort by updatedAt (if exists) or savedAt date, newest first
+        const sortedConfigs = configs.sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.savedAt)
+          const dateB = new Date(b.updatedAt || b.savedAt)
+          return dateB - dateA
+        })
+        setSavedConfigs(sortedConfigs)
       } else {
         setSavedConfigs([])
       }
@@ -47,39 +56,167 @@ const AppSavedConfigurations = (props) => {
       return
     }
     
-    if (!props.currentRackConfiguration) {
+    // Get the current rack configuration from localStorage (the actual scene state)
+    const currentRackParams = localStorage.getItem('rackParameters')
+    if (!currentRackParams) {
       alert('No rack configuration to save. Please add a rack first.')
       return
     }
     
+    const rackConfig = JSON.parse(currentRackParams)
+    
     const newConfig = {
-      ...props.currentRackConfiguration,
+      ...rackConfig,
       id: Date.now(),
       name: configurationName.trim(),
       savedAt: new Date().toISOString(),
-      totalHeight: props.currentRackConfiguration.totalHeight || calculateTotalHeight(props.currentRackConfiguration)
+      totalHeight: calculateTotalHeight(rackConfig)
     }
     
-    const updatedConfigs = [...savedConfigs, newConfig]
+    
+    // Add new config at the beginning so newest is first
+    const updatedConfigs = [newConfig, ...savedConfigs]
     setSavedConfigs(updatedConfigs)
     
     try {
       // Update localStorage
       localStorage.setItem('tradeRackConfigurations', JSON.stringify(updatedConfigs))
-      
       // Update manifest by syncing with localStorage (this ensures consistency)
       syncManifestWithLocalStorage()
-      
       // Clear the name input after saving
       setConfigurationName('')
       
       // Notify parent component if callback exists
       if (props.onConfigurationSaved) {
         props.onConfigurationSaved(newConfig)
-      }
+}
     } catch (error) {
       console.error('Error saving configuration:', error)
       alert('Failed to save configuration. Please try again.')
+    }
+  }
+
+  const handleUpdateConfig = (configId, event) => {
+    event.stopPropagation() // Prevent triggering the card click
+    
+    // Get the current rack configuration from localStorage (the actual scene state)
+    const currentRackParams = localStorage.getItem('rackParameters')
+    if (!currentRackParams) {
+      alert('No rack configuration in scene to update with.')
+      return
+    }
+    
+    const rackConfig = JSON.parse(currentRackParams)
+    
+    // Find the existing configuration
+    const configIndex = savedConfigs.findIndex(config => config.id === configId)
+    if (configIndex === -1) {
+      alert('Configuration not found.')
+      return
+    }
+    
+    const existingConfig = savedConfigs[configIndex]
+    
+    // Confirm update
+    if (!window.confirm(`Update "${existingConfig.name}" with the current rack configuration?`)) {
+      return
+    }
+    
+    // Create updated configuration preserving original metadata
+    const updatedConfig = {
+      ...rackConfig,
+      id: existingConfig.id,
+      name: existingConfig.name,
+      savedAt: existingConfig.savedAt, // Keep original save time
+      updatedAt: new Date().toISOString(), // Add update timestamp
+      totalHeight: calculateTotalHeight(rackConfig)
+    }
+    
+    // Update the configuration in the array
+    const updatedConfigs = [...savedConfigs]
+    updatedConfigs[configIndex] = updatedConfig
+    
+    // Sort to maintain newest first order
+    const sortedConfigs = updatedConfigs.sort((a, b) => {
+      // Sort by updatedAt if it exists, otherwise by savedAt
+      const dateA = new Date(a.updatedAt || a.savedAt)
+      const dateB = new Date(b.updatedAt || b.savedAt)
+      return dateB - dateA
+    })
+    
+    setSavedConfigs(sortedConfigs)
+    
+    try {
+      // Update localStorage
+      localStorage.setItem('tradeRackConfigurations', JSON.stringify(sortedConfigs))
+      
+      // Update manifest by syncing with localStorage
+      syncManifestWithLocalStorage()
+      
+      // If this was the active configuration, update it
+      if (activeConfigId === configId) {
+        setActiveConfiguration(configId)
+      }
+    } catch (error) {
+      console.error('Error updating configuration:', error)
+      alert('Failed to update configuration. Please try again.')
+    }
+  }
+
+  const handleStartRename = (config, event) => {
+    event.stopPropagation()
+    setEditingConfigId(config.id)
+    setEditingName(config.name)
+  }
+
+  const handleCancelRename = () => {
+    setEditingConfigId(null)
+    setEditingName('')
+  }
+
+  const handleSaveRename = (configId) => {
+    if (!editingName.trim()) {
+      alert('Configuration name cannot be empty')
+      return
+    }
+
+    // Find the configuration to rename
+    const configIndex = savedConfigs.findIndex(config => config.id === configId)
+    if (configIndex === -1) {
+      alert('Configuration not found.')
+      return
+    }
+
+    // Update the configuration with new name
+    const updatedConfigs = [...savedConfigs]
+    updatedConfigs[configIndex] = {
+      ...updatedConfigs[configIndex],
+      name: editingName.trim(),
+      updatedAt: new Date().toISOString()
+    }
+
+    // Sort to maintain order
+    const sortedConfigs = updatedConfigs.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.savedAt)
+      const dateB = new Date(b.updatedAt || b.savedAt)
+      return dateB - dateA
+    })
+
+    setSavedConfigs(sortedConfigs)
+
+    try {
+      // Update localStorage
+      localStorage.setItem('tradeRackConfigurations', JSON.stringify(sortedConfigs))
+      
+      // Update manifest by syncing with localStorage
+      syncManifestWithLocalStorage()
+      
+      // Clear editing state
+      setEditingConfigId(null)
+      setEditingName('')
+    } catch (error) {
+      console.error('Error renaming configuration:', error)
+      alert('Failed to rename configuration. Please try again.')
     }
   }
 
@@ -155,7 +292,7 @@ const AppSavedConfigurations = (props) => {
             value={configurationName}
             onChange={(e) => setConfigurationName(e.target.value)}
             className="app-saved-configurations-name-input"
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleSaveConfiguration()
               }
@@ -165,7 +302,7 @@ const AppSavedConfigurations = (props) => {
             type="button"
             onClick={handleSaveConfiguration}
             className="app-saved-configurations-save-btn"
-            disabled={!configurationName.trim() || !props.currentRackConfiguration}
+            disabled={!configurationName.trim()}
           >
             <svg
               width="16"
@@ -189,16 +326,147 @@ const AppSavedConfigurations = (props) => {
           </div>
         ) : (
           <div className="app-saved-configurations-list">
-            {savedConfigs.map((config, index) => (
+            {savedConfigs
+              .sort((a, b) => {
+                // Sort by updatedAt if it exists, otherwise by savedAt
+                const dateA = new Date(a.updatedAt || a.savedAt)
+                const dateB = new Date(b.updatedAt || b.savedAt)
+                return dateB - dateA
+              })
+              .map((config, index) => (
               <div
                 key={config.id}
                 className={`app-saved-configurations-card ${activeConfigId === config.id ? 'active' : ''}`}
                 onClick={() => handleConfigClick(config)}
               >
-                <div className="app-saved-configurations-card-header">
-                  <h3 className="app-saved-configurations-card-title">
-                    {config.name || `Rack Configuration ${config.id}`}
-                  </h3>
+                <div className="app-saved-configurations-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  {editingConfigId === config.id ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: 'calc(100% - 30px)' }}>
+                      <input
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSaveRename(config.id)
+                          } else if (e.key === 'Escape') {
+                            handleCancelRename()
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: 'normal',
+                          padding: '4px 8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          flex: 1
+                        }}
+                        autoFocus
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleSaveRename(config.id)
+                        }}
+                        title="Save name"
+                        style={{
+                          background: '#4CAF50',
+                          border: '1px solid #45a049',
+                          color: 'white',
+                          padding: '3px 6px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'normal',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '22px',
+                          height: '22px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#45a049'
+                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.15)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#4CAF50'
+                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCancelRename()
+                        }}
+                        title="Cancel"
+                        style={{
+                          background: '#f44336',
+                          border: '1px solid #d32f2f',
+                          color: 'white',
+                          padding: '3px 6px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'normal',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '22px',
+                          height: '22px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#d32f2f'
+                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.15)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#f44336'
+                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        ✗
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: 'calc(100% - 30px)' }}>
+                      <h3 className="app-saved-configurations-card-title" style={{ margin: 0, fontSize: '14px', fontWeight: 'normal', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {config.name || `Rack Configuration ${config.id}`}
+                      </h3>
+                      <button
+                        onClick={(e) => handleStartRename(config, e)}
+                        title="Rename configuration"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.6,
+                          transition: 'opacity 0.2s',
+                          flexShrink: 0
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = 0.6}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                   <div className="app-saved-configurations-card-status">
                     <div 
                       className="app-saved-configurations-status-circle"
@@ -250,23 +518,52 @@ const AppSavedConfigurations = (props) => {
                   </div>
                   <div className="app-saved-configurations-date">
                     <span className="app-saved-configurations-date-text">
-                      Saved {formatDate(config.savedAt)}
+                      {config.updatedAt ? `Updated ${formatDate(config.updatedAt)}` : `Saved ${formatDate(config.savedAt)}`}
                     </span>
                   </div>
-                  <button
-                    className="app-saved-configurations-delete-btn"
-                    onClick={(e) => handleDeleteConfig(config.id, e)}
-                    title="Delete configuration"
-                  >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="app-saved-configurations-update-btn"
+                      onClick={(e) => handleUpdateConfig(config.id, e)}
+                      title="Update configuration with current rack"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: 0.7,
+                        transition: 'opacity 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
                     >
-                      <path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z"/>
-                    </svg>
-                  </button>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                      </svg>
+                    </button>
+                    <button
+                      className="app-saved-configurations-delete-btn"
+                      onClick={(e) => handleDeleteConfig(config.id, e)}
+                      title="Delete configuration"
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -281,7 +578,6 @@ AppSavedConfigurations.defaultProps = {
   rootClassName: '',
   onRestoreConfiguration: () => {},
   refreshTrigger: 0,
-  currentRackConfiguration: null,
   onConfigurationSaved: () => {},
 }
 
@@ -289,7 +585,6 @@ AppSavedConfigurations.propTypes = {
   rootClassName: PropTypes.string,
   onRestoreConfiguration: PropTypes.func,
   refreshTrigger: PropTypes.number,
-  currentRackConfiguration: PropTypes.object,
   onConfigurationSaved: PropTypes.func,
 }
 
