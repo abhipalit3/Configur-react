@@ -20,7 +20,8 @@ export class MeasurementTool {
     this.mouse = new THREE.Vector2()
     this.active = false
     this.measurementId = 0
-    this.clickHandler = this.onClick.bind(this)
+    this.clickHandler = null // Will be bound in enable()
+    this.mouseDownPos = null // Track mouse down position for drag detection
     
     // Axis locking state
     this.axisLock = { x: false, y: false, z: false }
@@ -30,10 +31,10 @@ export class MeasurementTool {
     
     // MeasurementTool initialized
     
-    // High-visibility professional colors for measurement lines
+    // Blue color scheme to match labels
     this.colors = {
-      primary: 0x00D4FF,      // Bright cyan for main measurement lines - highly visible
-      secondary: 0xFF6B35,    // Orange for dimension/extension lines - contrasting visibility
+      primary: 0x4A90E2,      // Blue for main measurement lines (matching label)
+      secondary: 0x4A90E2,    // Same blue color for consistency
       hover: 0x4A90E2,        // Professional blue for hover
       accent: 0xFF6B6B,       // Subtle red for selected/active state
       text: '#2C3E50',        // Dark blue-gray text
@@ -259,7 +260,11 @@ export class MeasurementTool {
 
   enable() {
     if (this.active) return
-    this.domElement.addEventListener('click', this.clickHandler)
+    // Use mousedown/mouseup pair to detect drag vs click
+    this.mouseDownHandler = this.onMouseDown.bind(this)
+    this.clickHandler = this.onMouseUp.bind(this)
+    this.domElement.addEventListener('mousedown', this.mouseDownHandler, false)
+    this.domElement.addEventListener('mouseup', this.clickHandler, false)
     this.active = true
     this.hoverHandler = this.onPointerMove.bind(this)   
     this.domElement.addEventListener('pointermove', this.hoverHandler)
@@ -278,7 +283,8 @@ export class MeasurementTool {
 
   disable() {
     if (!this.active) return
-    this.domElement.removeEventListener('click', this.clickHandler)
+    this.domElement.removeEventListener('mousedown', this.mouseDownHandler)
+    this.domElement.removeEventListener('mouseup', this.clickHandler)
     this.domElement.removeEventListener('pointermove', this.hoverHandler)
     window.removeEventListener('keydown', this.keyHandler)
     this.active = false
@@ -553,40 +559,71 @@ export class MeasurementTool {
     return null
   }
 
-  onClick(event) {
-    // First try to find a snap point for measurement creation
+  onMouseDown(event) {
+    // Store mouse down position for drag detection
+    if (event.button === 0) {
+      this.mouseDownPos = { x: event.clientX, y: event.clientY }
+    }
+  }
+
+  onMouseUp(event) {
+    // Don't process if this is a right-click or middle-click (for panning)
+    if (event.button !== 0) return
+    
+    // Check if this was a drag operation (mouse moved more than 5 pixels)
+    if (this.mouseDownPos) {
+      const dragDistance = Math.sqrt(
+        Math.pow(event.clientX - this.mouseDownPos.x, 2) + 
+        Math.pow(event.clientY - this.mouseDownPos.y, 2)
+      )
+      this.mouseDownPos = null
+      
+      // If user dragged, don't process as a click (let pan work)
+      if (dragDistance > 5) {
+        return
+      }
+    }
+    
+    // First check if we clicked on an existing measurement
+    const clickedMeasurement = this.findMeasurementAtClick(event)
+    
+    if (clickedMeasurement) {
+      // Handle measurement selection
+      event.stopPropagation() // Only stop propagation when we actually select something
+      const isShiftPressed = event.shiftKey
+      
+      if (isShiftPressed) {
+        // Multi-select mode: toggle selection
+        if (this.selectedMeasurements.has(clickedMeasurement.id)) {
+          this.selectedMeasurements.delete(clickedMeasurement.id)
+          this.updateMeasurementHighlight(clickedMeasurement.id, false)
+        } else {
+          this.selectedMeasurements.add(clickedMeasurement.id)
+          this.updateMeasurementHighlight(clickedMeasurement.id, true)
+        }
+      } else {
+        // Single select mode: clear others and select this one
+        this.clearSelection()
+        this.selectedMeasurements.add(clickedMeasurement.id)
+        this.updateMeasurementHighlight(clickedMeasurement.id, true)
+      }
+      
+      return
+    }
+    
+    // No measurement was clicked - clear selection unless shift is held
+    if (!event.shiftKey && this.selectedMeasurements.size > 0) {
+      this.clearSelection()
+    }
+    
+    // Now check for snap points for measurement creation
     let snapResult = this.findClosestSnapPoint(event)
     let point = snapResult ? snapResult.point : null
     
     // If this is the first point, it MUST snap to a snap point
     if (this.points.length === 0) {
       if (!snapResult) {
-        // No snap point found, check if we clicked on an existing measurement for selection
-        const clickedMeasurement = this.findMeasurementAtClick(event)
-        
-        if (clickedMeasurement) {
-          // Handle measurement selection
-          const isShiftPressed = event.shiftKey
-          
-          if (isShiftPressed) {
-            // Multi-select mode: toggle selection
-            if (this.selectedMeasurements.has(clickedMeasurement.id)) {
-              this.selectedMeasurements.delete(clickedMeasurement.id)
-              this.updateMeasurementHighlight(clickedMeasurement.id, false)
-            } else {
-              this.selectedMeasurements.add(clickedMeasurement.id)
-              this.updateMeasurementHighlight(clickedMeasurement.id, true)
-            }
-          } else {
-            // Single select mode: clear others and select this one
-            this.clearSelection()
-            this.selectedMeasurements.add(clickedMeasurement.id)
-            this.updateMeasurementHighlight(clickedMeasurement.id, true)
-          }
-          
-          return
-        }
-        
+        // No snap point and no measurement clicked - just return
         return
       }
     } else {
@@ -594,11 +631,6 @@ export class MeasurementTool {
       if (!snapResult) {
         point = this.getWorldPositionFromMouse(event)
       }
-    }
-    
-    // If not clicking on a measurement and not placing points, clear selection (unless Shift is pressed)
-    if (this.points.length === 0 && !event.shiftKey) {
-      this.clearSelection()
     }
     
     if (!point) {
@@ -829,19 +861,15 @@ export class MeasurementTool {
     
     try {
       const distance = p1.distanceTo(p2)
-      const direction = new THREE.Vector3().subVectors(p2, p1).normalize()
       const midpoint = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5)
       
-      // Create professional measurement line with gradient effect
+      // Create simple measurement line between points
       this.createMeasurementLine(p1, p2, measurementGroup)
       
-      // Create professional end markers
+      // Create end markers
       this.createEndMarkers(p1, p2, measurementGroup)
       
-      // Create dimension extension lines
-      this.createExtensionLines(p1, p2, direction, measurementGroup)
-      
-      // Create professional label positioned on dimension line
+      // Create label positioned at midpoint
       this.createMeasurementLabel(p1, p2, distance, measurementId)
       
       this.scene.add(measurementGroup)
@@ -904,148 +932,47 @@ export class MeasurementTool {
       return
     }
     
-    // Hypar-style minimal end markers
-    const markerSize = 0.02
+    // Autodesk-style minimal end markers (small dots)
+    const markerSize = 0.015  // Smaller size for cleaner look
     const points = [p1, p2]
     
     points.forEach((point, index) => {
-      const markerGroup = new THREE.Group()
-      
-      // High-visibility circular end marker
+      // Simple sphere marker (Autodesk style)
       const endMarker = new THREE.Mesh(
-        new THREE.CircleGeometry(markerSize, 12),
+        new THREE.SphereGeometry(markerSize, 8, 6),
         new THREE.MeshBasicMaterial({ 
-          color: this.colors.primary,
+          color: this.colors.primary,  // Dark color matching the line
           transparent: false,
-          opacity: 1.0,
-          side: THREE.DoubleSide
+          opacity: 1.0
         })
       )
       endMarker.position.copy(point)
-      endMarker.lookAt(this.camera.position)
-      
-      // Subtle border ring
-      const borderRing = new THREE.Mesh(
-        new THREE.RingGeometry(markerSize - 0.002, markerSize, 16),
-        new THREE.MeshBasicMaterial({ 
-          color: 0x000000,
-          transparent: true,
-          opacity: 0.3,
-          side: THREE.DoubleSide
-        })
-      )
-      borderRing.position.copy(point)
-      borderRing.lookAt(this.camera.position)
-      
-      markerGroup.add(endMarker, borderRing)
-      markerGroup.renderOrder = 1001
-      group.add(markerGroup)
+      endMarker.renderOrder = 1001
+      group.add(endMarker)
     })
   }
 
-  createExtensionLines(p1, p2, direction, group) {
-    // Validate inputs
-    if (!p1 || !p2 || !direction || !group) {
-      console.error('Invalid parameters for createExtensionLines:', p1, p2, direction, group)
-      return
-    }
-    
-    try {
-      // Create Hypar-style dimension extension lines
-      // Calculate perpendicular direction for dimension offset
-      const up = new THREE.Vector3(0, 1, 0)
-      const perpendicular = new THREE.Vector3().crossVectors(direction, up).normalize()
-      
-      // If direction is vertical, use different perpendicular
-      if (Math.abs(direction.dot(up)) > 0.9) {
-        perpendicular.set(1, 0, 0).cross(direction).normalize()
-      }
-      
-      const dimensionOffset = 0.3 // Distance from main line
-      const extensionLength = 0.05 // Short extension beyond dimension line
-      
-      // Create dimension line parallel to measurement line but offset
-      const dimP1 = p1.clone().add(perpendicular.clone().multiplyScalar(dimensionOffset))
-      const dimP2 = p2.clone().add(perpendicular.clone().multiplyScalar(dimensionOffset))
-      
-      // Main dimension line with high visibility
-      const dimGeometry = new THREE.BufferGeometry().setFromPoints([dimP1, dimP2])
-      const dimMaterial = new THREE.LineBasicMaterial({
-        color: this.colors.secondary,
-        transparent: true,
-        opacity: 1.0,
-        linewidth: 2
-      })
-      const dimLine = new THREE.Line(dimGeometry, dimMaterial)
-      dimLine.renderOrder = 998
-      group.add(dimLine)
-      
-      // Extension lines from measurement points to dimension line
-      const processPoint = (point, dimPoint) => {
-        if (!point || !point.isVector3) return
-        
-        const extStart = point.clone()
-        const extEnd = dimPoint.clone().add(perpendicular.clone().multiplyScalar(extensionLength))
-        
-        const extGeometry = new THREE.BufferGeometry().setFromPoints([extStart, extEnd])
-        const extMaterial = new THREE.LineBasicMaterial({
-          color: this.colors.secondary,
-          transparent: true,
-          opacity: 0.9,
-          linewidth: 1.5
-        })
-        
-        const extLine = new THREE.Line(extGeometry, extMaterial)
-        extLine.renderOrder = 998
-        group.add(extLine)
-      }
-      
-      // Create extension lines
-      processPoint(p1, dimP1)
-      processPoint(p2, dimP2)
-      
-      // Store dimension line position for label placement
-      this.lastDimensionLine = {
-        p1: dimP1,
-        p2: dimP2,
-        center: dimP1.clone().add(dimP2).multiplyScalar(0.5)
-      }
-      
-    } catch (error) {
-      console.error('Error creating extension lines:', error)
-    }
-  }
 
   createMeasurementLabel(p1, p2, distance, measurementId) {
-    // Use the dimension line center position if available, otherwise fall back to measurement line
-    const labelPos = this.lastDimensionLine ? 
-      this.lastDimensionLine.center.clone() : 
-      new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5)
+    // Position label at the midpoint of the measurement line
+    const labelPos = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5)
     
     // Format distance with appropriate precision
     const formattedDistance = this.formatDistance(distance)
     
     const label = document.createElement('div')
-    label.className = 'measurement-label'
+    label.className = 'measurement-final-label'  // Use new clickable class
     label.dataset.measurementId = measurementId
     
-    // Hypar-style label content with feet and inches
-    label.innerHTML = `
-      <div class="measurement-value">${formattedDistance}</div>
-    `
+    // Simple label content - just the distance value (same as preview)
+    label.textContent = formattedDistance
     
-    // Static styling with no animations
-    Object.assign(label.style, {
-      position: 'absolute',
-      opacity: '1',
-      transform: 'translate(-50%, -50%)',
-      transition: 'none', // Remove all transitions
-      cursor: 'pointer' // Make labels clickable
-    })
-    
-    // Add click handler for label selection
-    label.addEventListener('click', (event) => {
+    // Add mouseup handler for label selection (consistent with main handler)
+    label.addEventListener('mouseup', (event) => {
       event.stopPropagation() // Prevent event from reaching the canvas
+      
+      // Only handle left clicks
+      if (event.button !== 0) return
       
       const measurementId = parseInt(label.dataset.measurementId)
       const measurement = this.measurements.find(m => m.id === measurementId)
@@ -1068,8 +995,12 @@ export class MeasurementTool {
           this.selectedMeasurements.add(measurementId)
           this.updateMeasurementHighlight(measurementId, true)
         }
-        
       }
+    })
+    
+    // Prevent label from interfering with drag operations
+    label.addEventListener('mousedown', (event) => {
+      event.stopPropagation()
     })
     
     // Append to body for proper z-indexing
@@ -1293,6 +1224,9 @@ export class MeasurementTool {
 
     this.raycaster.setFromCamera(mouse, this.camera)
     
+    // Set a smaller threshold for line picking (default is too sensitive)
+    this.raycaster.params.Line = { threshold: 0.05 } // Smaller threshold = more precise
+    
     // Check intersection with measurement groups
     const intersectableObjects = []
     this.measurements.forEach(measurement => {
@@ -1303,13 +1237,25 @@ export class MeasurementTool {
       })
     })
     
+    if (intersectableObjects.length === 0) {
+      return null // No measurements to check
+    }
+    
     const intersects = this.raycaster.intersectObjects(intersectableObjects.map(item => item.object))
     
     if (intersects.length > 0) {
-      const intersectedObject = intersects[0].object
-      const item = intersectableObjects.find(item => item.object === intersectedObject)
-      if (item) {
-        return this.measurements.find(m => m.id === item.measurementId)
+      // Filter to only consider close intersections
+      const validIntersects = intersects.filter(intersect => {
+        // Only consider intersections within a reasonable distance
+        return intersect.distance < 100 // Adjust this value as needed
+      })
+      
+      if (validIntersects.length > 0) {
+        const intersectedObject = validIntersects[0].object
+        const item = intersectableObjects.find(item => item.object === intersectedObject)
+        if (item) {
+          return this.measurements.find(m => m.id === item.measurementId)
+        }
       }
     }
     
@@ -1356,48 +1302,15 @@ export class MeasurementTool {
       }
     })
 
-    // Highlight the label as well with matching blue theme
+    // Highlight the label as well
     const label = this.labels.find(l => l.id === measurementId)
     if (label && label.element) {
       if (isSelected) {
-        label.element.style.setProperty('background-color', '#4A90E2', 'important')
-        label.element.style.setProperty('border-color', '#4A90E2', 'important')
-        label.element.style.setProperty('color', '#FFFFFF', 'important')
-        label.element.style.setProperty('font-weight', 'bold', 'important')
-        label.element.style.setProperty('box-shadow', '0 0 12px rgba(74, 144, 226, 0.5)', 'important')
-        label.element.style.cursor = 'pointer'
-        
-        // Also update the value text inside with !important
-        const valueElement = label.element.querySelector('.measurement-value')
-        if (valueElement) {
-          valueElement.style.setProperty('color', '#FFFFFF', 'important')
-        }
-        
-        // Update all text elements to ensure white color
-        const allTextElements = label.element.querySelectorAll('*')
-        allTextElements.forEach(element => {
-          element.style.setProperty('color', '#FFFFFF', 'important')
-        })
+        // Add selected class
+        label.element.classList.add('selected')
       } else {
-        // When deselecting, restore to dark background with white text (matching CSS)
-        label.element.style.setProperty('background-color', 'rgba(44, 62, 80, 0.9)', 'important')
-        label.element.style.setProperty('border', 'none', 'important')
-        label.element.style.setProperty('color', '#ffffff', 'important')
-        label.element.style.setProperty('font-weight', '500', 'important')
-        label.element.style.setProperty('box-shadow', '0 2px 8px rgba(0, 0, 0, 0.3)', 'important')
-        label.element.style.cursor = 'pointer'
-        
-        // Keep value text white
-        const valueElement = label.element.querySelector('.measurement-value')
-        if (valueElement) {
-          valueElement.style.setProperty('color', '#ffffff', 'important')
-        }
-        
-        // Keep all text elements white
-        const allTextElements = label.element.querySelectorAll('*')
-        allTextElements.forEach(element => {
-          element.style.setProperty('color', '#ffffff', 'important')
-        })
+        // Remove selected class
+        label.element.classList.remove('selected')
       }
     }
   }
@@ -1471,12 +1384,10 @@ export class MeasurementTool {
           measurementGroup.userData = { type: 'measurement', id: measurementId }
           
           const distance = savedMeasurement.distance
-          const direction = new THREE.Vector3().subVectors(p2, p1).normalize()
           
           // Create all measurement components
           this.createMeasurementLine(p1, p2, measurementGroup)
           this.createEndMarkers(p1, p2, measurementGroup)
-          this.createExtensionLines(p1, p2, direction, measurementGroup)
           this.createMeasurementLabel(p1, p2, distance, measurementId)
           
           this.scene.add(measurementGroup)
