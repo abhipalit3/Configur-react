@@ -65,12 +65,37 @@ const AppSavedConfigurations = (props) => {
     
     const rackConfig = JSON.parse(currentRackParams)
     
+    // Get current rack position from the scene if available
+    let currentPosition = null
+    try {
+      // Try to get position from the current rack in scene
+      if (window.tradeRackInteractionInstance) {
+        currentPosition = window.tradeRackInteractionInstance.getCurrentRackPosition()
+      }
+      
+      // Fallback: check for existing position in stored racks
+      if (!currentPosition) {
+        const storedRacks = JSON.parse(localStorage.getItem('configurTradeRacks') || '[]')
+        if (storedRacks.length > 0) {
+          // Get the most recent rack position
+          const latestRack = storedRacks[storedRacks.length - 1]
+          if (latestRack.position) {
+            currentPosition = latestRack.position
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Could not retrieve current rack position:', error)
+    }
+    
     const newConfig = {
       ...rackConfig,
       id: Date.now(),
       name: configurationName.trim(),
       savedAt: new Date().toISOString(),
-      totalHeight: calculateTotalHeight(rackConfig)
+      totalHeight: calculateTotalHeight(rackConfig),
+      // Include position if available
+      ...(currentPosition && { position: currentPosition })
     }
     
     
@@ -122,6 +147,38 @@ const AppSavedConfigurations = (props) => {
       return
     }
     
+    // Get current rack position from the scene if available
+    let currentPosition = null
+    try {
+      // Try to get position from the current rack in scene
+      if (window.tradeRackInteractionInstance) {
+        currentPosition = window.tradeRackInteractionInstance.getCurrentRackPosition()
+      }
+      
+      // Fallback: check for existing position in stored racks or keep existing position
+      if (!currentPosition) {
+        const storedRacks = JSON.parse(localStorage.getItem('configurTradeRacks') || '[]')
+        if (storedRacks.length > 0) {
+          // Get the most recent rack position
+          const latestRack = storedRacks[storedRacks.length - 1]
+          if (latestRack.position) {
+            currentPosition = latestRack.position
+          }
+        }
+        
+        // If still no position, preserve the existing config's position
+        if (!currentPosition && existingConfig.position) {
+          currentPosition = existingConfig.position
+        }
+      }
+    } catch (error) {
+      console.warn('Could not retrieve current rack position for update:', error)
+      // Preserve existing position if available
+      if (existingConfig.position) {
+        currentPosition = existingConfig.position
+      }
+    }
+
     // Create updated configuration preserving original metadata
     const updatedConfig = {
       ...rackConfig,
@@ -129,7 +186,9 @@ const AppSavedConfigurations = (props) => {
       name: existingConfig.name,
       savedAt: existingConfig.savedAt, // Keep original save time
       updatedAt: new Date().toISOString(), // Add update timestamp
-      totalHeight: calculateTotalHeight(rackConfig)
+      totalHeight: calculateTotalHeight(rackConfig),
+      // Include position if available
+      ...(currentPosition && { position: currentPosition })
     }
     
     // Update the configuration in the array

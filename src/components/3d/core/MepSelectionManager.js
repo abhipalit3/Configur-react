@@ -25,7 +25,8 @@ export class MepSelectionManager {
       ductwork: null,
       piping: null,
       conduits: null,
-      cableTrays: null
+      cableTrays: null,
+      tradeRack: null
     }
     
     // Group name mappings
@@ -149,6 +150,13 @@ export class MepSelectionManager {
           mepType: this.groupMappings[child.name]
         })
       }
+      // Also check for trade racks by userData.type
+      if (child.userData && child.userData.type === 'tradeRack' && child.userData.selectable) {
+        allMepGroups.push({
+          group: child,
+          mepType: 'tradeRack'
+        })
+      }
     })
     
     if (allMepGroups.length === 0) return null
@@ -156,14 +164,33 @@ export class MepSelectionManager {
     // Collect all intersections from all MEP groups
     const allIntersects = []
     allMepGroups.forEach(({ group, mepType }) => {
-      const groupIntersects = this.raycaster.intersectObjects(group.children, true)
-      groupIntersects.forEach(intersect => {
-        allIntersects.push({
-          ...intersect,
-          mepType,
-          group
+      if (mepType === 'tradeRack') {
+        // For trade racks, be more selective - only intersect with actual mesh children, not the whole group
+        const rackMeshes = []
+        group.traverse((child) => {
+          if (child.isMesh && child.visible) {
+            rackMeshes.push(child)
+          }
         })
-      })
+        const groupIntersects = this.raycaster.intersectObjects(rackMeshes, false) // Don't traverse further
+        groupIntersects.forEach(intersect => {
+          allIntersects.push({
+            ...intersect,
+            mepType,
+            group
+          })
+        })
+      } else {
+        // For other MEP types, use the existing logic
+        const groupIntersects = this.raycaster.intersectObjects(group.children, true)
+        groupIntersects.forEach(intersect => {
+          allIntersects.push({
+            ...intersect,
+            mepType,
+            group
+          })
+        })
+      }
     })
     
     if (allIntersects.length === 0) return null
@@ -214,6 +241,17 @@ export class MepSelectionManager {
           }
           if (cableTrayGroup && cableTrayGroup !== handler.selectedCableTrayGroup) {
             handler.selectCableTray(cableTrayGroup)
+          }
+          break
+          
+        case 'tradeRack':
+          // Find the trade rack group from the intersected object
+          let tradeRackGroup = object
+          while (tradeRackGroup && tradeRackGroup.userData?.type !== 'tradeRack') {
+            tradeRackGroup = tradeRackGroup.parent
+          }
+          if (tradeRackGroup && tradeRackGroup !== handler.selectedRack) {
+            handler.selectObject(tradeRackGroup)
           }
           break
       }
@@ -285,6 +323,18 @@ export class MepSelectionManager {
             handler.setHoverCableTray?.(cableTrayGroup)
           }
           break
+          
+        case 'tradeRack':
+          // Find the trade rack group from the intersected object
+          let tradeRackGroup = object
+          while (tradeRackGroup && tradeRackGroup.userData?.type !== 'tradeRack') {
+            tradeRackGroup = tradeRackGroup.parent
+          }
+          if (tradeRackGroup && tradeRackGroup !== handler.selectedRack) {
+            handler.setHover?.(tradeRackGroup)
+            this.renderer.domElement.style.cursor = 'pointer'
+          }
+          break
       }
     } catch (error) {
       console.error(`Error setting hover for ${mepType}:`, error)
@@ -324,6 +374,9 @@ export class MepSelectionManager {
               break
             case 'cableTrays':
               handler.deselectCableTray?.()
+              break
+            case 'tradeRack':
+              handler.deselectAll?.()
               break
           }
         } catch (error) {
@@ -386,6 +439,9 @@ export class MepSelectionManager {
               
             case 'cableTrays':
               handler.clearHoverCableTray?.()
+              break
+            case 'tradeRack':
+              handler.clearHover?.()
               break
           }
         } catch (error) {

@@ -68,6 +68,20 @@ export function buildRackScene(scene, params, mats) {
   // rack only - shell will be managed separately
   const rack = buildRack(params, mats.postMaterial, mats.longBeamMaterial, mats.transBeamMaterial, snapPoints)
   rack.userData.isGenerated = true
+  rack.userData.type = 'tradeRack'
+  rack.userData.selectable = true
+  rack.userData.rackId = params.id || `rack_${Date.now()}`
+  rack.userData.configuration = { ...params } // Store configuration for access
+  
+  // Set initial position if provided in params
+  if (params.position) {
+    rack.position.set(
+      params.position.x || 0,
+      params.position.y || 0,
+      params.position.z || 0
+    )
+  }
+  
   scene.add(rack)
 
   // Note: Ductwork is now handled by DuctworkRenderer.js

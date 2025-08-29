@@ -21,6 +21,7 @@ import { CableTrayRenderer } from '../cable-trays'
 import { CableTrayEditor } from '../cable-trays/CableTrayEditor'
 import { createMaterials, loadTextures, disposeMaterials } from '../materials'
 import { initializeMepSelectionManager } from '../core/MepSelectionManager.js'
+import { TradeRackInteraction } from '../trade-rack/TradeRackInteraction.js'
 import '../styles/measurement-styles.css'
 
 
@@ -31,6 +32,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   const pipingRendererRef = useRef(null)
   const conduitRendererRef = useRef(null)
   const cableTrayRendererRef = useRef(null)
+  const tradeRackInteractionRef = useRef(null)
   const cameraRef = useRef(null)
   const rendererRef = useRef(null)
   
@@ -60,6 +62,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   const [selectedCableTray, setSelectedCableTray] = useState(null)
   const [showCableTrayEditor, setShowCableTrayEditor] = useState(false)
   const [skipCableTrayRecreation, setSkipCableTrayRecreation] = useState(false)
+  
+  // State for trade rack selection
+  const [selectedTradeRack, setSelectedTradeRack] = useState(null)
   
   // State for rack parameters (to access in render)
   const [rackParams, setRackParams] = useState({
@@ -1099,12 +1104,32 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     const mepSelectionManager = initializeMepSelectionManager(scene, camera, renderer)
     console.log('🎯 MEP Selection Manager initialized in ThreeScene at end')
 
+    // Initialize trade rack interaction system AFTER MEP manager
+    const tradeRackInteraction = new TradeRackInteraction(scene, camera, renderer, controls)
+    tradeRackInteractionRef.current = tradeRackInteraction
+    
+    // Add event listeners for trade rack selection
+    const handleTradeRackSelected = (event) => {
+      console.log('🎯 Trade rack selected event:', event.detail)
+      setSelectedTradeRack(event.detail.rack)
+    }
+    
+    const handleTradeRackDeselected = () => {
+      console.log('❌ Trade rack deselected event')
+      setSelectedTradeRack(null)
+    }
+    
+    document.addEventListener('tradeRackSelected', handleTradeRackSelected)
+    document.addEventListener('tradeRackDeselected', handleTradeRackDeselected)
+
     // Cleanup
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keydown', onLog)
       window.removeEventListener('resize', onResize)
       viewCubeRenderer.domElement.removeEventListener('click', onViewCubeClick)
+      document.removeEventListener('tradeRackSelected', handleTradeRackSelected)
+      document.removeEventListener('tradeRackDeselected', handleTradeRackDeselected)
       
       // Cleanup selection polling
       if (pollSelection) {
@@ -1118,6 +1143,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       
       if (measurementToolRef.current) {
         measurementToolRef.current.dispose()
+      }
+      if (tradeRackInteractionRef.current) {
+        tradeRackInteractionRef.current.dispose()
       }
       // Clean up global references
       if (window.mepSelectionManager) {
