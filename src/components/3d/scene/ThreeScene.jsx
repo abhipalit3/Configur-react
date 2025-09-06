@@ -6,12 +6,9 @@
 
 import React, { useRef, useEffect, useState } from 'react'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { dispose } from '../core/utils.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { ViewCube } from '../controls/ViewCube.js'
-import {buildRackScene} from '../trade-rack/buildRack.js'
 import { MeasurementTool } from '../controls/MeasurementTool.js'
 import { DuctworkRenderer, DuctEditor } from '../ductwork'
 import { PipingRenderer } from '../piping'
@@ -19,10 +16,44 @@ import { PipeEditor } from '../piping'
 import { ConduitRenderer, ConduitEditorUI } from '../conduits'
 import { CableTrayRenderer } from '../cable-trays'
 import { CableTrayEditor } from '../cable-trays/CableTrayEditor'
-import { createMaterials, loadTextures, disposeMaterials } from '../materials'
+import { disposeMaterials } from '../materials'
 import { initializeMepSelectionManager } from '../core/MepSelectionManager.js'
 import { TradeRackInteraction } from '../trade-rack/TradeRackInteraction.js'
 import '../styles/measurement-styles.css'
+
+// Import helper functions
+import {
+  initializeRenderer,
+  initializeScene,
+  setupLighting,
+  setupGrids,
+  initializeCamera,
+  initializeControls,
+  setupEnvironment,
+  setupKeyboardControls,
+  setupCameraLogger,
+  setupResizeHandler,
+  startAnimationLoop,
+  centerOrbitOnContent,
+  updateOrthoCamera
+} from './sceneSetup'
+import { initializeRackScene } from './rackBuilder'
+import {
+  initializeMepRenderers,
+  setupMepInteractions,
+  setupMepSnapPoints,
+  updateAllMepItems,
+  initializeMepSelection,
+  setupMepEditorCallbacks,
+  setupMepTierUpdates,
+  setupInitialMepUpdate,
+  cleanupMepRenderers
+} from './mepManagement'
+import {
+  createEditorHandlers,
+  createSelectionHandlers,
+  setupEditorCallbacks
+} from './editorManagement'
 
 
 export default function ThreeScene({ isMeasurementActive, mepItems = [], initialRackParams, initialBuildingParams, initialViewMode = '3D', onSceneReady }) {
@@ -76,82 +107,46 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     beamSize: 2,
     postSize: 2
   })
+  
+  // State for editor handlers
+  const [editorHandlers, setEditorHandlers] = useState(null)
 
   useEffect(() => {
-    // console.log('🚀 Building scene with parameters:', { initialRackParams, initialBuildingParams })
+    // Store cleanup functions
+    const cleanupFunctions = []
+    let materials = null
     
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setPixelRatio(window.devicePixelRatio)
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.outputColorSpace = THREE.SRGBColorSpace
-    renderer.physicallyCorrectLights = true
-    mountRef.current.appendChild(renderer.domElement)
-    rendererRef.current = renderer // Store for duct editor
-
-    // Scene & Lights
-    const scene = new THREE.Scene()
-    scene.background = null // Transparent background
-
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5)
-    scene.add(ambient)
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1)
-    dirLight.position.set(10, 20, 10)
-    dirLight.castShadow = true
-    scene.add(dirLight)
-
-    const gridHelper = new THREE.GridHelper(100, 100, 0x000000, 0x000000)
-    gridHelper.material.opacity = 0.15
-    gridHelper.material.transparent = true
-    gridHelper.material.depthWrite = false
-    gridHelper.renderOrder = -1
-    scene.add(gridHelper)
-
-    function createBackgroundGrid(size = 1000, step = 10, color = 0x000000) {
-      const lines = []
-      for (let i = -size; i <= size; i += step) {
-        lines.push(-size, 0, i, size, 0, i)
-        lines.push(i, 0, -size, i, 0, size)
-      }
-      const geometry = new THREE.BufferGeometry()
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(lines.flat(), 3))
-      const material = new THREE.LineBasicMaterial({ color, opacity: 0.3, transparent: true, depthWrite: false })
-      const lineSegments = new THREE.LineSegments(geometry, material)
-      lineSegments.renderOrder = -2
-      scene.add(lineSegments)
-    }
-    createBackgroundGrid()
-
-    function updateOrthoCamera(camera, viewHeight) {
-      const aspect = window.innerWidth / window.innerHeight
-      const halfHeight = viewHeight / 2
-      const halfWidth = halfHeight * aspect
-      camera.left = -halfWidth
-      camera.right = halfWidth
-      camera.top = halfHeight
-      camera.bottom = -halfHeight
-      camera.updateProjectionMatrix()
-    }
-
-    // Camera & Controls
-    const aspect = window.innerWidth / window.innerHeight
-    const d = 10
-    const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 0.01, 100)
-    camera.zoom = 2
-    camera.position.set(9.238, 7.435, 6.181)
-    cameraRef.current = camera // Store for duct editor
-    camera.lookAt(0, 0, 0)
-
-    const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableDamping = true
-    controls.dampingFactor = 0.1
-    controls.minZoom = 1.5
-    controls.maxZoom = 100
-    controls.keys = { LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' }
-    controls.target.set(-1.731, 2.686, -1.376)
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }
+    // Initialize renderer using helper
+    const renderer = initializeRenderer(mountRef.current)
+    rendererRef.current = renderer
+    
+    // Initialize scene using helper
+    const scene = initializeScene()
+    
+    // Setup lighting using helper
+    const { ambient, dirLight } = setupLighting(scene)
+    
+    // Setup grids using helper
+    const { gridHelper, backgroundGrid } = setupGrids(scene)
+    
+    // Initialize camera using helper
+    const camera = initializeCamera()
+    cameraRef.current = camera
+    
+    // Initialize controls using helper
+    const controls = initializeControls(camera, renderer.domElement)
+    
+    // Setup environment using helper
+    setupEnvironment(scene, renderer)
+    
+    // Setup keyboard controls using helper
+    cleanupFunctions.push(setupKeyboardControls(controls))
+    
+    // Setup camera logger using helper
+    cleanupFunctions.push(setupCameraLogger(camera, controls))
+    
+    // Setup resize handler using helper
+    cleanupFunctions.push(setupResizeHandler(camera, renderer))
     
     // Save camera state when user interacts with controls
     let saveTimeout
@@ -165,145 +160,23 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       }, 500) // Save 500ms after user stops moving camera
     }
     controls.addEventListener('change', onControlsChange)
-
-    let currentMode = 'default'
-    const onKeyDown = (evt) => {
-      switch (evt.key.toLowerCase()) {
-        case 'p':
-          controls.mouseButtons.LEFT = THREE.MOUSE.PAN; currentMode = 'pan'; break
-        case 'o':
-          controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE; currentMode = 'orbit'; break
-        case 'escape':
-          controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }
-          currentMode = 'default'; break
-      }
-      controls.update()
-    }
-    window.addEventListener('keydown', onKeyDown)
     controls.update()
-
-    // Environment - fixed sigmaRadians value to avoid clipping warning
-    const pmremGenerator = new THREE.PMREMGenerator(renderer)
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture
-    pmremGenerator.dispose() // Clean up to avoid memory leaks
-
-    // Camera Logger
-    const logCamera = () => {
-    }
-    const onLog = (e) => { if (e.code === 'KeyL') logCamera() }
-    window.addEventListener('keydown', onLog)
-
-    // Materials
-    const textures = loadTextures()
-    const materials = createMaterials(textures)
-    const {
-      floorMaterial,
-      postMaterial,
-      longBeamMaterial,
-      transBeamMaterial,
-      wallMaterial,
-      ceilingMaterial,
-      roofMaterial,
-      shellBeamMaterial,
-      ductMat
-    } = materials
-
-    /* ---------- parameters ---------- */
-    // Use passed rack and building parameters, with defaults as fallback
-    // console.log('🔧 Scene building with rack params:', initialRackParams)
-    // console.log('🔧 Scene building with building params:', initialBuildingParams)
     
-    const params = {
-    // Building parameters
-    corridorWidth  : initialBuildingParams?.corridorWidth || 10,
-    corridorHeight : initialBuildingParams?.corridorHeight || 15,
-    ceilingHeight  : initialBuildingParams?.ceilingHeight || 9,
-    ceilingDepth   : initialBuildingParams?.ceilingDepth || 2,
-    slabDepth      : initialBuildingParams?.slabDepth || 4,
-    wallThickness  : initialBuildingParams?.wallThickness || 6,
-
-    // Rack parameters - use passed props or defaults
-    bayCount  : initialRackParams?.bayCount || 4,
-    bayWidth  : initialRackParams?.bayWidth || 3,
-    depth     : initialRackParams?.depth || 4,
-
-    topClearance : initialRackParams?.topClearance || 15,
-    // Handle both old postSize format and new columnSizes + columnType format
-    postSize     : initialRackParams?.columnSizes && initialRackParams?.columnType 
-                   ? initialRackParams.columnSizes[initialRackParams.columnType] 
-                   : (initialRackParams?.postSize || 2),
-    // Handle both old beamSize format and new beamSizes + beamType format
-    beamSize     : initialRackParams?.beamSizes && initialRackParams?.beamType 
-                   ? initialRackParams.beamSizes[initialRackParams.beamType] 
-                   : (initialRackParams?.beamSize || 2),
-
-    tierCount    : initialRackParams?.tierCount || 2,
-    tierHeights  : initialRackParams?.tierHeights || [2, 2],   // ft  (parallel array #1)
-
-    // Pass new parameter structure for beam/column type selection
-    beamSizes    : initialRackParams?.beamSizes,
-    beamType     : initialRackParams?.beamType,
-    columnSizes  : initialRackParams?.columnSizes,
-    columnType   : initialRackParams?.columnType,
-
-    /* per-tier duct settings – disabled to use DuctworkRenderer instead */
-    ductEnabled  : [false, false],
-    ductWidths   : [18, 18], // in  (parallel array #2)
-    ductHeights  : [16, 16], // in  (parallel array #3)
-    ductOffsets  : [ 0,  0]  // in  (parallel array #4)
-    };
-
-    const mats = {
-        postMaterial,
-        longBeamMaterial,
-        transBeamMaterial,
-        wallMaterial,
-        ceilingMaterial,
-        floorMaterial,
-        roofMaterial,
-        shellBeamMaterial,
-        ductMat
-        };
+    // Initialize rack scene using helper
+    const rackData = initializeRackScene(scene, initialRackParams, initialBuildingParams)
+    materials = rackData.materials
+    const snapPoints = rackData.snapPoints
     
-    const snapPoints = buildRackScene(scene, params, mats)
-    
-    // Update rack parameters state for use in render
-    setRackParams({
-      tierCount: params.tierCount,
-      tierHeights: params.tierHeights,
-      bayCount: params.bayCount,
-      bayWidth: params.bayWidth,
-      depth: params.depth,
-      beamSize: params.beamSize,
-      postSize: params.postSize
-    })
+    // Update rack params state
+    setRackParams(rackData.rackParams)
 
     // Notify parent that scene is ready
     if (onSceneReady) {
-      onSceneReady(scene, mats, snapPoints)
+      onSceneReady(scene, materials, snapPoints)
     }
 
-    // Center the orbit controls on the generated content
-    const centerOrbitOnContent = () => {
-      const bbox = new THREE.Box3()
-      
-      // Only include generated objects (rack and MEP components)
-      scene.traverse((object) => {
-        if (object.userData.isGenerated && object.isMesh) {
-          const objectBBox = new THREE.Box3().setFromObject(object)
-          bbox.union(objectBBox)
-        }
-      })
-
-      if (!bbox.isEmpty()) {
-        const center = bbox.getCenter(new THREE.Vector3())
-        controls.target.copy(center)
-        controls.update()
-      }
-    }
-
-    // Set initial orbit center
-    centerOrbitOnContent()
+    // Center the orbit controls on the generated content using helper
+    centerOrbitOnContent(scene, controls)
 
     const measurementTool = new MeasurementTool(
       scene,
@@ -582,171 +455,66 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       }
     }, 100) // Small delay to ensure scene is fully initialized
 
-    // Initialize ductwork renderer with the same rack parameters used by buildRack
-    const ductworkRenderer = new DuctworkRenderer(scene, {
-      bayCount: params.bayCount,
-      bayWidth: params.bayWidth,
-      depth: params.depth,
-      rackWidth: params.depth, // Map depth to rackWidth for clarity
-      tierCount: params.tierCount,
-      tierHeights: params.tierHeights, // These are already numbers in feet
-      topClearance: params.topClearance,
-      beamSize: params.beamSize,
-      postSize: params.postSize,
-      columnSize: params.postSize, // Also map postSize to columnSize for consistency
-      columnType: 'standard' // Default column type
-    })
-    ductworkRendererRef.current = ductworkRenderer
+    // Initialize all MEP renderers using helper
+    const mepRenderers = initializeMepRenderers(scene, camera, renderer, controls, rackData.fullParams)
     
-    // Make ductwork renderer globally accessible
-    window.ductworkRendererInstance = ductworkRenderer
+    // Store renderers in refs for component access
+    ductworkRendererRef.current = mepRenderers.ductwork
+    pipingRendererRef.current = mepRenderers.piping
+    conduitRendererRef.current = mepRenderers.conduit
+    cableTrayRendererRef.current = mepRenderers.cableTray
     
-    // Initialize piping renderer with the same parameters
-    const pipingRenderer = new PipingRenderer(
-      scene,
-      camera, 
-      renderer,
-      controls,
-      ductworkRenderer.snapLineManager // Share snap line manager with ductwork
-    )
-    pipingRendererRef.current = pipingRenderer
+    // Setup interactions for all MEP renderers using helper
+    setupMepInteractions(mepRenderers, camera, renderer, controls)
     
-    // Make piping renderer globally accessible
-    window.pipingRendererInstance = pipingRenderer
-    
-    // Update piping renderer with rack parameters
-    pipingRenderer.updateRackParams({
-      bayCount: params.bayCount,
-      bayWidth: params.bayWidth,
-      depth: params.depth,
-      rackWidth: params.depth,
-      tierCount: params.tierCount,
-      tierHeights: params.tierHeights,
-      topClearance: params.topClearance,
-      beamSize: params.beamSize,
-      postSize: params.postSize
-    })
-
-    // Initialize conduit renderer with the same parameters
-    const conduitRenderer = new ConduitRenderer(
-      scene,
-      camera, 
-      renderer,
-      controls,
-      ductworkRenderer.snapLineManager // Share snap line manager with ductwork and piping
-    )
-    conduitRendererRef.current = conduitRenderer
-    
-    // Make conduit renderer globally accessible
-    window.conduitRendererInstance = conduitRenderer
-    
-    // Update conduit renderer with rack parameters
-    conduitRenderer.updateRackParams({
-      bayCount: params.bayCount,
-      bayWidth: params.bayWidth,
-      depth: params.depth,
-      rackWidth: params.depth,
-      tierCount: params.tierCount,
-      tierHeights: params.tierHeights,
-      topClearance: params.topClearance,
-      beamSize: params.beamSize,
-      postSize: params.postSize
-    })
-
-    // Initialize cable tray renderer with the same parameters
-    const cableTrayRenderer = new CableTrayRenderer(
-      scene,
-      ductworkRenderer.snapLineManager // Share snap line manager with other MEP systems
-    )
-    cableTrayRendererRef.current = cableTrayRenderer
-    
-    // Make cable tray renderer globally accessible
-    window.cableTrayRendererInstance = cableTrayRenderer
-    
-    // Setup ductwork interactions
-    ductworkRenderer.setupInteractions(camera, renderer, controls)
-    
-    // Setup piping interactions
-    pipingRenderer.setupInteractions(camera, renderer, controls)
-
-    // Setup conduit interactions
-    conduitRenderer.setupInteractions(camera, renderer, controls)
-
-    // Setup cable tray interactions
-    cableTrayRenderer.setupInteractions(camera, renderer, controls)
-
-    // Provide access to snap points for measurement tool
-    if (ductworkRenderer.ductGeometry) {
-      ductworkRenderer.ductGeometry.setSnapPoints(snapPoints)
-    }
-    if (pipingRenderer.pipeGeometry) {
-      pipingRenderer.pipeGeometry.setSnapPoints(snapPoints)
-    }
-    if (conduitRenderer.conduitGeometry) {
-      conduitRenderer.conduitGeometry.setSnapPoints(snapPoints)
-    }
-    if (cableTrayRenderer.cableTrayGeometry) {
-      cableTrayRenderer.cableTrayGeometry.setSnapPoints(snapPoints)
-    }
+    // Setup snap points for all MEP renderers using helper
+    setupMepSnapPoints(mepRenderers, snapPoints)
 
     
-    // Setup duct editor callbacks
-    const handleDuctSelection = () => {
-      const selected = ductworkRenderer.ductInteraction?.getSelectedDuct()
-      setSelectedDuct(selected)
-      setShowDuctEditor(!!selected)
+    // Create editor handlers using helper
+    const editorStates = {
+      selectedDuct,
+      selectedPipe,
+      selectedConduit,
+      selectedCableTray
     }
     
-    // Setup pipe editor callbacks
-    const handlePipeSelection = () => {
-      const selected = pipingRenderer.pipeInteraction?.getSelectedPipe()
-      setSelectedPipe(selected)
-      setShowPipeEditor(!!selected)
+    const editorSetters = {
+      setSelectedDuct,
+      setShowDuctEditor,
+      setSkipDuctRecreation,
+      setSelectedPipe,
+      setShowPipeEditor,
+      setSkipPipeRecreation,
+      setSelectedConduit,
+      setShowConduitEditor,
+      setSkipConduitRecreation,
+      setSelectedCableTray,
+      setShowCableTrayEditor,
+      setSkipCableTrayRecreation
     }
     
-    // Setup conduit editor callbacks
-    const handleConduitSelection = () => {
-      const selected = conduitRenderer.conduitInteraction?.getSelectedConduit()
-      setSelectedConduit(selected)
-      setShowConduitEditor(!!selected)
-    }
+    const editorHandlersInstance = createEditorHandlers(mepRenderers, editorStates, editorSetters)
+    setEditorHandlers(editorHandlersInstance)
+    const selectionHandlers = createSelectionHandlers(mepRenderers, editorSetters)
     
-    // Setup cable tray editor callbacks
-    const handleCableTraySelection = () => {
-      const selected = cableTrayRenderer.cableTrayInteraction?.getSelectedCableTray()
-      setSelectedCableTray(selected)
-      setShowCableTrayEditor(!!selected)
-    }
+    // Setup editor callbacks polling using helper
+    const cleanupEditorCallbacks = setupMepEditorCallbacks(mepRenderers, selectionHandlers)
+    cleanupFunctions.push(cleanupEditorCallbacks)
     
-    // Poll for duct, pipe, conduit, and cable tray selection changes
-    const pollSelection = setInterval(() => {
-      handleDuctSelection()
-      handlePipeSelection()
-      handleConduitSelection()
-      handleCableTraySelection()
-    }, 100)
+    // Setup tier information updates using helper
+    const cleanupTierUpdates = setupMepTierUpdates(mepRenderers, mepItems)
+    cleanupFunctions.push(cleanupTierUpdates)
     
-    // Periodically update tier information for all ducts
-    const pollTierInfo = setInterval(() => {
-      if (ductworkRenderer.ductInteraction && mepItems.length > 0) {
-        ductworkRenderer.ductInteraction.updateAllDuctTierInfo()
-      }
-      // Update pipe tier information (now with Above/Below rack detection)
-      if (pipingRenderer.pipeInteraction && mepItems.length > 0) {
-        pipingRenderer.pipeInteraction.updateAllPipeTierInfo()
-      }
-      
-      // Update cable tray tier information
-      if (cableTrayRenderer.cableTrayInteraction && mepItems.length > 0) {
-        cableTrayRenderer.cableTrayInteraction.updateAllCableTrayTierInfo()
-      }
-    }, 5000) // Update every 5 seconds
+    // Setup editor callbacks for renderers using helper
+    setupEditorCallbacks(mepRenderers, editorHandlersInstance)
     
+    // Legacy handlers for backward compatibility (will be removed in future steps)
     const handleDuctEditorSave = (newDimensions) => {
       
-      if (ductworkRenderer.ductInteraction) {
+      if (mepRenderers.ductwork?.ductInteraction) {
         // Update the 3D duct
-        ductworkRenderer.ductInteraction.updateDuctDimensions(newDimensions)
+        mepRenderers.ductwork.ductInteraction.updateDuctDimensions(newDimensions)
         
         // Update localStorage (MEP panel data)
         try {
@@ -784,9 +552,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Pipe editor handlers
     const handlePipeEditorSave = (newDimensions) => {
       
-      if (pipingRenderer.pipeInteraction) {
+      if (mepRenderers.piping?.pipeInteraction) {
         // Update the 3D pipe
-        pipingRenderer.pipeInteraction.updatePipeDimensions(newDimensions)
+        mepRenderers.piping.pipeInteraction.updatePipeDimensions(newDimensions)
         
         // Update localStorage (MEP panel data)
         try {
@@ -859,9 +627,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     
     const handleConduitEditorSave = (newDimensions) => {
       // console.log(`⚡ ThreeScene: handleConduitEditorSave called with:`, newDimensions)
-      if (conduitRenderer.conduitInteraction) {
+      if (mepRenderers.conduit?.conduitInteraction) {
         // Update the 3D conduit with new dimensions
-        conduitRenderer.conduitInteraction.updateConduitDimensions(newDimensions)
+        mepRenderers.conduit.conduitInteraction.updateConduitDimensions(newDimensions)
         
         // Update MEP items in localStorage similar to pipes and ducts
         try {
@@ -999,22 +767,16 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     }
     
     // Set callbacks on duct interaction
-    if (ductworkRenderer.ductInteraction) {
-      ductworkRenderer.ductInteraction.setDuctEditorCallbacks(
+    if (mepRenderers.ductwork?.ductInteraction) {
+      mepRenderers.ductwork.ductInteraction.setDuctEditorCallbacks(
         handleDuctEditorSave,
         handleDuctEditorCancel
       )
     }
     
-    // Initial ductwork, piping, conduit, and cable tray update
-    setTimeout(() => {
-      if (mepItems && mepItems.length > 0) {
-        ductworkRenderer.updateDuctwork(mepItems)
-        pipingRenderer.updatePiping(mepItems)
-        conduitRenderer.updateConduits(mepItems)
-        cableTrayRenderer.updateCableTrays(mepItems)
-      }
-    }, 200) // Small delay to ensure everything is ready
+    // Setup initial MEP update using helper
+    const cleanupInitialUpdate = setupInitialMepUpdate(mepRenderers, mepItems)
+    cleanupFunctions.push(cleanupInitialUpdate)
 
     // Enhanced ViewCube Setup
     const viewCubeScene    = new THREE.Scene()
@@ -1073,36 +835,36 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     viewCubeRenderer.domElement.addEventListener('click', onViewCubeClick)
 
     // Resize & Animate
-    const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight
-      camera.updateProjectionMatrix()
-      renderer.setSize(window.innerWidth, window.innerHeight)
-    }
-    window.addEventListener('resize', onResize)
-
-    ;(function animate() {
-      requestAnimationFrame(animate)
-      controls.update()
+    // Animation loop will be started later after ViewCube setup
+      
+    // Start animation loop using helper
+    const stopAnimation = startAnimationLoop(renderer, scene, camera, controls, () => {
+      // Frame callback
       updateOrthoCamera(camera, 20)
-      renderer.render(scene, camera)
       
-      // Apply inverse rotation to ViewCube so it shows correct faces
-      // When camera rotates right, ViewCube should rotate left to show the face we're looking from
-      const inverseQuaternion = camera.quaternion.clone().invert()
-      viewCube.quaternion.copy(inverseQuaternion)
+      // Update ViewCube if it exists
+      if (viewCube && viewCubeCamera && viewCubeRenderer) {
+        // Apply inverse rotation to ViewCube
+        const inverseQuaternion = camera.quaternion.clone().invert()
+        viewCube.quaternion.copy(inverseQuaternion)
+        
+        // Keep ViewCube camera looking at the ViewCube
+        viewCubeCamera.position.set(0, 0, 5)
+        viewCubeCamera.up.copy(camera.up)
+        viewCubeCamera.lookAt(0, 0, 0)
+        
+        viewCubeRenderer.render(viewCubeScene, viewCubeCamera)
+      }
       
-      // Keep ViewCube camera looking at the ViewCube with same up vector as main camera
-      viewCubeCamera.position.set(0, 0, 5)
-      viewCubeCamera.up.copy(camera.up)
-      viewCubeCamera.lookAt(0, 0, 0)
-      
-      viewCubeRenderer.render(viewCubeScene, viewCubeCamera)
-      measurementTool.updateLabels()
-    })()
+      // Update measurement labels if tool exists
+      if (measurementTool) {
+        measurementTool.updateLabels()
+      }
+    })
+    cleanupFunctions.push(stopAnimation)
 
-    // Initialize centralized MEP selection manager AFTER all interactions are set up
-    const mepSelectionManager = initializeMepSelectionManager(scene, camera, renderer)
-    console.log('🎯 MEP Selection Manager initialized in ThreeScene at end')
+    // Initialize centralized MEP selection manager using helper
+    const mepSelectionManager = initializeMepSelection(scene, camera, renderer)
 
     // Initialize trade rack interaction system AFTER MEP manager
     const tradeRackInteraction = new TradeRackInteraction(scene, camera, renderer, controls)
@@ -1124,22 +886,14 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
 
     // Cleanup
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keydown', onLog)
-      window.removeEventListener('resize', onResize)
+      // Call all cleanup functions from helpers
+      cleanupFunctions.forEach(cleanup => cleanup && cleanup())
+      
+      // Remove other event listeners
+      controls.removeEventListener('change', onControlsChange)
       viewCubeRenderer.domElement.removeEventListener('click', onViewCubeClick)
       document.removeEventListener('tradeRackSelected', handleTradeRackSelected)
       document.removeEventListener('tradeRackDeselected', handleTradeRackDeselected)
-      
-      // Cleanup selection polling
-      if (pollSelection) {
-        clearInterval(pollSelection)
-      }
-      
-      // Cleanup tier info polling
-      if (pollTierInfo) {
-        clearInterval(pollTierInfo)
-      }
       
       if (measurementToolRef.current) {
         measurementToolRef.current.dispose()
@@ -1147,11 +901,10 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       if (tradeRackInteractionRef.current) {
         tradeRackInteractionRef.current.dispose()
       }
-      // Clean up global references
-      if (window.mepSelectionManager) {
-        window.mepSelectionManager.dispose()
-        delete window.mepSelectionManager
-      }
+      // Cleanup MEP renderers using helper
+      cleanupMepRenderers(mepRenderers)
+      
+      // Clean up other global references
       if (window.measurementToolInstance) {
         delete window.measurementToolInstance
       }
@@ -1217,21 +970,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       return
     }
     
-    if (ductworkRendererRef.current && mepItems) {
-      ductworkRendererRef.current.updateDuctwork(mepItems)
+    // Update all MEP items using helper
+    const mepRenderers = {
+      ductwork: ductworkRendererRef.current,
+      piping: pipingRendererRef.current,
+      conduit: conduitRendererRef.current,
+      cableTray: cableTrayRendererRef.current
     }
     
-    if (pipingRendererRef.current && mepItems) {
-      pipingRendererRef.current.updatePiping(mepItems)
-    }
-
-    if (conduitRendererRef.current && mepItems && !skipConduitRecreation) {
-      conduitRendererRef.current.updateConduits(mepItems)
-    }
-
-    if (cableTrayRendererRef.current && mepItems && !skipCableTrayRecreation) {
-      cableTrayRendererRef.current.updateCableTrays(mepItems)
-    }
+    updateAllMepItems(mepRenderers, mepItems)
   }, [mepItems, skipDuctRecreation, skipPipeRecreation, skipConduitRecreation, skipCableTrayRecreation])
 
   const handleAxisToggle = (axis) => {
@@ -1340,406 +1087,54 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       )}
       
       {/* Duct Editor */}
-      {showDuctEditor && selectedDuct && cameraRef.current && rendererRef.current && (
+      {showDuctEditor && selectedDuct && cameraRef.current && rendererRef.current && editorHandlers && (
         <DuctEditor
           selectedDuct={selectedDuct}
           camera={cameraRef.current}
           renderer={rendererRef.current}
           visible={showDuctEditor}
           rackParams={rackParams}
-          onSave={(dimensions) => {
-            
-            // Set flag to prevent duct recreation
-            setSkipDuctRecreation(true)
-            
-            if (ductworkRendererRef.current?.ductInteraction) {
-              // First update the selected duct's userData to ensure consistency
-              if (selectedDuct?.userData?.ductData) {
-                selectedDuct.userData.ductData = {
-                  ...selectedDuct.userData.ductData,
-                  ...dimensions
-                }
-              }
-              
-              // Update the 3D duct
-              ductworkRendererRef.current.ductInteraction.updateDuctDimensions(dimensions)
-              
-              // Update localStorage (MEP panel data)
-              try {
-                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-                const selectedDuctData = selectedDuct?.userData?.ductData
-                
-                if (selectedDuctData) {
-                  
-                  // Find and update the matching item
-                  // Handle ID matching - selectedDuctData.id might have _0, _1 suffix for multiple ducts
-                  const baseId = selectedDuctData.id.toString().split('_')[0]
-                  
-                  const updatedItems = storedMepItems.map(item => {
-                    const itemBaseId = item.id.toString().split('_')[0]
-                    
-                    if (itemBaseId === baseId) {
-                      // Include current duct position in the update
-                      const currentPosition = {
-                        x: selectedDuct.position.x,
-                        y: selectedDuct.position.y, 
-                        z: selectedDuct.position.z
-                      }
-                      
-                      const updatedItem = { 
-                        ...item, 
-                        ...dimensions,
-                        position: currentPosition
-                      }
-                      return updatedItem
-                    }
-                    return item
-                  })
-                  
-                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-                  
-                  // IMPORTANT: Also update the manifest to ensure consistency
-                  if (window.updateMEPItemsManifest) {
-                    window.updateMEPItemsManifest(updatedItems)
-                  } else {
-                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-                  }
-                  
-                  // Dispatch custom event to notify MEP panel of changes
-                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-                    detail: { updatedItems, updatedDuctId: selectedDuctData.id }
-                  }))
-                  
-                  // Also try multiple refresh methods
-                  if (window.refreshMepPanel) {
-                    window.refreshMepPanel()
-                  }
-                  
-                  // Force re-render by dispatching storage event
-                  window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'configurMepItems',
-                    newValue: JSON.stringify(updatedItems),
-                    storageArea: localStorage
-                  }))
-                }
-              } catch (error) {
-                console.error('Error updating MEP items:', error)
-              }
-            }
-            
-            // Don't close the editor immediately - let user click away or edit another duct
-            // setShowDuctEditor(false)
-          }}
-          onCancel={() => {
-            setShowDuctEditor(false)
-          }}
+          onSave={editorHandlers.duct.save}
+          onCancel={editorHandlers.duct.cancel}
         />
       )}
       
       {/* Pipe Editor */}
-      {showPipeEditor && selectedPipe && cameraRef.current && rendererRef.current && (
+      {showPipeEditor && selectedPipe && cameraRef.current && rendererRef.current && editorHandlers && (
         <PipeEditor
           selectedPipe={selectedPipe}
           camera={cameraRef.current}
           renderer={rendererRef.current}
           visible={showPipeEditor}
           rackParams={rackParams}
-          onSave={(dimensions) => {
-            
-            // Set flag to prevent pipe recreation
-            setSkipPipeRecreation(true)
-            
-            if (pipingRendererRef.current?.pipeInteraction) {
-              // First update the selected pipe's userData to ensure consistency
-              if (selectedPipe?.userData?.pipeData) {
-                selectedPipe.userData.pipeData = {
-                  ...selectedPipe.userData.pipeData,
-                  ...dimensions
-                }
-              }
-              
-              // Update the 3D pipe
-              pipingRendererRef.current.pipeInteraction.updatePipeDimensions(dimensions)
-              
-              // Update localStorage (MEP panel data)
-              try {
-                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-                const selectedPipeData = selectedPipe?.userData?.pipeData
-                
-                if (selectedPipeData) {
-                  
-                  // Find and update the matching item
-                  // Handle ID matching - selectedPipeData.id might have _0, _1 suffix for multiple pipes
-                  const baseId = selectedPipeData.id.toString().split('_')[0]
-                  
-                  const updatedItems = storedMepItems.map(item => {
-                    const itemBaseId = item.id.toString().split('_')[0]
-                    
-                    if (itemBaseId === baseId && item.type === 'pipe') {
-                      // Include current pipe position in the update
-                      const currentPosition = {
-                        x: selectedPipe.position.x,
-                        y: selectedPipe.position.y, 
-                        z: selectedPipe.position.z
-                      }
-                      
-                      const updatedItem = { 
-                        ...item, 
-                        ...dimensions,
-                        position: currentPosition
-                      }
-                      return updatedItem
-                    }
-                    return item
-                  })
-                  
-                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-                  
-                  // IMPORTANT: Also update the manifest to ensure consistency
-                  if (window.updateMEPItemsManifest) {
-                    window.updateMEPItemsManifest(updatedItems)
-                  } else {
-                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-                  }
-                  
-                  // Dispatch custom event to notify MEP panel of changes
-                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-                    detail: { updatedItems, updatedPipeId: selectedPipeData.id }
-                  }))
-                  
-                  // Also try multiple refresh methods
-                  if (window.refreshMepPanel) {
-                    window.refreshMepPanel()
-                  }
-                  
-                  // Force re-render by dispatching storage event
-                  window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'configurMepItems',
-                    newValue: JSON.stringify(updatedItems),
-                    storageArea: localStorage
-                  }))
-                }
-              } catch (error) {
-                console.error('Error updating MEP pipe items:', error)
-              }
-            }
-            
-            // Don't close the editor immediately - let user click away or edit another pipe
-            // setShowPipeEditor(false)
-          }}
-          onCancel={() => {
-            setShowPipeEditor(false)
-          }}
+          onSave={editorHandlers.pipe.save}
+          onCancel={editorHandlers.pipe.cancel}
         />
       )}
       
       {/* Conduit Editor */}
-      {showConduitEditor && selectedConduit && cameraRef.current && rendererRef.current && (
+      {showConduitEditor && selectedConduit && cameraRef.current && rendererRef.current && editorHandlers && (
         <ConduitEditorUI
           selectedConduit={selectedConduit}
           camera={cameraRef.current}
           renderer={rendererRef.current}
           visible={showConduitEditor}
           rackParams={rackParams}
-          onSave={(dimensions) => {
-            
-            // Set flag to prevent conduit recreation
-            setSkipConduitRecreation(true)
-            
-            if (conduitRendererRef.current?.conduitInteraction) {
-              // First update the selected conduit's userData to ensure consistency
-              if (selectedConduit?.userData?.conduitData) {
-                selectedConduit.userData.conduitData = {
-                  ...selectedConduit.userData.conduitData,
-                  ...dimensions
-                }
-              }
-              
-              // Update the 3D conduit
-              conduitRendererRef.current.conduitInteraction.updateConduitDimensions(dimensions)
-              
-              // Update localStorage (MEP panel data)
-              try {
-                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-                const selectedConduitData = selectedConduit?.userData?.conduitData
-                
-                if (selectedConduitData) {
-                  
-                  // Find and update the matching item
-                  // Handle ID matching - selectedConduitData.id might have _0, _1 suffix for multiple conduits
-                  const baseId = selectedConduitData.id.toString().split('_')[0]
-                  
-                  const updatedItems = storedMepItems.map(item => {
-                    const itemBaseId = item.id.toString().split('_')[0]
-                    
-                    if (itemBaseId === baseId && item.type === 'conduit') {
-                      // Include current conduit position in the update
-                      const currentPosition = {
-                        x: selectedConduit.position.x,
-                        y: selectedConduit.position.y, 
-                        z: selectedConduit.position.z
-                      }
-                      
-                      // Include count since it's now editable
-                      const updatedItem = { 
-                        ...item, 
-                        ...dimensions,
-                        position: currentPosition
-                      }
-                      return updatedItem
-                    }
-                    return item
-                  })
-                  
-                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-                  
-                  // IMPORTANT: Also update the manifest to ensure consistency
-                  if (window.updateMEPItemsManifest) {
-                    window.updateMEPItemsManifest(updatedItems)
-                  } else {
-                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-                  }
-                  
-                  // Dispatch custom event to notify MEP panel of changes
-                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-                    detail: { updatedItems, updatedConduitId: selectedConduitData.id }
-                  }))
-                  
-                  // Also try multiple refresh methods
-                  if (window.refreshMepPanel) {
-                    window.refreshMepPanel()
-                  }
-                  
-                  // Force re-render by dispatching storage event
-                  window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'configurMepItems',
-                    newValue: JSON.stringify(updatedItems),
-                    storageArea: localStorage
-                  }))
-                }
-              } catch (error) {
-                console.error('Error updating MEP conduit items:', error)
-              }
-            }
-            
-            // Don't close the editor immediately - let user click away or edit another conduit
-            // setShowConduitEditor(false)
-          }}
-          onCancel={() => {
-            setShowConduitEditor(false)
-          }}
+          onSave={editorHandlers.conduit.save}
+          onCancel={editorHandlers.conduit.cancel}
         />
       )}
       
       {/* Cable Tray Editor */}
-      {showCableTrayEditor && selectedCableTray && cameraRef.current && rendererRef.current && (
+      {showCableTrayEditor && selectedCableTray && cameraRef.current && rendererRef.current && editorHandlers && (
         <CableTrayEditor
           selectedCableTray={selectedCableTray}
           camera={cameraRef.current}
           renderer={rendererRef.current}
           visible={showCableTrayEditor}
           rackParams={rackParams}
-          onSave={(dimensions) => {
-            // console.log(`🔌 ThreeScene: Cable tray editor save called with:`, dimensions)
-            
-            // Set flag to prevent cable tray recreation
-            setSkipCableTrayRecreation(true)
-            
-            if (cableTrayRendererRef.current?.cableTrayInteraction) {
-              // First update the selected cable tray's userData to ensure consistency
-              if (selectedCableTray?.userData?.cableTrayData) {
-                selectedCableTray.userData.cableTrayData = {
-                  ...selectedCableTray.userData.cableTrayData,
-                  ...dimensions
-                }
-              }
-              
-              // Update the 3D cable tray
-              cableTrayRendererRef.current.cableTrayInteraction.updateCableTrayDimensions(dimensions)
-              
-              // Update localStorage (MEP panel data)
-              try {
-                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-                const selectedCableTrayData = selectedCableTray?.userData?.cableTrayData
-                
-                if (selectedCableTrayData) {
-                  const baseId = selectedCableTrayData.id.toString().split('_')[0]
-                  
-                  const updatedItems = storedMepItems.map(item => {
-                    const itemBaseId = item.id.toString().split('_')[0]
-                    
-                    if (itemBaseId === baseId && item.type === 'cableTray') {
-                      // console.log(`🔌 Found matching cable tray in localStorage:`, item)
-                      const currentPosition = {
-                        x: selectedCableTray.position.x,
-                        y: selectedCableTray.position.y,
-                        z: selectedCableTray.position.z
-                      }
-                      
-                      // Auto-detect tier based on current Y position
-                      let tierInfo = { tier: dimensions.tier, tierName: `Tier ${dimensions.tier}` }
-                      if (cableTrayRendererRef.current?.cableTrayInteraction) {
-                        const detectedTier = cableTrayRendererRef.current.cableTrayInteraction.calculateCableTrayTierFromPosition(
-                          currentPosition.y, 
-                          dimensions.height
-                        )
-                        if (detectedTier.tier) {
-                          tierInfo = detectedTier
-                          // console.log(`🔌 Auto-detected tier: ${tierInfo.tierName} for Y position ${currentPosition.y}`)
-                        }
-                      }
-                      
-                      const updatedItem = {
-                        ...item,
-                        width: dimensions.width,
-                        height: dimensions.height,
-                        trayType: dimensions.trayType,
-                        tier: tierInfo.tier,
-                        tierName: tierInfo.tierName,
-                        position: currentPosition
-                      }
-                      // console.log(`🔌 Updated cable tray item:`, updatedItem)
-                      return updatedItem
-                    }
-                    return item
-                  })
-                  
-                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-                  // console.log(`🔌 Saved cable tray ${selectedCableTrayData.id} to localStorage`)
-                  
-                  // IMPORTANT: Also update the manifest to ensure consistency
-                  if (window.updateMEPItemsManifest) {
-                    window.updateMEPItemsManifest(updatedItems)
-                  } else {
-                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-                  }
-                  
-                  // Dispatch custom event to notify MEP panel of changes
-                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-                    detail: { updatedItems, updatedCableTrayId: selectedCableTrayData.id }
-                  }))
-                  
-                  // Also try multiple refresh methods
-                  if (window.refreshMepPanel) {
-                    window.refreshMepPanel()
-                  }
-                  
-                  // Dispatch storage event to update other components
-                  window.dispatchEvent(new Event('storage'))
-                } else {
-                  console.warn('⚠️ Could not find cable tray data for localStorage update')
-                }
-              } catch (error) {
-                console.error('Error updating MEP cable tray items:', error)
-              }
-            }
-            
-            // Don't close the editor immediately - let user click away or edit another cable tray
-            // setShowCableTrayEditor(false)
-          }}
-          onCancel={() => {
-            setShowCableTrayEditor(false)
-          }}
+          onSave={editorHandlers.cableTray.save}
+          onCancel={editorHandlers.cableTray.cancel}
         />
       )}
     </div>
