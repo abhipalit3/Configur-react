@@ -8,8 +8,6 @@ import React, { useRef, useEffect, useState } from 'react'
 import * as THREE from 'three'
 import { dispose } from '../core/utils.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
-import { ViewCube } from '../controls/ViewCube.js'
-import { MeasurementTool } from '../controls/MeasurementTool.js'
 import { DuctworkRenderer, DuctEditor } from '../ductwork'
 import { PipingRenderer } from '../piping'
 import { PipeEditor } from '../piping'
@@ -54,6 +52,23 @@ import {
   createSelectionHandlers,
   setupEditorCallbacks
 } from './editorManagement'
+import {
+  initializeCameraControls
+} from './cameraControls'
+import {
+  initializeViewCube
+} from './viewCubeControls'
+import {
+  initializeMeasurementTool,
+  setupMeasurementRestoration,
+  createAxisToggleHandler,
+  createClearMeasurementsHandler,
+  setupMeasurementActivation,
+  setupAxisLockUpdates,
+  updateMeasurementLabels,
+  cleanupMeasurementTool
+} from './measurementControls'
+import { MeasurementControlsPanel } from './measurementUI'
 
 
 export default function ThreeScene({ isMeasurementActive, mepItems = [], initialRackParams, initialBuildingParams, initialViewMode = '3D', onSceneReady }) {
@@ -148,18 +163,12 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Setup resize handler using helper
     cleanupFunctions.push(setupResizeHandler(camera, renderer))
     
-    // Save camera state when user interacts with controls
-    let saveTimeout
-    const onControlsChange = () => {
-      // Debounce saving to avoid too frequent writes
-      clearTimeout(saveTimeout)
-      saveTimeout = setTimeout(() => {
-        if (window.sceneViewModeHandler) { // Only save if scene is ready
-          saveCameraState()
-        }
-      }, 500) // Save 500ms after user stops moving camera
-    }
-    controls.addEventListener('change', onControlsChange)
+    // Initialize camera controls and view management using helpers
+    const cameraControlsData = initializeCameraControls(camera, controls, scene, initialViewMode)
+    const { originalCameraSettings, currentViewMode, viewModeHandler, fitViewHandler, cleanup: cleanupCameraControls } = cameraControlsData
+    cleanupFunctions.push(cleanupCameraControls)
+    
+    // Update controls
     controls.update()
     
     // Initialize rack scene using helper
@@ -178,282 +187,22 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Center the orbit controls on the generated content using helper
     centerOrbitOnContent(scene, controls)
 
-    const measurementTool = new MeasurementTool(
-      scene,
-      camera,
-      renderer.domElement,
-      snapPoints
-    )
+    // Initialize measurement tool using helper
+    const measurementTool = initializeMeasurementTool(scene, camera, renderer.domElement, snapPoints)
     measurementToolRef.current = measurementTool
     
-    // Make measurement tool globally accessible for clear functionality
-    window.measurementToolInstance = measurementTool
+    // Note: Camera controls and view mode management now handled by initializeCameraControls helper above
+    // Setup measurement tool restoration using helper
+    const cleanupMeasurementRestoration = setupMeasurementRestoration(measurementTool)
+    cleanupFunctions.push(cleanupMeasurementRestoration)
     
-    // Track current view mode
-    let currentViewMode = initialViewMode
-    
-    // Make view mode globally accessible for measurement tool
-    window.currentViewMode = currentViewMode
-    
-    // Camera state persistence functions
-    const saveCameraState = () => {
-      const cameraState = {
-        position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
-        rotation: { x: camera.rotation.x, y: camera.rotation.y, z: camera.rotation.z },
-        zoom: camera.zoom,
-        target: { x: controls.target.x, y: controls.target.y, z: controls.target.z },
-        viewMode: currentViewMode
-      }
-      try {
-        localStorage.setItem('cameraState', JSON.stringify(cameraState))
-        // console.log('💾 Camera state saved:', cameraState)
-      } catch (error) {
-        console.warn('⚠️ Failed to save camera state:', error)
-      }
-    }
-    
-    const loadCameraState = () => {
-      try {
-        const saved = localStorage.getItem('cameraState')
-        if (saved) {
-          const cameraState = JSON.parse(saved)
-          // console.log('📷 Loading saved camera state:', cameraState)
-          return cameraState
-        }
-      } catch (error) {
-        console.warn('⚠️ Failed to load camera state:', error)
-      }
-      return null
-    }
-
-    // Store original camera settings for 3D view restoration
-    let originalCameraSettings = {
-      position: camera.position.clone(),
-      rotation: camera.rotation.clone(),
-      zoom: camera.zoom,
-      target: controls.target.clone()
-    }
-    
-    // Load and apply saved camera state if available
-    const savedCameraState = loadCameraState()
-    if (savedCameraState) {
-      // Apply saved camera state
-      camera.position.set(savedCameraState.position.x, savedCameraState.position.y, savedCameraState.position.z)
-      camera.rotation.set(savedCameraState.rotation.x, savedCameraState.rotation.y, savedCameraState.rotation.z)
-      camera.zoom = savedCameraState.zoom
-      controls.target.set(savedCameraState.target.x, savedCameraState.target.y, savedCameraState.target.z)
-      
-      // Update the original settings with loaded state for 3D restoration
-      originalCameraSettings = {
-        position: camera.position.clone(),
-        rotation: camera.rotation.clone(), 
-        zoom: camera.zoom,
-        target: controls.target.clone()
-      }
-      
-      camera.updateProjectionMatrix()
-      controls.update()
-    }
-    
-    // View mode handler (2D/3D)
-    window.sceneViewModeHandler = (mode) => {
-      // console.log('🔧 Switching to view mode:', mode)
-      currentViewMode = mode // Update tracked view mode
-      window.currentViewMode = mode // Update global access
-      
-      if (mode === '2D') {
-        // Store current 3D settings before switching
-        originalCameraSettings.position = camera.position.clone()
-        originalCameraSettings.rotation = camera.rotation.clone()
-        originalCameraSettings.zoom = camera.zoom
-        originalCameraSettings.target = controls.target.clone()
-        
-        // Save current state before switching
-        saveCameraState()
-        
-        // Switch to 2D view (side view orthographic - looking from right)
-        // Find the rack group specifically
-        let rackGroup = null
-        let rackBounds = null
-        
-        scene.traverse((object) => {
-          if (object.name === 'TradeRackGroup' || object.name === 'RackGroup' || 
-              (object.userData && object.userData.isGenerated)) {
-            if (object.isGroup || object.isMesh) {
-              if (!rackGroup) rackGroup = object
-            }
-          }
-        })
-        
-        // Calculate bounding box
-        const bbox = new THREE.Box3()
-        
-        if (rackGroup) {
-          // Use the rack group for bounds
-          bbox.setFromObject(rackGroup)
-        } else {
-          // Fallback: find all rack-related meshes
-          scene.traverse((object) => {
-            if (object.isMesh && object.visible && 
-                (object.name.includes('Rack') || object.name.includes('Beam') || 
-                 object.name.includes('Post') || object.name.includes('Column') ||
-                 object.userData.isGenerated)) {
-              bbox.expandByObject(object)
-            }
-          })
-        }
-        
-        // If still empty, use default bounds
-        if (bbox.isEmpty()) {
-          // console.log('🔧 Using default bounds for 2D view')
-          bbox.min.set(-2, -1, -2)
-          bbox.max.set(2, 3, 2)
-        }
-        
-        const center = bbox.getCenter(new THREE.Vector3())
-        const size = bbox.getSize(new THREE.Vector3())
-        
-        // console.log('🔧 2D View - Bounding box center:', center.x, center.y, center.z)
-        // console.log('🔧 2D View - Bounding box size:', size.x, size.y, size.z)
-        
-        // Position camera to look from the right side (positive X direction)
-        // This gives us a side elevation view
-        const distance = 10 // Fixed reasonable distance
-        camera.position.set(center.x + distance, center.y, center.z)
-        camera.up.set(0, 1, 0) // Y-up
-        
-        // Set target to center of rack
-        controls.target.copy(center)
-        
-        // Calculate zoom to fit content with proper padding
-        // For side view, we care about height (Y) and depth (Z)
-        const maxDim = Math.max(size.y, size.z) * 1.2 // Add 20% padding
-        if (maxDim > 0 && isFinite(maxDim)) {
-          camera.zoom = 10 / maxDim // Adjust zoom based on content size
-        } else {
-          camera.zoom = 2 // Default zoom
-        }
-        
-        // Enable pan and zoom, disable rotation
-        controls.enableRotate = false
-        controls.enableZoom = true
-        controls.enablePan = true
-        controls.mouseButtons = {
-          LEFT: THREE.MOUSE.PAN,
-          MIDDLE: THREE.MOUSE.DOLLY,
-          RIGHT: THREE.MOUSE.PAN
-        }
-        
-        // Force camera to look at center
-        camera.lookAt(center)
-        camera.updateProjectionMatrix()
-        controls.update()
-        
-        // console.log('🔧 2D View - Final camera position:', camera.position.x, camera.position.y, camera.position.z)
-        // console.log('🔧 2D View - Final controls target:', controls.target.x, controls.target.y, controls.target.z)
-        // console.log('🔧 2D View - Final camera zoom:', camera.zoom)
-      } else if (mode === '3D') {
-        // console.log('🔧 Restoring 3D view')
-        
-        // Restore 3D view
-        camera.position.copy(originalCameraSettings.position)
-        camera.zoom = originalCameraSettings.zoom
-        camera.up.set(0, 1, 0)
-        
-        // Restore controls
-        controls.target.copy(originalCameraSettings.target)
-        controls.enableRotate = true
-        controls.enableZoom = true
-        controls.mouseButtons = { 
-          LEFT: THREE.MOUSE.ROTATE, 
-          MIDDLE: THREE.MOUSE.DOLLY, 
-          RIGHT: THREE.MOUSE.PAN 
-        }
-        
-        // Update camera and controls
-        camera.updateProjectionMatrix()
-        controls.update()
-        
-        // Save restored 3D state
-        saveCameraState()
-        
-        // console.log('🔧 3D View restored - Camera position:', camera.position)
-        // console.log('🔧 3D View restored - Controls target:', controls.target)
-      }
-    }
-    
-    // Fit view handler - only adjusts zoom, keeps camera angle
-    window.sceneFitViewHandler = () => {
-      // console.log('🔧 Fitting view to content (zoom only)')
-      
-      const bbox = new THREE.Box3()
-      let hasContent = false
-      
-      // Calculate bounding box of all generated content
-      scene.traverse((object) => {
-        if (object.userData.isGenerated && object.isMesh) {
-          const objectBBox = new THREE.Box3().setFromObject(object)
-          bbox.union(objectBBox)
-          hasContent = true
-        }
-      })
-      
-      // If no generated content, use all visible meshes
-      if (!hasContent) {
-        scene.traverse((object) => {
-          if (object.isMesh && object.visible) {
-            const objectBBox = new THREE.Box3().setFromObject(object)
-            bbox.union(objectBBox)
-          }
-        })
-      }
-      
-      if (!bbox.isEmpty()) {
-        const center = bbox.getCenter(new THREE.Vector3())
-        const size = bbox.getSize(new THREE.Vector3())
-        
-        // console.log('🔧 Fit View - Bounding box:', { center, size })
-        
-        // Calculate appropriate zoom to fit content
-        // Get the camera's current direction and distance to determine zoom
-        const cameraDirection = new THREE.Vector3()
-        camera.getWorldDirection(cameraDirection)
-        
-        // Project the bounding box size onto the camera's view plane
-        const distance = camera.position.distanceTo(controls.target)
-        
-        // For orthographic camera, we need to fit the content within the view
-        // Calculate the maximum dimension as seen from the current camera angle
-        const maxDim = Math.max(size.x, size.y, size.z)
-        
-        // Set zoom to fit content with some padding (don't change camera position or target)
-        const baseViewSize = 20 // Base orthographic view size
-        camera.zoom = baseViewSize / maxDim * 0.8 // Fit with 20% padding
-        
-        // Only update camera projection, don't change position or target
-        camera.updateProjectionMatrix()
-        
-        // Save the new zoom state
-        saveCameraState()
-        
-        // console.log('🔧 Fit View - New zoom:', camera.zoom)
-        // console.log('🔧 Fit View - Camera position unchanged:', camera.position)
-        // console.log('🔧 Fit View - Camera target unchanged:', controls.target)
-      } else {
-        console.warn('⚠️ No content found for fit view')
-      }
-    }
-
-    // Restore measurements from manifest after initialization
-    setTimeout(() => {
-      measurementTool.restoreFromManifest()
-      
-      // Restore view mode if it was 2D
-      if (initialViewMode === '2D') {
+    // Restore view mode if it was 2D (using helper function)
+    if (initialViewMode === '2D') {
+      setTimeout(() => {
         // console.log('🔧 Restoring 2D view mode on load')
         window.sceneViewModeHandler('2D')
-      }
-    }, 100) // Small delay to ensure scene is fully initialized
+      }, 100) // Small delay to ensure scene is fully initialized
+    }
 
     // Initialize all MEP renderers using helper
     const mepRenderers = initializeMepRenderers(scene, camera, renderer, controls, rackData.fullParams)
@@ -778,88 +527,21 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     const cleanupInitialUpdate = setupInitialMepUpdate(mepRenderers, mepItems)
     cleanupFunctions.push(cleanupInitialUpdate)
 
-    // Enhanced ViewCube Setup
-    const viewCubeScene    = new THREE.Scene()
-    const viewCubeCamera   = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
-    viewCubeCamera.position.set(0, 0, 5) // Closer for better visibility
-    viewCubeCamera.lookAt(0, 0, 0)
-    
-    const viewCube         = new ViewCube(1.2) // Larger size
-    viewCubeScene.add(viewCube)
-
-    // Add some lighting to the ViewCube scene
-    const viewCubeAmbient = new THREE.AmbientLight(0xffffff, 0.6)
-    const viewCubeDirectional = new THREE.DirectionalLight(0xffffff, 0.4)
-    viewCubeDirectional.position.set(1, 1, 1)
-    viewCubeScene.add(viewCubeAmbient, viewCubeDirectional)
-
-    // Setup click handling for the ViewCube
-    viewCube.setupClickHandler(camera, controls, scene)
-
-    const viewCubeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
-    viewCubeRenderer.setSize(150, 150) // Larger ViewCube display
-    viewCubeRenderer.setClearColor(0x000000, 0) // Fully transparent background
-    viewCubeRenderer.toneMapping = THREE.ACESFilmicToneMapping
-    viewCubeRenderer.outputColorSpace = THREE.SRGBColorSpace
-    viewCubeRenderer.physicallyCorrectLights = true
-    viewCubeRenderer.setPixelRatio(window.devicePixelRatio)
-    mountRef.current.appendChild(viewCubeRenderer.domElement)
-    Object.assign(viewCubeRenderer.domElement.style, {
-      position: 'absolute',
-      left: '20px',
-      bottom: '20px',
-      zIndex: '1000',
-      cursor: 'pointer'
-      // Removed border and background styling for clean transparent look
-    })
-
-    // ViewCube click handler
-    const onViewCubeClick = (event) => {
-      // Calculate mouse position relative to ViewCube canvas
-      const rect = viewCubeRenderer.domElement.getBoundingClientRect()
-      const mouse = new THREE.Vector2()
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-
-      // Raycast against ViewCube
-      const raycaster = new THREE.Raycaster()
-      raycaster.setFromCamera(mouse, viewCubeCamera)
-      const intersects = raycaster.intersectObject(viewCube)
-
-      if (intersects.length > 0) {
-        const faceIndex = intersects[0].face.materialIndex
-        viewCube.animateToView(faceIndex)
-      }
-    }
-
-    viewCubeRenderer.domElement.addEventListener('click', onViewCubeClick)
-
-    // Resize & Animate
-    // Animation loop will be started later after ViewCube setup
+    // Initialize ViewCube using helper
+    const viewCubeComponents = initializeViewCube(camera, controls, scene, mountRef.current)
+    const { updateViewCube, cleanup: cleanupViewCube } = viewCubeComponents
+    cleanupFunctions.push(cleanupViewCube)
       
     // Start animation loop using helper
     const stopAnimation = startAnimationLoop(renderer, scene, camera, controls, () => {
       // Frame callback
       updateOrthoCamera(camera, 20)
       
-      // Update ViewCube if it exists
-      if (viewCube && viewCubeCamera && viewCubeRenderer) {
-        // Apply inverse rotation to ViewCube
-        const inverseQuaternion = camera.quaternion.clone().invert()
-        viewCube.quaternion.copy(inverseQuaternion)
-        
-        // Keep ViewCube camera looking at the ViewCube
-        viewCubeCamera.position.set(0, 0, 5)
-        viewCubeCamera.up.copy(camera.up)
-        viewCubeCamera.lookAt(0, 0, 0)
-        
-        viewCubeRenderer.render(viewCubeScene, viewCubeCamera)
-      }
+      // Update ViewCube using helper
+      updateViewCube()
       
-      // Update measurement labels if tool exists
-      if (measurementTool) {
-        measurementTool.updateLabels()
-      }
+      // Update measurement labels using helper
+      updateMeasurementLabels(measurementTool)
     })
     cleanupFunctions.push(stopAnimation)
 
@@ -890,14 +572,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       cleanupFunctions.forEach(cleanup => cleanup && cleanup())
       
       // Remove other event listeners
-      controls.removeEventListener('change', onControlsChange)
-      viewCubeRenderer.domElement.removeEventListener('click', onViewCubeClick)
       document.removeEventListener('tradeRackSelected', handleTradeRackSelected)
       document.removeEventListener('tradeRackDeselected', handleTradeRackDeselected)
       
-      if (measurementToolRef.current) {
-        measurementToolRef.current.dispose()
-      }
+      // Cleanup measurement tool using helper
+      cleanupMeasurementTool(measurementToolRef)
       if (tradeRackInteractionRef.current) {
         tradeRackInteractionRef.current.dispose()
       }
@@ -917,34 +596,22 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       dispose(scene)
       disposeMaterials(materials)
       renderer.dispose()
-      viewCubeRenderer.dispose()
       if (mountRef.current) {
         if (mountRef.current.contains(renderer.domElement)) {
           mountRef.current.removeChild(renderer.domElement)
-        }
-        if (mountRef.current.contains(viewCubeRenderer.domElement)) {
-          mountRef.current.removeChild(viewCubeRenderer.domElement)
         }
       }
     }
   }, [initialRackParams, initialBuildingParams]) // Rebuild scene when parameters change
 
-  // Handle measurement tool activation/deactivation
+  // Handle measurement tool activation/deactivation using helper
   useEffect(() => {
-    if (measurementToolRef.current) {
-      if (isMeasurementActive) {
-        measurementToolRef.current.enable()
-      } else {
-        measurementToolRef.current.disable()
-      }
-    }
+    setupMeasurementActivation(measurementToolRef, isMeasurementActive)
   }, [isMeasurementActive])
 
-  // Update axis lock in measurement tool
+  // Update axis lock in measurement tool using helper
   useEffect(() => {
-    if (measurementToolRef.current) {
-      measurementToolRef.current.setAxisLock(axisLock)
-    }
+    setupAxisLockUpdates(measurementToolRef, axisLock)
   }, [axisLock])
 
   // Update ductwork and piping when MEP items change
@@ -981,110 +648,21 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     updateAllMepItems(mepRenderers, mepItems)
   }, [mepItems, skipDuctRecreation, skipPipeRecreation, skipConduitRecreation, skipCableTrayRecreation])
 
-  const handleAxisToggle = (axis) => {
-    setAxisLock(prev => {
-      const currentlyLocked = prev[axis]
-      if (currentlyLocked) {
-        // If clicking already locked axis, unlock it
-        return { x: false, y: false, z: false }
-      } else {
-        // If clicking unlocked axis, lock only this axis
-        return { 
-          x: axis === 'x', 
-          y: axis === 'y', 
-          z: axis === 'z' 
-        }
-      }
-    })
-  }
+  // Create axis toggle handler using helper
+  const handleAxisToggle = createAxisToggleHandler(setAxisLock)
 
-  const handleClearMeasurements = () => {
-    if (measurementToolRef.current) {
-      measurementToolRef.current.clearAll()
-    }
-  }
+  // Create clear measurements handler using helper
+  const handleClearMeasurements = createClearMeasurementsHandler(measurementToolRef)
 
   return (
     <div ref={mountRef} style={{ width: '100%', height: '100%' }}>
-      {isMeasurementActive && (
-        <div className="measurement-controls-panel" style={{
-          position: 'absolute',
-          bottom: '120px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(255, 255, 255, 0.95)',
-          border: '1px solid #E1E8ED',
-          borderRadius: '8px',
-          padding: '12px',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-          zIndex: 1000,
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          backdropFilter: 'blur(8px)',
-          minWidth: '260px'
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#2C3E50', textAlign: 'center' }}>
-            Measurement Controls
-          </div>
-          
-          {/* Axis Lock Section */}
-          <div style={{ marginBottom: '8px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#555', textAlign: 'center' }}>
-              Axis Lock:
-            </div>
-            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '8px' }}>
-              {['X', 'Y', 'Z'].map(axis => (
-                <button
-                  key={axis}
-                  onClick={() => handleAxisToggle(axis.toLowerCase())}
-                  style={{
-                    width: '30px',
-                    height: '30px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    background: axisLock[axis.toLowerCase()] ? '#00D4FF' : 'white',
-                    color: axisLock[axis.toLowerCase()] ? 'white' : '#333',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontSize: '12px',
-                    borderColor: axisLock[axis.toLowerCase()] ? '#00D4FF' : '#ddd'
-                  }}
-                >
-                  {axis}
-                </button>
-              ))}
-            </div>
-            
-            {/* Clear Button */}
-            <div style={{ textAlign: 'center' }}>
-              <button
-                onClick={handleClearMeasurements}
-                style={{
-                  padding: '6px 12px',
-                  border: '1px solid #ff4444',
-                  borderRadius: '4px',
-                  background: 'white',
-                  color: '#ff4444',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  fontSize: '11px'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = '#ff4444'
-                  e.target.style.color = 'white'
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = 'white'
-                  e.target.style.color = '#ff4444'
-                }}
-              >
-                Clear All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Measurement Controls Panel using helper component */}
+      <MeasurementControlsPanel 
+        isMeasurementActive={isMeasurementActive}
+        axisLock={axisLock}
+        onAxisToggle={handleAxisToggle}
+        onClearMeasurements={handleClearMeasurements}
+      />
       
       {/* Duct Editor */}
       {showDuctEditor && selectedDuct && cameraRef.current && rendererRef.current && editorHandlers && (
