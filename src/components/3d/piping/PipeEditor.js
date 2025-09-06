@@ -6,6 +6,13 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { 
+  validateDimensionInput, 
+  getTierOptionsFromGeometry,
+  findTierSpace,
+  calculateTierYPosition,
+  createEditorKeyHandler
+} from '../utils/common3dHelpers'
 
 /**
  * PipeEditor - Compact horizontal editor for pipe dimensions
@@ -32,54 +39,18 @@ export const PipeEditor = ({
   const editorRef = useRef(null)
   const mountedRef = useRef(true)
 
-  // Get available tier options from scene geometry (same logic as DuctEditor)
+  // Get available tier options from scene geometry
   const getTierOptions = () => {
-    try {
-      // Try to get tier options from the snap line manager
-      if (window.pipingRendererInstance?.snapLineManager) {
-        const snapLines = window.pipingRendererInstance.snapLineManager.getSnapLinesFromRackGeometry()
-        
-        if (snapLines && snapLines.horizontal) {
-          const horizontalLines = snapLines.horizontal.filter(line => isFinite(line.y))
-          const beamTops = horizontalLines.filter(line => line.type === 'beam_top')
-          
-          // Find tier spaces
-          const tierSpaces = []
-          const minTierHeight = 0.3 // Minimum tier height in meters
-          
-          for (let i = 0; i < beamTops.length - 1; i++) {
-            const topBeam = beamTops[i]
-            const bottomBeam = beamTops[i + 1]
-            
-            if (topBeam && bottomBeam) {
-              const gap = topBeam.y - bottomBeam.y
-              if (gap >= minTierHeight && isFinite(gap)) {
-                tierSpaces.push(tierSpaces.length + 1)
-              }
-            }
-          }
-          
-          if (tierSpaces.length > 0) {
-            const tierCount = tierSpaces.length
-            // console.log('🔧 PipeEditor - Calculated tierCount from tier spaces:', tierCount)
-            return Array.from({ length: tierCount }, (_, i) => i + 1)
-          }
-          
-          // Fallback: if we can't identify tier spaces, use beam count heuristic
-          if (beamTops.length > 0) {
-            const tierCount = Math.max(1, Math.ceil(beamTops.length / 2))
-            // console.log('🔧 PipeEditor - Fallback tierCount from beam count:', tierCount)
-            return Array.from({ length: tierCount }, (_, i) => i + 1)
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error getting tier options from geometry:', error)
+    const snapLineManager = window.pipingRendererInstance?.snapLineManager
+    const tiers = getTierOptionsFromGeometry(snapLineManager)
+    
+    // If we got a valid result, use it, otherwise fallback to rackParams
+    if (tiers.length > 0 && tiers.length !== 2) {
+      return tiers
     }
     
     // Final fallback - use rackParams or default
     const tierCount = rackParams?.tierCount || 2
-    // console.log('🔧 PipeEditor - Using fallback tierCount:', tierCount)
     return Array.from({ length: tierCount }, (_, i) => i + 1)
   }
 
@@ -169,14 +140,8 @@ export const PipeEditor = ({
   }, [])
 
   const handleDimensionChange = (field, value) => {
-    const numValue = parseFloat(value)
-    if (isNaN(numValue) || !isFinite(numValue)) {
-      console.warn(`❌ Invalid ${field} value: ${value}`)
-      return // Don't update with invalid values
-    }
-    
-    // Ensure positive values for dimensions (same logic as ducts)
-    const validValue = field === 'tier' ? Math.max(1, Math.floor(numValue)) : Math.max(0, numValue)
+    const validValue = validateDimensionInput(field, value)
+    if (validValue === null) return
     
     setDimensions(prev => ({
       ...prev,
@@ -185,94 +150,58 @@ export const PipeEditor = ({
     
     // If tier changed, immediately move the pipe to the new tier position
     if (field === 'tier' && selectedPipe && window.pipingRendererInstance) {
-      const tierValue = Math.max(1, Math.floor(numValue))
+      const tierValue = validValue
       const pipeData = selectedPipe.userData.pipeData
       
       try {
-        // Get snap lines to find tier spaces
-        const snapLines = window.pipingRendererInstance.snapLineManager?.getSnapLinesFromRackGeometry()
+        const snapLineManager = window.pipingRendererInstance.snapLineManager
+        const tierSpace = findTierSpace(snapLineManager, tierValue)
         
-        if (snapLines && snapLines.horizontal) {
-          const horizontalLines = snapLines.horizontal.filter(line => isFinite(line.y))
-          const beamTops = horizontalLines.filter(line => line.type === 'beam_top').sort((a, b) => b.y - a.y)
+        if (tierSpace) {
+          // Calculate pipe dimensions for positioning
+          const diameterM = (pipeData.diameter || 2) * 0.0254 // Convert inches to meters
+          const insulationM = (pipeData.insulation || 0) * 0.0254
+          const totalDiameter = diameterM + (2 * insulationM)
           
-          // Find tier spaces
-          const tierSpaces = []
-          const minTierHeight = 0.3
+          const newYPosition = calculateTierYPosition(tierSpace, totalDiameter, 'bottom')
           
-          for (let i = 0; i < beamTops.length - 1; i++) {
-            const topBeam = beamTops[i]
-            const bottomBeam = beamTops[i + 1]
-            
-            if (topBeam && bottomBeam) {
-              const gap = topBeam.y - bottomBeam.y
-              if (gap >= minTierHeight && isFinite(gap)) {
-                tierSpaces.push({
-                  tierIndex: tierSpaces.length + 1,
-                  top: topBeam.y,
-                  bottom: bottomBeam.y,
-                  centerY: (topBeam.y + bottomBeam.y) / 2
-                })
-              }
-            }
+          // Update pipe position
+          selectedPipe.position.y = newYPosition
+          
+          // Update pipe userData
+          selectedPipe.userData.tier = tierValue
+          selectedPipe.userData.tierName = `Tier ${tierValue}`
+          selectedPipe.userData.pipeData.tier = tierValue
+          
+          // If transform controls are attached, update them
+          if (window.pipingRendererInstance.pipeInteraction?.transformControls) {
+            window.pipingRendererInstance.pipeInteraction.transformControls.update()
           }
           
-          // console.log(`🔧 Positioning pipe for tier ${tierValue}`)
-          // console.log('🔧 Available tier spaces:', tierSpaces.map(t => `Tier ${t.tierIndex}: ${t.centerY.toFixed(3)}`))
-          
-          // Find the tier space that corresponds to the selected tier number
-          const selectedTierSpace = tierSpaces.find(space => space.tierIndex === tierValue)
-          
-          if (selectedTierSpace) {
-            // Calculate pipe dimensions for positioning
-            const diameterM = (pipeData.diameter || 2) * 0.0254 // Convert inches to meters
-            const insulationM = (pipeData.insulation || 0) * 0.0254
-            const totalDiameter = diameterM + (2 * insulationM)
-            const radius = totalDiameter / 2
-            
-            // Position pipe so its bottom sits on the bottom beam of the tier space
-            const newYPosition = selectedTierSpace.bottom + radius
-            
-            // console.log(`🔧 Moving pipe to tier ${tierValue} at Y: ${newYPosition.toFixed(3)} (tier bottom: ${selectedTierSpace.bottom.toFixed(3)})`)
-            
-            // Update pipe position
-            selectedPipe.position.y = newYPosition
-            
-            // Update pipe userData
-            selectedPipe.userData.tier = tierValue
-            selectedPipe.userData.tierName = `Tier ${tierValue}`
-            selectedPipe.userData.pipeData.tier = tierValue
-            
-            // If transform controls are attached, update them
-            if (window.pipingRendererInstance.pipeInteraction?.transformControls) {
-              window.pipingRendererInstance.pipeInteraction.transformControls.update()
-            }
-            
-            // Save the updated position and tier info
-            if (window.pipingRendererInstance.pipeInteraction?.savePipePosition) {
-              window.pipingRendererInstance.pipeInteraction.savePipePosition(selectedPipe)
-            }
-            
-            // Update MEP items in localStorage and refresh the right panel
-            if (window.refreshMepPanel) {
-              window.refreshMepPanel()
-            }
-            
-            // Force update of pipe tier info
-            if (window.pipingRendererInstance.pipeInteraction?.updateAllPipeTierInfo) {
-              window.pipingRendererInstance.pipeInteraction.updateAllPipeTierInfo()
-            }
-            
-            // Force editor position update after a small delay to allow pipe position to settle
-            setTimeout(() => {
-              if (mountedRef.current) {
-                // Trigger position recalculation by incrementing force update counter
-                setForceUpdate(prev => prev + 1)
-              }
-            }, 50)
-          } else {
-            console.warn(`⚠️ Tier space ${tierValue} not found in geometry`)
+          // Save the updated position and tier info
+          if (window.pipingRendererInstance.pipeInteraction?.savePipePosition) {
+            window.pipingRendererInstance.pipeInteraction.savePipePosition(selectedPipe)
           }
+          
+          // Update MEP items in localStorage and refresh the right panel
+          if (window.refreshMepPanel) {
+            window.refreshMepPanel()
+          }
+          
+          // Force update of pipe tier info
+          if (window.pipingRendererInstance.pipeInteraction?.updateAllPipeTierInfo) {
+            window.pipingRendererInstance.pipeInteraction.updateAllPipeTierInfo()
+          }
+          
+          // Force editor position update after a small delay to allow pipe position to settle
+          setTimeout(() => {
+            if (mountedRef.current) {
+              // Trigger position recalculation by incrementing force update counter
+              setForceUpdate(prev => prev + 1)
+            }
+          }, 50)
+        } else {
+          console.warn(`⚠️ Tier space ${tierValue} not found in geometry`)
         }
       } catch (error) {
         console.error('❌ Error updating pipe tier position:', error)
@@ -287,12 +216,6 @@ export const PipeEditor = ({
     }))
   }
 
-  const handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
-      handleSave()
-    }
-  }
-
   const handleSave = () => {
     if (onSave) {
       onSave(dimensions)
@@ -304,6 +227,8 @@ export const PipeEditor = ({
       onCancel()
     }
   }
+
+  const handleKeyDown = createEditorKeyHandler(handleSave, handleCancel)
 
   if (!visible || !selectedPipe) {
     return null

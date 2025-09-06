@@ -5,6 +5,11 @@
  */
 
 import * as THREE from 'three'
+import { 
+  calculateTierPosition,
+  disposeObject3D,
+  calculateRackLength
+} from '../utils/common3dHelpers'
 
 /**
  * ConduitEditor - Handles editing operations for conduits
@@ -92,8 +97,8 @@ export class ConduitEditor {
     const position = conduitGroup.position.clone()
     const parent = conduitGroup.parent
     
-    // Calculate conduit length
-    const rackLength = this.calculateRackLength()
+    // Calculate conduit length using centralized helper
+    const rackLength = calculateRackLength(this.snapLineManager)
     const conduitLength = rackLength * 12 // Convert to inches
     
     // Remove old conduit
@@ -101,14 +106,8 @@ export class ConduitEditor {
       parent.remove(conduitGroup)
     }
     
-    // Dispose of old geometry and materials
-    conduitGroup.traverse((child) => {
-      if (child.geometry) child.geometry.dispose()
-      if (child.material) {
-        if (child.material.map) child.material.map.dispose()
-        child.material.dispose()
-      }
-    })
+    // Dispose of old geometry and materials using centralized helper
+    disposeObject3D(conduitGroup)
     
     // Create new conduit with updated properties
     const newConduitGroup = this.conduitGeometry.createConduitGroup(
@@ -145,8 +144,8 @@ export class ConduitEditor {
     newPosition.y += offset.y
     newPosition.z += offset.z
     
-    // Calculate conduit length
-    const rackLength = this.calculateRackLength()
+    // Calculate conduit length using centralized helper
+    const rackLength = calculateRackLength(this.snapLineManager)
     const conduitLength = rackLength * 12
     
     // Create new conduit
@@ -192,8 +191,8 @@ export class ConduitEditor {
     const pastePosition = position || this.clipboard.position.clone()
     pastePosition.z += 0.2 // Offset to avoid overlap
     
-    // Calculate conduit length
-    const rackLength = this.calculateRackLength()
+    // Calculate conduit length using centralized helper
+    const rackLength = calculateRackLength(this.snapLineManager)
     const conduitLength = rackLength * 12
     
     // Create new conduit
@@ -221,14 +220,8 @@ export class ConduitEditor {
     
     const parent = conduit.parent
     if (parent) {
-      // Dispose of geometry and materials
-      conduit.traverse((child) => {
-        if (child.geometry) child.geometry.dispose()
-        if (child.material) {
-          if (child.material.map) child.material.map.dispose()
-          child.material.dispose()
-        }
-      })
+      // Dispose of geometry and materials using centralized helper
+      disposeObject3D(conduit)
       
       // Remove from parent
       parent.remove(conduit)
@@ -248,7 +241,7 @@ export class ConduitEditor {
   moveToTier(conduit, tierNumber) {
     if (!conduit || conduit.userData.type !== 'conduit') return
     
-    const tierPosition = this.calculateTierPosition(tierNumber)
+    const tierPosition = calculateTierPosition(this.snapLineManager, tierNumber)
     if (tierPosition) {
       // Adjust for conduit radius
       const conduitData = conduit.userData.conduitData
@@ -271,62 +264,7 @@ export class ConduitEditor {
     }
   }
 
-  /**
-   * Calculate tier position (similar to renderer)
-   */
-  calculateTierPosition(tierNumber) {
-    try {
-      if (this.snapLineManager) {
-        const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
-        const allHorizontalLines = snapLines.horizontal.filter(line => isFinite(line.y)).sort((a, b) => b.y - a.y)
-
-        const tierSpaces = []
-        const minTierHeight = 0.3
-
-        const beamTops = allHorizontalLines.filter(line => line.type === 'beam_top')
-
-        for (let i = 0; i < beamTops.length - 1; i++) {
-          const bottomBeam = beamTops[i + 1]
-          const topBeam = beamTops[i]
-          
-          if (bottomBeam && topBeam) {
-            const gap = topBeam.y - bottomBeam.y
-            if (gap >= minTierHeight && isFinite(gap)) {
-              tierSpaces.push({
-                tierIndex: tierSpaces.length + 1,
-                topBeamY: topBeam.y,
-                bottomBeamY: bottomBeam.y,
-                centerY: (topBeam.y + bottomBeam.y) / 2,
-                defaultConduitY: bottomBeam.y
-              })
-            }
-          }
-        }
-
-        const tierSpace = tierSpaces.find(space => space.tierIndex === tierNumber)
-        if (tierSpace) {
-          return { y: tierSpace.defaultConduitY }
-        }
-      }
-
-      const tierHeightFeet = 2
-      const tierHeightMeters = tierHeightFeet * 0.3048
-      return { y: (tierNumber - 1) * tierHeightMeters }
-    } catch (error) {
-      console.error('❌ Error calculating tier position:', error)
-      return { y: (tierNumber - 1) * 0.6 }
-    }
-  }
-
-  /**
-   * Calculate rack length
-   */
-  calculateRackLength() {
-    if (this.snapLineManager && this.snapLineManager.getRackLength) {
-      return this.snapLineManager.getRackLength()
-    }
-    return 12 // Default 12 feet
-  }
+  // Tier position calculation now uses centralized helper
 
   /**
    * Group selected conduits

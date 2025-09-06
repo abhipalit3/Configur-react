@@ -5,8 +5,15 @@
  */
 
 import * as THREE from 'three'
-import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { getMepSelectionManager } from '../core/MepSelectionManager.js'
+import {
+  setupTransformControls,
+  setupRaycaster,
+  updateMouseCoordinates,
+  createMepKeyboardHandler,
+  registerWithMepManager
+} from '../utils/common3dHelpers.js'
+import { createMepEventHandler } from '../utils/mepEventHandler.js'
 
 /**
  * DuctInteraction - Handles mouse interactions and transform controls for ducts
@@ -22,10 +29,7 @@ export class DuctInteraction {
     
     this.selectedDuct = null
     this.transformControls = null
-    this.raycaster = new THREE.Raycaster()
-    this.raycaster.near = 0.01 // Very close to camera
-    this.raycaster.far = 1000 // Far from camera
-    this.raycaster.camera = camera
+    this.raycaster = setupRaycaster(camera)
     this.mouse = new THREE.Vector2()
     this.domElement = renderer.domElement
     
@@ -36,88 +40,122 @@ export class DuctInteraction {
     this.onDuctEditorCancel = null
     
     this.setupTransformControls()
-    this.setupEventListeners()
+    this.setupCentralizedEventHandler()
     
     // Register with central MEP selection manager
     this.registerWithMepManager()
   }
 
   setupTransformControls() {
-    this.transformControls = new TransformControls(this.camera, this.domElement)
-    
-    this.transformControls.addEventListener('change', () => {
+    const onTransformChange = () => {
       if (this.selectedDuct && this.selectedDuct.parent) {
         this.onTransformChange()
       } else if (this.transformControls.object && !this.transformControls.object.parent) {
         // If the object is no longer in the scene, detach it
         this.transformControls.detach()
       }
-    })
-
-    this.transformControls.addEventListener('dragging-changed', (event) => {
-      if (this.orbitControls) {
-        this.orbitControls.enabled = !event.value
-      }
-      
-      if (!event.value) {
-        this.snapLineManager.clearSnapGuides()
-        // Save position when dragging ends
-        this.saveDuctPosition()
-      }
-    })
-
-    this.transformControls.setMode('translate')
-    this.transformControls.setSpace('world')
-    this.transformControls.setSize(0.8)
-    this.transformControls.showX = false
-    this.transformControls.showY = true
-    this.transformControls.showZ = true
+    }
     
-    const gizmo = this.transformControls.getHelper()
-    this.scene.add(gizmo)
+    const onDragEnd = () => {
+      if (this.snapLineManager?.clearSnapGuides) {
+        this.snapLineManager.clearSnapGuides()
+      }
+      // Save position when dragging ends
+      this.saveDuctPosition()
+    }
+    
+    this.transformControls = setupTransformControls(
+      this.camera,
+      this.domElement, 
+      this.scene,
+      this.orbitControls,
+      {
+        onChange: onTransformChange,
+        onDragEnd: onDragEnd,
+        showX: false,
+        showY: true,
+        showZ: true,
+        size: 0.8
+      }
+    )
   }
 
-  setupEventListeners() {
-    // Only setup keyboard shortcuts - click/hover handled by central manager
-    this.setupKeyboardShortcuts()
+  setupCentralizedEventHandler() {
+    // Create centralized event handler for duct interactions
+    this.eventHandler = createMepEventHandler('duct', this.scene, this.camera, this.renderer, this.orbitControls, {
+      callbacks: {
+        onSelect: (object) => this.selectDuct(object),
+        onDeselect: (object) => this.deselectDuct(),
+        onClick: (event, object) => this.handleClick(event, object),
+        onMouseMove: (event, mouse) => this.handleMouseMove(event, mouse),
+        onDelete: () => this.deleteSelectedDuct(),
+        onDuplicate: () => this.duplicateSelectedDuct(),
+        onEscape: () => this.deselectDuct(),
+        onKeyDown: (event, selectedObject) => this.handleTransformKeys(event)
+      },
+      config: {
+        targetGroupName: 'DuctsGroup',
+        objectType: 'duct',
+        selectionAttribute: 'userData.type'
+      }
+    })
   }
   
   /**
    * Register with central MEP selection manager
    */
   registerWithMepManager() {
-    const tryRegister = () => {
-      const mepManager = getMepSelectionManager()
-      if (mepManager) {
-        mepManager.registerHandler('ductwork', this)
-        return true
-      }
-      return false
+    const fallbackSetup = () => {
+      // Fallback: use individual event listeners if central manager unavailable
+      this.domElement.addEventListener('click', this.handleClick.bind(this))
+      this.domElement.addEventListener('mousemove', this.handleMouseMove.bind(this))
     }
     
-    // Try immediate registration
-    if (!tryRegister()) {
-      // Retry after a short delay
-      setTimeout(() => {
-        if (!tryRegister()) {
-          // Fallback to individual event handlers
-          this.domElement.addEventListener('click', this.onMouseClick.bind(this))
-          this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
-        }
-      }, 150)
+    registerWithMepManager('ductwork', this, fallbackSetup)
+  }
+
+  /**
+   * Centralized click handler (called by MepEventHandler)
+   */
+  handleClick(event, intersectedObject) {
+    if (this.transformControls?.dragging) return
+    
+    // Selection is handled by the event handler, we just need to handle additional click logic
+    if (intersectedObject) {
+      console.log('🔧 Duct clicked:', intersectedObject.userData?.ductData?.id || 'unknown')
     }
   }
 
-  // These methods are now handled by the central MEP selection manager
-  // Keep them for fallback compatibility
-  onMouseClick(event) {
-    // Fallback implementation if central manager isn't available
+  /**
+   * Centralized mouse move handler (called by MepEventHandler)
+   */
+  handleMouseMove(event, mouse) {
+    if (this.transformControls?.dragging) {
+      // Still handle transform-specific mouse move logic
+      this.updateMousePosition(event)
+    }
+    // Hover effects are handled by MepEventHandler
   }
 
-  onMouseMove(event) {
-    if (!this.transformControls?.dragging) {
-      this.updateMousePosition(event)
-      this.handleHover()
+  /**
+   * Handle transform control keyboard shortcuts
+   */
+  handleTransformKeys(event) {
+    if (!this.transformControls) return
+    
+    switch (event.key) {
+      case 'w':
+      case 'W':
+        this.transformControls.setMode('translate')
+        break
+      case 'e':
+      case 'E':
+        this.transformControls.setMode('rotate')
+        break
+      case 'r':
+      case 'R':
+        this.transformControls.setMode('scale')
+        break
     }
   }
 
@@ -225,7 +263,14 @@ export class DuctInteraction {
     this.deselectDuct()
     
     this.selectedDuct = ductGroup
+    
+    // Update visual appearance
     this.ductGeometry.updateDuctAppearance(ductGroup, 'selected')
+    
+    // Update event handler's selected object reference
+    if (this.eventHandler) {
+      this.eventHandler.selectedObject = ductGroup
+    }
     
     const originalPosition = ductGroup.position.clone()
     
@@ -252,6 +297,11 @@ export class DuctInteraction {
       }
       
       this.selectedDuct = null
+      
+      // Update event handler's selected object reference
+      if (this.eventHandler) {
+        this.eventHandler.selectedObject = null
+      }
     }
     
     this.snapLineManager.clearSnapGuides()
@@ -322,67 +372,7 @@ export class DuctInteraction {
   }
 
 
-  handleHover() {
-    this.raycaster.setFromCamera(this.mouse, this.camera)
-    
-    // Get ALL MEP groups for unified raycasting
-    const allMepGroups = []
-    this.scene.traverse((child) => {
-      if (child.isGroup && (
-        child.name === 'DuctworkGroup' || 
-        child.name === 'PipingGroup' || 
-        child.name === 'ConduitsGroup' || 
-        child.name === 'CableTraysGroup' ||
-        child.name === 'DuctsGroup' ||
-        child.name === 'PipesGroup' ||
-        child.name === 'ConduitGroup' ||
-        child.name === 'CableTrayGroup'
-      )) {
-        allMepGroups.push(child)
-      }
-    })
-
-    // Reset all ducts to normal (except selected)
-    const ductworkGroup = allMepGroups.find(g => g.name === 'DuctworkGroup')
-    if (ductworkGroup) {
-      ductworkGroup.children.forEach(ductGroup => {
-        if (ductGroup !== this.selectedDuct) {
-          this.ductGeometry.updateDuctAppearance(ductGroup, 'normal')
-        }
-      })
-    }
-
-    // Collect all intersections from all MEP groups
-    const allIntersects = []
-    allMepGroups.forEach(group => {
-      const groupIntersects = this.raycaster.intersectObjects(group.children, true)
-      groupIntersects.forEach(intersect => {
-        intersect.mepGroup = group
-        allIntersects.push(intersect)
-      })
-    })
-
-    // Apply hover effect only to the closest object across all MEP types
-    if (allIntersects.length > 0) {
-      // Sort ALL intersections by distance to get the absolute closest one
-      allIntersects.sort((a, b) => a.distance - b.distance)
-      const closestIntersect = allIntersects[0]
-      
-      // Only apply hover if it's a duct
-      if (closestIntersect.mepGroup.name === 'DuctworkGroup') {
-        const ductGroup = this.findDuctGroup(closestIntersect.object)
-        if (ductGroup && ductGroup !== this.selectedDuct) {
-          this.ductGeometry.updateDuctAppearance(ductGroup, 'hover')
-          this.domElement.style.cursor = 'pointer'
-        }
-      } else {
-        // Closest object is not a duct, so no hover for ducts
-        this.domElement.style.cursor = 'default'
-      }
-    } else if (!this.selectedDuct) {
-      this.domElement.style.cursor = 'default'
-    }
-  }
+  // Hover handling is now done by MepEventHandler - removed this method
 
   findDuctGroup(object) {
     let current = object
@@ -396,43 +386,10 @@ export class DuctInteraction {
   }
 
   updateMousePosition(event) {
-    const rect = this.domElement.getBoundingClientRect()
-    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+    updateMouseCoordinates(event, this.domElement, this.mouse)
   }
 
-  setupKeyboardShortcuts() {
-    this.onKeyDown = (event) => {
-      if (!this.transformControls) return
-      
-      switch (event.key) {
-        case 'w':
-        case 'W':
-          this.transformControls.setMode('translate')
-          break
-        case 'e':
-        case 'E':
-          this.transformControls.setMode('rotate')
-          break
-        case 'r':
-        case 'R':
-          this.transformControls.setMode('scale')
-          break
-        case 'Delete':
-        case 'Backspace':
-          if (this.selectedDuct) {
-            this.deleteSelectedDuct()
-          }
-          break
-        case 'Escape':
-          this.deselectDuct()
-          break
-      }
-    }
-    
-    document.addEventListener('keydown', this.onKeyDown)
-    this.keyboardHandler = this.onKeyDown
-  }
+  // Keyboard shortcuts are now handled by MepEventHandler - removed this method
 
   /**
    * Set callback for duct editor save action
@@ -894,13 +851,16 @@ export class DuctInteraction {
   }
 
   dispose() {
-    if (this.domElement) {
-      this.domElement.removeEventListener('click', this.onMouseClick)
-      this.domElement.removeEventListener('mousemove', this.onMouseMove)
+    // Dispose of centralized event handler
+    if (this.eventHandler) {
+      this.eventHandler.dispose()
+      this.eventHandler = null
     }
     
-    if (this.keyboardHandler) {
-      document.removeEventListener('keydown', this.keyboardHandler)
+    // Fallback cleanup for individual event listeners
+    if (this.domElement) {
+      this.domElement.removeEventListener('click', this.handleClick)
+      this.domElement.removeEventListener('mousemove', this.handleMouseMove)
     }
     
     if (this.transformControls) {

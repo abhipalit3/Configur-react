@@ -5,8 +5,15 @@
  */
 
 import * as THREE from 'three'
-import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { getMepSelectionManager } from '../core/MepSelectionManager.js'
+import {
+  setupTransformControls,
+  setupRaycaster,
+  updateMouseCoordinates,
+  createMepKeyboardHandler,
+  registerWithMepManager
+} from '../utils/common3dHelpers.js'
+import { createMepEventHandler } from '../utils/mepEventHandler.js'
 
 /**
  * PipeInteraction - Handles mouse interactions and transform controls for pipes
@@ -22,184 +29,137 @@ export class PipeInteraction {
     
     this.selectedPipe = null
     this.transformControls = null
-    this.raycaster = new THREE.Raycaster()
+    this.raycaster = setupRaycaster(camera)
     this.mouse = new THREE.Vector2()
     this.domElement = renderer.domElement
     this.pipeMeasurementIds = []
     
     this.setupTransformControls()
-    this.setupEventListeners()
+    this.setupCentralizedEventHandler()
     
     // Register with central MEP selection manager
     this.registerWithMepManager()
   }
 
   setupTransformControls() {
-    this.transformControls = new TransformControls(this.camera, this.domElement)
-    
-    this.transformControls.addEventListener('change', () => {
+    const onTransformChange = () => {
       if (this.selectedPipe && this.selectedPipe.parent) {
         this.onTransformChange()
       } else if (this.transformControls.object && !this.transformControls.object.parent) {
         // If the object is no longer in the scene, detach it
         this.transformControls.detach()
       }
-    })
-
-    this.transformControls.addEventListener('dragging-changed', (event) => {
-      if (this.orbitControls) {
-        this.orbitControls.enabled = !event.value
-      }
-      
-      if (!event.value) {
-        if (this.snapLineManager && this.snapLineManager.clearSnapGuides) {
-          this.snapLineManager.clearSnapGuides()
-        }
-        this.savePipePosition()
-        // Update measurements after transform ends
-        this.updatePipeMeasurements()
-      }
-    })
-
-    this.transformControls.setMode('translate')
-    this.transformControls.setSpace('world')
-    this.transformControls.setSize(0.8)
-    this.transformControls.showX = false
-    this.transformControls.showY = true
-    this.transformControls.showZ = true
+    }
     
-    const gizmo = this.transformControls.getHelper()
-    this.scene.add(gizmo)
+    const onDragEnd = () => {
+      if (this.snapLineManager?.clearSnapGuides) {
+        this.snapLineManager.clearSnapGuides()
+      }
+      this.savePipePosition()
+      // Update measurements after transform ends
+      this.updatePipeMeasurements()
+    }
+    
+    this.transformControls = setupTransformControls(
+      this.camera,
+      this.domElement, 
+      this.scene,
+      this.orbitControls,
+      {
+        onChange: onTransformChange,
+        onDragEnd: onDragEnd,
+        showX: false,
+        showY: true,
+        showZ: true,
+        size: 0.8
+      }
+    )
   }
 
-  setupEventListeners() {
-    // Only setup keyboard shortcuts - click/hover handled by central manager
-    this.setupKeyboardShortcuts()
+  setupCentralizedEventHandler() {
+    // Create centralized event handler for pipe interactions
+    this.eventHandler = createMepEventHandler('pipe', this.scene, this.camera, this.renderer, this.orbitControls, {
+      callbacks: {
+        onSelect: (object) => this.selectPipe(object),
+        onDeselect: (object) => this.deselectPipe(),
+        onClick: (event, object) => this.handleClick(event, object),
+        onMouseMove: (event, mouse) => this.handleMouseMove(event, mouse),
+        onDelete: () => this.deleteSelectedPipe(),
+        onDuplicate: () => this.duplicateSelectedPipe?.(),
+        onEscape: () => this.deselectPipe(),
+        onKeyDown: (event, selectedObject) => this.handleTransformKeys?.(event)
+      },
+      config: {
+        targetGroupName: 'PipingGroup',
+        objectType: 'pipe',
+        selectionAttribute: 'userData.type'
+      }
+    })
   }
   
   /**
    * Register with central MEP selection manager
    */
   registerWithMepManager() {
-    const tryRegister = () => {
-      const mepManager = getMepSelectionManager()
-      if (mepManager) {
-        mepManager.registerHandler('piping', this)
-        return true
-      }
-      return false
+    const fallbackSetup = () => {
+      // Fallback: use individual event listeners if central manager unavailable
+      this.domElement.addEventListener('click', this.handleClick.bind(this))
+      this.domElement.addEventListener('mousemove', this.handleMouseMove.bind(this))
     }
     
-    // Try immediate registration
-    if (!tryRegister()) {
-      // Retry after a delay
-      setTimeout(() => {
-        if (!tryRegister()) {
-          // Fallback to individual event handlers
-          this.domElement.addEventListener('click', this.onMouseClick.bind(this))
-          this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
-        }
-      }, 200)
+    registerWithMepManager('piping', this, fallbackSetup)
+  }
+
+  /**
+   * Handle transform control keyboard shortcuts
+   */
+  handleTransformKeys(event) {
+    if (!this.transformControls) return
+    
+    switch (event.key) {
+      case 'w':
+      case 'W':
+        this.transformControls.setMode('translate')
+        break
+      case 'e':
+      case 'E':
+        this.transformControls.setMode('rotate')
+        break
+      case 'r':
+      case 'R':
+        this.transformControls.setMode('scale')
+        break
     }
   }
 
-  setupKeyboardShortcuts() {
-    this.onKeyDown = (event) => {
-      if (!this.selectedPipe) return
-      
-      switch (event.key) {
-        case 'Delete':
-        case 'Backspace':
-          event.preventDefault()
-          this.deleteSelectedPipe()
-          break
-        case 'Escape':
-          this.deselectPipe()
-          break
-      }
-    }
-    
-    document.addEventListener('keydown', this.onKeyDown)
-    this.keyboardHandler = this.onKeyDown
-  }
-
-  onMouseClick(event) {
+  /**
+   * Centralized click handler (called by MepEventHandler)
+   */
+  handleClick(event, intersectedObject) {
     if (this.transformControls?.dragging) return
-
-    this.updateMousePosition(event)
-    this.raycaster.setFromCamera(this.mouse, this.camera)
-
-    // Handle pipe selection/deselection (measurement clicks are handled by global handler with event capture)
-    let pipingGroup = null
-    this.scene.traverse((child) => {
-      if (child.isGroup && child.name === 'PipingGroup') {
-        pipingGroup = child
-      }
-    })
-
-    if (!pipingGroup) return
-
-    const intersects = this.raycaster.intersectObjects(pipingGroup.children, true)
     
-    if (intersects.length > 0) {
-      // Sort intersections by distance to get the closest one
-      intersects.sort((a, b) => a.distance - b.distance)
-      const pipeGroup = this.findPipeGroup(intersects[0].object)
-      if (pipeGroup && pipeGroup !== this.selectedPipe) {
-        this.selectPipe(pipeGroup)
-      }
-    } else {
-      this.deselectPipe()
+    // Selection is handled by the event handler, we just need to handle additional click logic
+    if (intersectedObject) {
+      console.log('🔧 Pipe clicked:', intersectedObject.userData?.pipeData?.id || 'unknown')
     }
   }
 
-  onMouseMove(event) {
-    if (!this.transformControls?.dragging) {
+  /**
+   * Centralized mouse move handler (called by MepEventHandler)
+   */
+  handleMouseMove(event, mouse) {
+    if (this.transformControls?.dragging) {
+      // Still handle transform-specific mouse move logic
       this.updateMousePosition(event)
-      this.handleHover()
     }
+    // Hover effects are handled by MepEventHandler
   }
 
   updateMousePosition(event) {
-    const rect = this.domElement.getBoundingClientRect()
-    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+    updateMouseCoordinates(event, this.domElement, this.mouse)
   }
 
-  handleHover() {
-    this.raycaster.setFromCamera(this.mouse, this.camera)
-
-    let pipingGroup = null
-    this.scene.traverse((child) => {
-      if (child.isGroup && child.name === 'PipingGroup') {
-        pipingGroup = child
-      }
-    })
-
-    if (!pipingGroup) return
-
-    const intersects = this.raycaster.intersectObjects(pipingGroup.children, true)
-    
-    // Reset all pipes to normal appearance first
-    pipingGroup.children.forEach(pipeGroup => {
-      if (pipeGroup.userData.type === 'pipe' && pipeGroup !== this.selectedPipe) {
-        this.pipeGeometry.updatePipeAppearance(pipeGroup, 'normal')
-      }
-    })
-
-    // Apply hover effect only to the closest object
-    if (intersects.length > 0) {
-      // Sort intersections by distance to get the closest one
-      intersects.sort((a, b) => a.distance - b.distance)
-      const pipeGroup = this.findPipeGroup(intersects[0].object)
-      if (pipeGroup && pipeGroup !== this.selectedPipe) {
-        this.pipeGeometry.updatePipeAppearance(pipeGroup, 'hover')
-        this.domElement.style.cursor = 'pointer'
-      }
-    } else if (!this.selectedPipe) {
-      this.domElement.style.cursor = 'default'
-    }
-  }
+  // Hover handling is now done by MepEventHandler - removed this method
 
   findPipeGroup(object) {
     let current = object
@@ -222,6 +182,11 @@ export class PipeInteraction {
     
     // Update appearance to selected state
     this.pipeGeometry.updatePipeAppearance(pipeGroup, 'selected')
+    
+    // Update event handler's selected object reference
+    if (this.eventHandler) {
+      this.eventHandler.selectedObject = pipeGroup
+    }
 
     // Attach transform controls
     this.transformControls.attach(pipeGroup)
@@ -241,6 +206,11 @@ export class PipeInteraction {
       // Reset appearance to normal
       this.pipeGeometry.updatePipeAppearance(this.selectedPipe, 'normal')
       this.selectedPipe = null
+      
+      // Update event handler's selected object reference
+      if (this.eventHandler) {
+        this.eventHandler.selectedObject = null
+      }
     }
 
     // Clear measurement lines
@@ -856,15 +826,20 @@ export class PipeInteraction {
   }
 
   dispose() {
+    // Dispose of centralized event handler
+    if (this.eventHandler) {
+      this.eventHandler.dispose()
+      this.eventHandler = null
+    }
+    
     if (this.transformControls) {
       this.scene.remove(this.transformControls.getHelper())
     }
     
-    if (this.keyboardHandler) {
-      document.removeEventListener('keydown', this.keyboardHandler)
+    // Fallback cleanup for individual event listeners
+    if (this.domElement) {
+      this.domElement.removeEventListener('click', this.handleClick)
+      this.domElement.removeEventListener('mousemove', this.handleMouseMove)
     }
-    
-    this.domElement.removeEventListener('click', this.onMouseClick.bind(this))
-    this.domElement.removeEventListener('mousemove', this.onMouseMove.bind(this))
   }
 }

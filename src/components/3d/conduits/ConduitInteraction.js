@@ -5,8 +5,15 @@
  */
 
 import * as THREE from 'three'
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 import { getMepSelectionManager } from '../core/MepSelectionManager.js'
+import {
+  setupTransformControls,
+  setupRaycaster,
+  updateMouseCoordinates,
+  createMepKeyboardHandler,
+  registerWithMepManager
+} from '../utils/common3dHelpers.js'
+import { createMepEventHandler } from '../utils/mepEventHandler.js'
 
 /**
  * ConduitInteraction - Handles user interactions with conduits
@@ -20,26 +27,15 @@ export class ConduitInteraction {
     this.conduitGeometry = conduitGeometry
     this.snapLineManager = snapLineManager
 
-    // Transform controls for moving conduits
-    this.transformControls = new TransformControls(camera, renderer.domElement)
-    this.transformControls.setMode('translate')
-    this.transformControls.showX = false // Lock X-axis
-    this.transformControls.showY = true  // Allow Y-axis (vertical)
-    this.transformControls.showZ = true  // Allow Z-axis (depth)
-    this.transformControls.enabled = false
-    this.transformControls.visible = false
-    this.transformControls.setSize(0.8) // Make gizmo slightly smaller
-    
-    // Add the gizmo helper to the scene (like piping does)
-    const gizmo = this.transformControls.getHelper()
-    this.scene.add(gizmo)
+    // Transform controls setup using centralized helper
+    this.setupTransformControls()
     
     // console.log('⚡ Transform controls initialized:', this.transformControls)
     // console.log('⚡ Transform controls gizmo added to scene:', gizmo)
     // console.log('⚡ Scene children count:', this.scene.children.length)
 
     // Raycaster for mouse interaction
-    this.raycaster = new THREE.Raycaster()
+    this.raycaster = setupRaycaster(camera)
     this.mouse = new THREE.Vector2()
 
     // Selected conduit tracking
@@ -52,195 +48,134 @@ export class ConduitInteraction {
     // Measurement tracking
     this.conduitMeasurementIds = []
 
-    // Bind event handlers
-    this.onMouseMove = this.onMouseMove.bind(this)
-    this.onMouseClick = this.onMouseClick.bind(this)
-    this.onKeyDown = this.onKeyDown.bind(this)
-
-    // Add event listeners
-    this.setupEventListeners()
+    // Setup centralized event handler
+    this.setupCentralizedEventHandler()
     
     // Register with central MEP selection manager
     this.registerWithMepManager()
 
-    // Handle transform controls interaction with orbit controls
-    this.transformControls.addEventListener('dragging-changed', (event) => {
-      if (this.orbitControls) {
-        this.orbitControls.enabled = !event.value
-      }
-      
-      if (!event.value) {
-        // Clear snap guides when dragging ends
-        if (this.snapLineManager && this.snapLineManager.clearSnapGuides) {
-          this.snapLineManager.clearSnapGuides()
-        }
-        this.saveConduitPosition()
-      }
-    })
+    // Transform controls event handlers are setup in setupTransformControls()
 
-    // Update conduit position after transform
-    this.transformControls.addEventListener('change', () => {
+    // console.log('⚡ ConduitInteraction initialized')
+  }
+  
+  setupTransformControls() {
+    const onTransformChange = () => {
       if (this.selectedConduit && this.selectedConduitGroup && this.selectedConduitGroup.parent) {
         this.onTransformChange()
       } else if (this.transformControls.object && !this.transformControls.object.parent) {
         // If the object is no longer in the scene, detach it
         this.transformControls.detach()
       }
-    })
-
-    // console.log('⚡ ConduitInteraction initialized')
+    }
+    
+    const onDragEnd = () => {
+      // Clear snap guides when dragging ends
+      if (this.snapLineManager?.clearSnapGuides) {
+        this.snapLineManager.clearSnapGuides()
+      }
+      this.saveConduitPosition()
+    }
+    
+    this.transformControls = setupTransformControls(
+      this.camera,
+      this.renderer.domElement, 
+      this.scene,
+      this.orbitControls,
+      {
+        onChange: onTransformChange,
+        onDragEnd: onDragEnd,
+        showX: false, // Lock X-axis
+        showY: true,  // Allow Y-axis (vertical)
+        showZ: true,  // Allow Z-axis (depth)
+        size: 0.8
+      }
+    )
+    
+    this.transformControls.enabled = false
+    this.transformControls.visible = false
   }
 
   /**
-   * Setup event listeners
+   * Setup centralized event handler
    */
-  setupEventListeners() {
-    // Only setup keyboard - click/hover handled by central manager
-    window.addEventListener('keydown', this.onKeyDown)
+  setupCentralizedEventHandler() {
+    // Create centralized event handler for conduit interactions
+    this.eventHandler = createMepEventHandler('conduit', this.scene, this.camera, this.renderer, this.orbitControls, {
+      callbacks: {
+        onSelect: (object) => this.selectConduit(object),
+        onDeselect: (object) => this.deselectConduit(),
+        onClick: (event, object) => this.handleClick(event, object),
+        onMouseMove: (event, mouse) => this.handleMouseMove(event, mouse),
+        onDelete: () => this.deleteSelectedConduit(),
+        onCopy: () => this.copySelectedConduit(),
+        onPaste: () => this.pasteConduit(),
+        onEscape: () => this.deselectConduit(),
+        onKeyDown: (event, selectedObject) => this.handleTransformKeys?.(event)
+      },
+      config: {
+        targetGroupName: 'ConduitsGroup',
+        objectType: 'conduit',
+        selectionAttribute: 'userData.type'
+      }
+    })
   }
   
   /**
    * Register with central MEP selection manager
    */
   registerWithMepManager() {
-    const tryRegister = () => {
-      const mepManager = getMepSelectionManager()
-      if (mepManager) {
-        mepManager.registerHandler('conduits', this)
-        return true
-      }
-      return false
+    const fallbackSetup = () => {
+      // Fallback: use individual event listeners if central manager unavailable
+      this.renderer.domElement.addEventListener('click', this.handleClick.bind(this))
+      this.renderer.domElement.addEventListener('mousemove', this.handleMouseMove.bind(this))
     }
     
-    // Try immediate registration
-    if (!tryRegister()) {
-      // Retry after a delay
-      setTimeout(() => {
-        if (!tryRegister()) {
-          // Fallback to individual event handlers
-          this.renderer.domElement.addEventListener('mousemove', this.onMouseMove)
-          this.renderer.domElement.addEventListener('click', this.onMouseClick)
-        }
-      }, 300)
+    registerWithMepManager('conduits', this, fallbackSetup)
+  }
+
+  /**
+   * Centralized mouse move handler (called by MepEventHandler)
+   */
+  handleMouseMove(event, mouse) {
+    if (this.transformControls?.dragging) {
+      // Still handle transform-specific mouse move logic
+      updateMouseCoordinates(event, this.renderer.domElement, this.mouse)
+    }
+    // Hover effects are handled by MepEventHandler
+  }
+
+  /**
+   * Centralized click handler (called by MepEventHandler)
+   */
+  handleClick(event, intersectedObject) {
+    if (this.transformControls?.dragging) return
+    
+    // Selection is handled by the event handler, we just need to handle additional click logic
+    if (intersectedObject) {
+      console.log('⚡ Conduit clicked:', intersectedObject.userData?.conduitData?.id || 'unknown')
     }
   }
 
   /**
-   * Handle mouse movement for hover effects
+   * Handle transform control keyboard shortcuts
    */
-  onMouseMove(event) {
-    // Calculate mouse position in normalized device coordinates
-    const rect = this.renderer.domElement.getBoundingClientRect()
-    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-
-    // Update raycaster
-    this.raycaster.setFromCamera(this.mouse, this.camera)
-
-    // Find intersected conduits
-    const conduitGroup = this.scene.getObjectByName('ConduitsGroup')
-    if (!conduitGroup) return
-
-    const intersects = this.raycaster.intersectObjects(conduitGroup.children, true)
-
-    // Sort intersections by distance to get the closest one first
-    intersects.sort((a, b) => a.distance - b.distance)
-
-    // Find the first conduit in the intersections and its parent group
-    let newHoveredConduit = null
-    let newHoveredGroup = null
-    for (const intersect of intersects) {
-      let obj = intersect.object
-      while (obj && obj.parent) {
-        if (obj.userData && obj.userData.type === 'conduit') {
-          newHoveredConduit = obj
-          // Find the parent multi-conduit group
-          let parent = obj.parent
-          while (parent) {
-            if (parent.userData && parent.userData.type === 'multiConduit') {
-              newHoveredGroup = parent
-              break
-            }
-            parent = parent.parent
-          }
-          break
-        }
-        obj = obj.parent
-      }
-      if (newHoveredConduit) break
-    }
-
-    // Update hover state for the entire group
-    if (newHoveredGroup !== this.hoveredGroup) {
-      // Clear previous hover
-      if (this.hoveredGroup && this.hoveredGroup !== this.selectedConduitGroup) {
-        this.updateGroupAppearance(this.hoveredGroup, 'normal')
-        // console.log('⚡ Cleared hover from group:', this.hoveredGroup.name)
-      }
-
-      // Set new hover
-      this.hoveredGroup = newHoveredGroup
-      this.hoveredConduit = newHoveredConduit
-      if (this.hoveredGroup && this.hoveredGroup !== this.selectedConduitGroup) {
-        this.updateGroupAppearance(this.hoveredGroup, 'hover')
-        this.renderer.domElement.style.cursor = 'pointer'
-        // console.log('⚡ Hovering over group:', this.hoveredGroup.name)
-      } else if (!this.hoveredGroup) {
-        this.renderer.domElement.style.cursor = 'default'
-      }
-    }
-  }
-
-  /**
-   * Handle mouse click for selection
-   */
-  onMouseClick(event) {
-    // Prevent selection during transform
-    if (this.transformControls.dragging) return
-
-    // Use the same raycasting setup from onMouseMove
-    const rect = this.renderer.domElement.getBoundingClientRect()
-    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-
-    this.raycaster.setFromCamera(this.mouse, this.camera)
-
-    const conduitGroup = this.scene.getObjectByName('ConduitsGroup')
-    if (!conduitGroup) {
-      // console.log('⚡ No ConduitsGroup found')
-      return
-    }
-
-    // console.log('⚡ ConduitsGroup children count:', conduitGroup.children.length)
-    const intersects = this.raycaster.intersectObjects(conduitGroup.children, true)
-    // console.log('⚡ Intersects found:', intersects.length)
-
-    // Sort intersections by distance to get the closest one first
-    intersects.sort((a, b) => a.distance - b.distance)
-
-    // Find clicked conduit
-    let clickedConduit = null
-    for (const intersect of intersects) {
-      // console.log('⚡ Checking intersect object:', intersect.object.name, intersect.object.userData)
-      let obj = intersect.object
-      while (obj && obj.parent) {
-        if (obj.userData && obj.userData.type === 'conduit') {
-          clickedConduit = obj
-          // console.log('⚡ Found conduit:', obj.name)
-          break
-        }
-        obj = obj.parent
-      }
-      if (clickedConduit) break
-    }
-
-    // Handle selection
-    if (clickedConduit) {
-      // console.log('⚡ Selecting conduit:', clickedConduit.name)
-      this.selectConduit(clickedConduit)
-    } else {
-      // console.log('⚡ No conduit clicked, deselecting')
-      this.deselectConduit()
+  handleTransformKeys(event) {
+    if (!this.transformControls) return
+    
+    switch (event.key) {
+      case 'w':
+      case 'W':
+        this.transformControls.setMode('translate')
+        break
+      case 'e':
+      case 'E':
+        this.transformControls.setMode('rotate')
+        break
+      case 'r':
+      case 'R':
+        this.transformControls.setMode('scale')
+        break
     }
   }
 
@@ -278,6 +213,11 @@ export class ConduitInteraction {
     
     // Update visual appearance
     this.updateGroupAppearance(multiConduitGroup, 'selected')
+    
+    // Update event handler's selected object reference
+    if (this.eventHandler) {
+      this.eventHandler.selectedObject = multiConduitGroup
+    }
 
     // console.log(`⚡ Selected multi-conduit group: ${multiConduitGroup.children.length} conduits`)
     // console.log('⚡ Group bounding box:', multiConduitGroup.userData.boundingBox)
@@ -351,6 +291,11 @@ export class ConduitInteraction {
     
     if (this.selectedConduit) {
       this.selectedConduit = null
+      
+      // Update event handler's selected object reference
+      if (this.eventHandler) {
+        this.eventHandler.selectedObject = null
+      }
     }
 
     // Clear measurement lines
@@ -364,34 +309,7 @@ export class ConduitInteraction {
     this.clearInfoDisplay()
   }
 
-  /**
-   * Handle keyboard events
-   */
-  onKeyDown(event) {
-    if (!this.selectedConduit) return
-
-    switch (event.key) {
-      case 'Delete':
-      case 'Backspace':
-        this.deleteSelectedConduit()
-        break
-      case 'Escape':
-        this.deselectConduit()
-        break
-      case 'c':
-      case 'C':
-        if (event.ctrlKey || event.metaKey) {
-          this.copySelectedConduit()
-        }
-        break
-      case 'v':
-      case 'V':
-        if (event.ctrlKey || event.metaKey) {
-          this.pasteConduit()
-        }
-        break
-    }
-  }
+  // Keyboard events are now handled by MepEventHandler - removed this method
 
   /**
    * Delete selected conduit
@@ -1244,13 +1162,20 @@ export class ConduitInteraction {
    * Dispose of interaction controls
    */
   dispose() {
+    // Dispose of centralized event handler
+    if (this.eventHandler) {
+      this.eventHandler.dispose()
+      this.eventHandler = null
+    }
+    
     // Clear measurements
     this.clearConduitMeasurements()
     
-    // Remove event listeners
-    this.renderer.domElement.removeEventListener('mousemove', this.onMouseMove)
-    this.renderer.domElement.removeEventListener('click', this.onMouseClick)
-    window.removeEventListener('keydown', this.onKeyDown)
+    // Fallback cleanup for individual event listeners
+    if (this.renderer.domElement) {
+      this.renderer.domElement.removeEventListener('click', this.handleClick)
+      this.renderer.domElement.removeEventListener('mousemove', this.handleMouseMove)
+    }
 
     // Dispose transform controls
     if (this.transformControls) {

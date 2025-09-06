@@ -94,9 +94,16 @@ export class TradeRackInteraction {
     }, 100)
   }
 
+  /**
+   * Check if measurement tool is currently active
+   */
+  isMeasurementToolActive() {
+    return window.measurementToolInstance && window.measurementToolInstance.active
+  }
+
   handleMouseClick(event) {
     // Don't process if measurement tool is active
-    if (window.measurementToolInstance && window.measurementToolInstance.active) {
+    if (this.isMeasurementToolActive()) {
       return
     }
 

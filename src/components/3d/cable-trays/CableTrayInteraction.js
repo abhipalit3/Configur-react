@@ -5,8 +5,15 @@
  */
 
 import * as THREE from 'three'
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
 import { getMepSelectionManager } from '../core/MepSelectionManager.js'
+import {
+  setupTransformControls,
+  setupRaycaster,
+  updateMouseCoordinates,
+  createMepKeyboardHandler,
+  registerWithMepManager
+} from '../utils/common3dHelpers.js'
+import { createMepEventHandler } from '../utils/mepEventHandler.js'
 
 /**
  * CableTrayInteraction - Handles user interactions with cable trays (selection, movement, editing)
@@ -23,7 +30,7 @@ export class CableTrayInteraction {
     this.selectedCableTray = null
     this.selectedCableTrayGroup = null
     this.hoveredCableTrayGroup = null
-    this.raycaster = new THREE.Raycaster()
+    this.raycaster = setupRaycaster(camera)
     this.mouse = new THREE.Vector2()
     
     // Measurement tracking (like ducts)
@@ -32,8 +39,8 @@ export class CableTrayInteraction {
     // Setup transform controls (match duct implementation)
     this.setupTransformControls()
     
-    // Setup event listeners
-    this.setupEventListeners()
+    // Setup centralized event handler
+    this.setupCentralizedEventHandler()
     
     // Register with central MEP selection manager
     this.registerWithMepManager()
@@ -41,228 +48,133 @@ export class CableTrayInteraction {
   }
 
   /**
-   * Setup transform controls exactly like ducts
+   * Setup transform controls using centralized helper
    */
   setupTransformControls() {
-    this.transformControls = new TransformControls(this.camera, this.renderer.domElement)
-    
-    this.transformControls.addEventListener('change', () => {
+    const onTransformChange = () => {
       if (this.selectedCableTrayGroup && this.selectedCableTrayGroup.parent) {
         this.applyRealTimeSnapping()
         this.updateCableTrayPosition()
-        // Update measurements during transform (like ducts do)
+        // Update measurements during transform
         this.updateCableTrayMeasurements()
         this.renderer.render(this.scene, this.camera)
       } else if (this.transformControls.object) {
         // If the object is no longer in the scene, detach it
         this.transformControls.detach()
       }
-    })
+    }
     
-    this.transformControls.addEventListener('dragging-changed', (event) => {
-      // Disable orbit controls during transform (like ducts do)
-      if (this.orbitControls) {
-        this.orbitControls.enabled = !event.value
+    const onDragEnd = () => {
+      if (this.snapLineManager?.clearSnapGuides) {
+        this.snapLineManager.clearSnapGuides()
       }
-      
-      // Also try the global orbit controls
-      if (window.orbitControls) {
-        window.orbitControls.enabled = !event.value
-      }
-      
-      // When dragging ends, clear snap guides and save position (like ducts do)
-      if (!event.value) {
-        if (this.snapLineManager) {
-          this.snapLineManager.clearSnapGuides()
-        }
-        // Save cable tray position when dragging ends
-        this.saveCableTrayPosition()
-      }
-      
-    })
-
-    // Configure transform controls like ducts
-    this.transformControls.setMode('translate')
-    this.transformControls.setSpace('world')
-    this.transformControls.setSize(0.8) // Same size as ducts
-    this.transformControls.showX = false // Same as ducts - no X movement
-    this.transformControls.showY = true
-    this.transformControls.showZ = true
+      // Save cable tray position when dragging ends
+      this.saveCableTrayPosition()
+    }
     
-    // Add the transform controls gizmo to the scene (like ducts do)
-    const gizmo = this.transformControls.getHelper()
-    this.scene.add(gizmo)
+    this.transformControls = setupTransformControls(
+      this.camera,
+      this.renderer.domElement, 
+      this.scene,
+      this.orbitControls,
+      {
+        onChange: onTransformChange,
+        onDragEnd: onDragEnd,
+        showX: false, // No X movement
+        showY: true,
+        showZ: true,
+        size: 0.8
+      }
+    )
   }
 
   /**
-   * Setup event listeners for cable tray interaction
+   * Setup centralized event handler
    */
-  setupEventListeners() {
+  setupCentralizedEventHandler() {
     this.domElement = this.renderer.domElement
     
-    // Setup keyboard event handler for cable tray operations (like ducts)
-    this.onKeyDown = (event) => {
-      // Only handle keyboard events when a cable tray is selected
-      if (!this.selectedCableTrayGroup) return
-      
-      switch (event.key) {
-        case 'Delete':
-        case 'Backspace':
-          if (this.selectedCableTrayGroup) {
-            this.deleteSelectedCableTray()
-          }
-          break
-        case 'Escape':
-          this.deselectCableTray()
-          break
+    // Create centralized event handler for cable tray interactions
+    this.eventHandler = createMepEventHandler('cableTray', this.scene, this.camera, this.renderer, this.orbitControls, {
+      callbacks: {
+        onSelect: (object) => this.selectCableTray(object),
+        onDeselect: (object) => this.deselectCableTray(),
+        onClick: (event, object) => this.handleClick(event, object),
+        onMouseMove: (event, mouse) => this.handleMouseMove(event, mouse),
+        onDelete: () => this.deleteSelectedCableTray(),
+        onEscape: () => this.deselectCableTray(),
+        onKeyDown: (event, selectedObject) => this.handleTransformKeys?.(event)
+      },
+      config: {
+        targetGroupName: 'CableTraysGroup',
+        objectType: 'cableTray',
+        selectionAttribute: 'userData.type'
       }
-    }
-    
-    document.addEventListener('keydown', this.onKeyDown)
-    this.keyboardHandler = this.onKeyDown
+    })
   }
   
   /**
    * Register with central MEP selection manager
    */
   registerWithMepManager() {
-    const tryRegister = () => {
-      const mepManager = getMepSelectionManager()
-      if (mepManager) {
-        mepManager.registerHandler('cableTrays', this)
-        return true
-      }
-      return false
+    const fallbackSetup = () => {
+      // Fallback: use individual event listeners if central manager unavailable
+      this.boundMoveHandler = this.handleMouseMove.bind(this)
+      this.domElement.addEventListener('mousemove', this.boundMoveHandler)
+      this.domElement.addEventListener('click', this.handleClick.bind(this))
     }
     
-    // Try immediate registration
-    if (!tryRegister()) {
-      // Retry after a delay
-      setTimeout(() => {
-        if (!tryRegister()) {
-          // Fallback to individual event handlers
-          this.boundMoveHandler = this.onMouseMove.bind(this)
-          this.domElement.addEventListener('mousemove', this.boundMoveHandler)
-        }
-      }, 400)
-    }
+    registerWithMepManager('cableTrays', this, fallbackSetup)
   }
 
   /**
-   * Handle mouse click events for cable tray selection
+   * Centralized click handler (called by MepEventHandler)
    */
-  onMouseClick(event) {
-    // console.log('🖱️ Cable tray click event received')
+  handleClick(event, intersectedObject) {
+    if (this.transformControls?.dragging) return false
     
-    // Only handle clicks if not dragging transform controls
-    if (this.transformControls.dragging) {
-      // console.log('🖱️ Click ignored - transform controls dragging')
-      return
+    // Selection is handled by the event handler, we just need to handle additional click logic
+    if (intersectedObject) {
+      console.log('🔌 Cable tray clicked:', intersectedObject.userData?.cableTrayData?.id || 'unknown')
+      return true
     }
-
-    // console.log('🖱️ Processing cable tray click')
-    const result = this.handleClick(event)
-    
-    // If we successfully selected a cable tray, prevent other handlers from running
-    if (result) {
-      // console.log('🖱️ Cable tray selected - preventing event propagation')
-      event.stopPropagation()
-      event.preventDefault()
-    }
-    
-    return result
+    return false
   }
 
   /**
-   * Handle mouse move events for cable tray hover effects
+   * Centralized mouse move handler (called by MepEventHandler)
    */
-  onMouseMove(event) {
-    // Only handle hover if not dragging transform controls
-    if (this.transformControls.dragging) return
-
-    try {
-      // Update mouse coordinates
-      const rect = this.renderer.domElement.getBoundingClientRect()
-      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-
-      // Update raycaster
-      this.raycaster.setFromCamera(this.mouse, this.camera)
-
-      // Get all cable tray objects
-      const cableTraysGroup = this.cableTrayRenderer.getCableTraysGroup()
-      const intersects = this.raycaster.intersectObjects(cableTraysGroup.children, true)
-
-      if (intersects.length > 0) {
-        // Sort intersections by distance to get the closest one
-        intersects.sort((a, b) => a.distance - b.distance)
-        // Find the cable tray group that was hovered
-        let cableTrayGroup = intersects[0].object
-        while (cableTrayGroup && !cableTrayGroup.userData?.isCableTrayGroup) {
-          cableTrayGroup = cableTrayGroup.parent
-        }
-
-        if (cableTrayGroup && cableTrayGroup.userData?.isCableTrayGroup) {
-          // Only apply hover if not already selected
-          if (cableTrayGroup !== this.selectedCableTrayGroup) {
-            this.setHoverCableTray(cableTrayGroup)
-          }
-        } else {
-          this.clearHoverCableTray()
-        }
-      } else {
-        this.clearHoverCableTray()
-      }
-      
-    } catch (error) {
-      console.error('❌ Error handling cable tray hover:', error)
+  handleMouseMove(event, mouse) {
+    if (this.transformControls?.dragging) {
+      // Still handle transform-specific mouse move logic
+      updateMouseCoordinates(event, this.renderer.domElement, this.mouse)
     }
+    // Hover effects are handled by MepEventHandler
   }
 
   /**
-   * Handle mouse click events for cable tray selection
+   * Handle transform control keyboard shortcuts
    */
-  handleClick(event) {
-    try {
-      // console.log('🔌 CableTrayInteraction: handleClick called')
-      // Update mouse coordinates
-      const rect = this.renderer.domElement.getBoundingClientRect()
-      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-
-      // Update raycaster
-      this.raycaster.setFromCamera(this.mouse, this.camera)
-
-      // Get all cable tray objects
-      const cableTraysGroup = this.cableTrayRenderer.getCableTraysGroup()
-      // console.log('🔌 Cable trays group children count:', cableTraysGroup.children.length)
-      const intersects = this.raycaster.intersectObjects(cableTraysGroup.children, true)
-      // console.log('🔌 Intersects found:', intersects.length)
-
-      if (intersects.length > 0) {
-        // Sort intersections by distance to get the closest one
-        intersects.sort((a, b) => a.distance - b.distance)
-        // Find the cable tray group that was clicked
-        let cableTrayGroup = intersects[0].object
-        while (cableTrayGroup && !cableTrayGroup.userData?.isCableTrayGroup) {
-          cableTrayGroup = cableTrayGroup.parent
-        }
-
-        if (cableTrayGroup && cableTrayGroup.userData?.isCableTrayGroup) {
-          this.selectCableTray(cableTrayGroup)
-          return true // Indicate that a cable tray was selected
-        }
-      }
-
-      // If no cable tray was clicked, deselect current selection
-      this.deselectCableTray()
-      return false
-      
-    } catch (error) {
-      console.error('❌ Error handling cable tray click:', error)
-      return false
+  handleTransformKeys(event) {
+    if (!this.transformControls) return
+    
+    switch (event.key) {
+      case 'w':
+      case 'W':
+        this.transformControls.setMode('translate')
+        break
+      case 'e':
+      case 'E':
+        this.transformControls.setMode('rotate')
+        break
+      case 'r':
+      case 'R':
+        this.transformControls.setMode('scale')
+        break
     }
   }
+
+  // Legacy handleClick method removed - now using centralized event handling
 
   /**
    * Select a cable tray
@@ -278,6 +190,11 @@ export class CableTrayInteraction {
       // Select new cable tray
       this.selectedCableTrayGroup = cableTrayGroup
       this.selectedCableTray = cableTrayGroup
+      
+      // Update event handler's selected object reference
+      if (this.eventHandler) {
+        this.eventHandler.selectedObject = cableTrayGroup
+      }
 
       // Update appearance
       this.cableTrayRenderer.cableTrayGeometry.updateCableTrayAppearance(cableTrayGroup, 'selected')
@@ -330,6 +247,11 @@ export class CableTrayInteraction {
 
     this.selectedCableTray = null
     this.selectedCableTrayGroup = null
+    
+    // Update event handler's selected object reference
+    if (this.eventHandler) {
+      this.eventHandler.selectedObject = null
+    }
 
     // Trigger deselection event
     this.triggerSelectionEvent()
@@ -1040,16 +962,18 @@ export class CableTrayInteraction {
    * Dispose of the interaction handler
    */
   dispose() {
-    this.deselectCableTray()
-    
-    // Remove event listeners
-    if (this.domElement) {
-      this.domElement.removeEventListener('mousemove', this.boundMoveHandler)
+    // Dispose of centralized event handler
+    if (this.eventHandler) {
+      this.eventHandler.dispose()
+      this.eventHandler = null
     }
     
-    // Remove keyboard event listener
-    if (this.keyboardHandler) {
-      document.removeEventListener('keydown', this.keyboardHandler)
+    this.deselectCableTray()
+    
+    // Fallback cleanup for individual event listeners
+    if (this.domElement) {
+      this.domElement.removeEventListener('mousemove', this.boundMoveHandler)
+      this.domElement.removeEventListener('click', this.handleClick)
     }
     
     // Clean up measurements

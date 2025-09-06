@@ -67,9 +67,21 @@ export class MepSelectionManager {
   }
   
   /**
+   * Check if measurement tool is currently active
+   */
+  isMeasurementToolActive() {
+    return window.measurementToolInstance && window.measurementToolInstance.active
+  }
+
+  /**
    * Handle mouse click with unified MEP selection
    */
   handleClick(event) {
+    // Don't process MEP selection if measurement tool is active
+    if (this.isMeasurementToolActive()) {
+      return
+    }
+    
     // Check if any transform controls are dragging
     const isDragging = Object.values(this.mepHandlers).some(handler => 
       handler?.transformControls?.dragging
@@ -107,6 +119,11 @@ export class MepSelectionManager {
    * Handle mouse move for hover effects
    */
   handleMouseMove(event) {
+    // Don't process MEP hover if measurement tool is active
+    if (this.isMeasurementToolActive()) {
+      return
+    }
+    
     // Check if any transform controls are dragging
     const isDragging = Object.values(this.mepHandlers).some(handler => 
       handler?.transformControls?.dragging

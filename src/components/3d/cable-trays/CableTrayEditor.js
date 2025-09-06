@@ -6,6 +6,15 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { 
+  calculateScreenPosition, 
+  validateDimensionInput, 
+  getTierOptionsFromGeometry,
+  findTierSpace,
+  calculateTierYPosition,
+  createAnimationLoop,
+  createEditorKeyHandler
+} from '../utils/common3dHelpers'
 
 /**
  * CableTrayEditor - Compact horizontal editor for cable tray dimensions
@@ -57,89 +66,26 @@ export const CableTrayEditor = ({
     if (!selectedCableTray || !camera || !renderer || !visible) return
 
     const updatePosition = () => {
-      try {
-        // Get cable tray position in world coordinates
-        const cableTrayWorldPos = new THREE.Vector3()
-        selectedCableTray.getWorldPosition(cableTrayWorldPos)
-        
-        // Validate world position
-        if (!isFinite(cableTrayWorldPos.x) || !isFinite(cableTrayWorldPos.y) || !isFinite(cableTrayWorldPos.z)) {
-          console.warn('⚠️ Invalid cable tray world position:', cableTrayWorldPos)
-          return
-        }
-        
-        // Offset below the cable tray
-        const cableTrayData = selectedCableTray.userData.cableTrayData
-        const height = cableTrayData.height || 4
-        
-        // Validate dimensions
-        if (!isFinite(height)) {
-          console.warn('⚠️ Invalid cable tray height:', height)
-          return
-        }
-        
-        const heightM = height * 0.0254 // Convert inches to meters
-        
-        if (!isFinite(heightM)) {
-          console.warn('⚠️ Invalid total height:', heightM)
-          return
-        }
-        
-        cableTrayWorldPos.y -= (heightM / 2) + 0.3 // Position below cable tray with some margin
-        
-        // Project to screen coordinates
-        const screenPos = cableTrayWorldPos.clone().project(camera)
-        
-        // Validate projection
-        if (!isFinite(screenPos.x) || !isFinite(screenPos.y) || !isFinite(screenPos.z)) {
-          console.warn('⚠️ Invalid screen projection:', screenPos)
-          return
-        }
-        
-        const canvas = renderer.domElement
-        if (!canvas || !canvas.clientWidth || !canvas.clientHeight) {
-          console.warn('⚠️ Invalid canvas dimensions')
-          return
-        }
-        
-        const x = (screenPos.x * 0.5 + 0.5) * canvas.clientWidth
-        const y = (-screenPos.y * 0.5 + 0.5) * canvas.clientHeight
-        
-        // Validate final screen coordinates
-        if (!isFinite(x) || !isFinite(y)) {
-          console.warn('⚠️ Invalid screen coordinates:', { x, y })
-          return
-        }
-        
-        // Only update state if component is still mounted
-        if (mountedRef.current) {
-          setPosition({ x, y })
-        }
-      } catch (error) {
-        console.error('❌ Error updating cable tray editor position:', error)
+      // Calculate offset based on cable tray height
+      const cableTrayData = selectedCableTray.userData.cableTrayData
+      const height = cableTrayData.height || 4
+      const heightM = height * 0.0254 // Convert inches to meters
+      const offset = (heightM / 2) + 0.3
+      
+      const screenPos = calculateScreenPosition(selectedCableTray, camera, renderer, offset)
+      if (screenPos && mountedRef.current) {
+        setPosition(screenPos)
       }
     }
 
     updatePosition()
     
-    // Update position on animation frames with proper cleanup
-    let isAnimating = true
-    let animationId
-    
-    const animate = () => {
-      if (!isAnimating) return
-      updatePosition()
-      animationId = requestAnimationFrame(animate)
-    }
-    
-    animationId = requestAnimationFrame(animate)
+    // Use common animation loop helper
+    const cleanup = createAnimationLoop(updatePosition, mountedRef)
     
     return () => {
-      isAnimating = false
       mountedRef.current = false
-      if (animationId) {
-        cancelAnimationFrame(animationId)
-      }
+      cleanup()
     }
   }, [selectedCableTray, camera, renderer, visible])
 
@@ -151,19 +97,13 @@ export const CableTrayEditor = ({
   }, [])
 
   const handleDimensionChange = (field, value) => {
-    const numValue = parseFloat(value)
-    if (isNaN(numValue) || !isFinite(numValue)) {
-      console.warn(`❌ Invalid ${field} value: ${value}`)
-      return // Don't update with invalid values
+    const validValue = validateDimensionInput(field, value)
+    if (validValue !== null) {
+      setDimensions(prev => ({
+        ...prev,
+        [field]: validValue
+      }))
     }
-    
-    // Ensure positive values for dimensions
-    const validValue = field === 'tier' ? Math.max(1, Math.floor(numValue)) : Math.max(0, numValue)
-    
-    setDimensions(prev => ({
-      ...prev,
-      [field]: validValue
-    }))
   }
 
   const handleTrayTypeChange = (newTrayType) => {
@@ -179,21 +119,9 @@ export const CableTrayEditor = ({
     })
   }
 
-  const handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
-      handleSave()
-    }
-    if (event.key === 'Escape') {
-      handleCancel()
-    }
-  }
-
   const handleTierChange = (newTier) => {
-    const tierValue = parseInt(newTier)
-    if (isNaN(tierValue) || tierValue < 1) {
-      console.warn(`❌ Invalid tier value: ${newTier}`)
-      return
-    }
+    const tierValue = validateDimensionInput('tier', newTier)
+    if (tierValue === null) return
     
     setDimensions(prev => ({
       ...prev,
@@ -209,47 +137,12 @@ export const CableTrayEditor = ({
         // Use duct system's snap line manager for tier positioning
         if (window.ductworkRendererInstance?.snapLineManager) {
           const snapLineManager = window.ductworkRendererInstance.snapLineManager
-          const snapLines = snapLineManager.getSnapLinesFromRackGeometry()
+          const tierSpace = findTierSpace(snapLineManager, tierValue)
           
-          const allHorizontalLines = snapLines.horizontal.sort((a, b) => b.y - a.y)
-          const allBeamPositions = [...allHorizontalLines].map(b => b.y).sort((a, b) => b - a)
-          
-          // Find tier spaces - same logic as duct editor
-          const tierSpaces = []
-          const minTierHeight = 0.3 // Minimum 30cm tier height in meters
-          
-          for (let i = 0; i < allBeamPositions.length - 1; i++) {
-            const topY = allBeamPositions[i]
-            const bottomY = allBeamPositions[i + 1]
-            
-            // Validate beam positions
-            if (!isFinite(topY) || !isFinite(bottomY)) {
-              console.warn('❌ Invalid beam position:', { topY, bottomY })
-              continue
-            }
-            
-            const gap = topY - bottomY
-            
-            if (gap >= minTierHeight && isFinite(gap)) {
-              tierSpaces.push({
-                tierIndex: tierSpaces.length + 1,
-                top: topY,
-                bottom: bottomY,
-                height: gap,
-                centerY: isFinite(topY + bottomY) ? (topY + bottomY) / 2 : topY
-              })
-            }
-          }
-          
-          // Find the tier space that corresponds to the selected tier number
-          const selectedTierSpace = tierSpaces.find(space => space.tierIndex === tierValue)
-          
-          if (selectedTierSpace) {
+          if (tierSpace) {
             // Calculate cable tray dimensions for positioning
             const heightM = (cableTrayData.height || 4) * 0.0254 // Convert inches to meters
-            
-            // Position cable tray so its bottom sits on the bottom beam of the tier space
-            const newYPosition = selectedTierSpace.bottom + (heightM / 2)
+            const newYPosition = calculateTierYPosition(tierSpace, heightM, 'bottom')
             
             // Update cable tray position
             selectedCableTray.position.y = newYPosition
@@ -276,58 +169,8 @@ export const CableTrayEditor = ({
 
   // Generate tier options based on actual geometry from snap lines
   const getTierOptions = () => {
-    try {
-      const ductworkRenderer = window.ductworkRendererInstance
-      if (ductworkRenderer && ductworkRenderer.snapLineManager) {
-        const snapLines = ductworkRenderer.snapLineManager.getSnapLinesFromRackGeometry()
-        
-        // Get all horizontal snap lines and sort them by Y position (top to bottom)
-        const allHorizontalLines = snapLines.horizontal.sort((a, b) => b.y - a.y)
-        
-        // Group beam_top and beam_bottom pairs to identify tiers
-        const beamTops = allHorizontalLines.filter(line => line.type === 'beam_top')
-        const beamBottoms = allHorizontalLines.filter(line => line.type === 'beam_bottom')
-        
-        // Combine all beam positions and group them to find tier spaces
-        const allBeamPositions = [...beamTops, ...beamBottoms].map(b => b.y).sort((a, b) => b - a)
-        
-        // Find tier spaces - look for gaps between beams that are large enough for cable trays
-        const tierSpaces = []
-        const minTierHeight = 0.3 // Minimum 30cm tier height in meters
-        
-        for (let i = 0; i < allBeamPositions.length - 1; i++) {
-          const topY = allBeamPositions[i]
-          const bottomY = allBeamPositions[i + 1]
-          const gap = topY - bottomY
-          
-          // If gap is large enough, it's a potential tier space
-          if (gap >= minTierHeight) {
-            tierSpaces.push({
-              tierIndex: tierSpaces.length + 1,
-              top: topY,
-              bottom: bottomY,
-              height: gap
-            })
-          }
-        }
-        
-        if (tierSpaces.length > 0) {
-          const tierCount = tierSpaces.length
-          return Array.from({ length: tierCount }, (_, i) => i + 1)
-        }
-        
-        // Fallback: if we can't identify tier spaces, use beam count heuristic
-        if (beamTops.length > 0) {
-          const tierCount = Math.max(1, Math.ceil(beamTops.length / 2))
-          return Array.from({ length: tierCount }, (_, i) => i + 1)
-        }
-      }
-    } catch (error) {
-      console.error('Error getting tier options from geometry:', error)
-    }
-    
-    // Final fallback
-    return [1, 2]
+    const snapLineManager = window.ductworkRendererInstance?.snapLineManager
+    return getTierOptionsFromGeometry(snapLineManager)
   }
 
   const handleSave = () => {
@@ -354,6 +197,8 @@ export const CableTrayEditor = ({
       onCancel()
     }
   }
+
+  const handleKeyDown = createEditorKeyHandler(handleSave, handleCancel)
 
   if (!visible || !selectedCableTray) return null
 
