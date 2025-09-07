@@ -14,6 +14,7 @@ import {
   registerWithMepManager
 } from '../utils/common3dHelpers.js'
 import { createMepEventHandler } from '../utils/mepEventHandler.js'
+import { saveMepItemsToTemporaryState } from '../utils/mepTemporaryState.js'
 
 /**
  * DuctInteraction - Handles mouse interactions and transform controls for ducts
@@ -692,6 +693,9 @@ export class DuctInteraction {
         window.updateMEPItemsManifest(updatedItems)
       }
       
+      // IMPORTANT: Save to temporary state so changes persist across refreshes
+      saveMepItemsToTemporaryState(updatedItems, 'duct')
+      
       // Dispatch events to update MEP panel
       window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
         detail: { updatedItems, updatedDuctId: selectedDuctData.id }
@@ -701,6 +705,7 @@ export class DuctInteraction {
       console.error('❌ Error saving duct position:', error)
     }
   }
+  
 
   /**
    * Get selected duct for external editor component

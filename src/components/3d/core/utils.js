@@ -82,6 +82,9 @@ function addEdges(mesh, color = 0x333333, lineWidth = 0.5, opacity = 0.5) {
  */
 export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, snapPoints = []){
   const g     = new THREE.Group();
+  // Store rack ID in the group for later reference
+  const rackId = p.id || `rack_${Date.now()}`;
+  g.userData.rackId = rackId;
 
   // Import convertToFeet utility with safety checks
   const convertToFeet = (feetInches) => {
@@ -226,10 +229,10 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
       post.updateMatrixWorld(true)
       if (snapPoints) {
         const { corners, edges } = extractSnapPoints(post.geometry, post.matrixWorld)
-        // Add corners with higher priority (they'll be first in array)
-        snapPoints.push(...corners.map(p => ({ point: p, type: 'vertex' })))
-        // Add edge lines with lower priority
-        snapPoints.push(...edges.map(p => ({ point: p, type: 'edge' })))
+        // Add corners with higher priority (they'll be first in array) - include rack ID
+        snapPoints.push(...corners.map(p => ({ point: p, type: 'vertex', rackId })))
+        // Add edge lines with lower priority - include rack ID
+        snapPoints.push(...edges.map(p => ({ point: p, type: 'edge', rackId })))
       }
     }
     
@@ -287,11 +290,12 @@ const bottomLevel = Math.min(...levelList);  // lowest  beam elevation
     rail.updateMatrixWorld(true)
     if (snapPoints) {
       const { corners, edges } = extractSnapPoints(rail.geometry, rail.matrixWorld)
-      snapPoints.push(...corners.map(p => ({ point: p, type: 'vertex' })))
+      snapPoints.push(...corners.map(p => ({ point: p, type: 'vertex', rackId })))
       snapPoints.push(...edges.map(line => ({ 
         start: line.start, 
         end: line.end, 
-        type: 'edge' 
+        type: 'edge',
+        rackId 
       })))
     }
 });
@@ -314,8 +318,8 @@ levelList.forEach(y => {
     tr.updateMatrixWorld(true)
     if (snapPoints) {
       const { corners, edges } = extractSnapPoints(tr.geometry, tr.matrixWorld)
-      snapPoints.push(...corners.map(p => ({ point: p, type: 'vertex' })))
-      snapPoints.push(...edges.map(p => ({ point: p, type: 'edge' })))
+      snapPoints.push(...corners.map(p => ({ point: p, type: 'vertex', rackId })))
+      snapPoints.push(...edges.map(p => ({ point: p, type: 'edge', rackId })))
     }
     
     // Move to next beam position (same as posts)

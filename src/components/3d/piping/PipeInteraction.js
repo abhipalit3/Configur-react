@@ -14,6 +14,7 @@ import {
   registerWithMepManager
 } from '../utils/common3dHelpers.js'
 import { createMepEventHandler } from '../utils/mepEventHandler.js'
+import { saveMepItemsToTemporaryState } from '../utils/mepTemporaryState.js'
 
 /**
  * PipeInteraction - Handles mouse interactions and transform controls for pipes
@@ -380,6 +381,9 @@ export class PipeInteraction {
       
       localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
       
+      // IMPORTANT: Save to temporary state so changes persist across refreshes
+      saveMepItemsToTemporaryState(updatedItems, 'pipe')
+      
       // IMPORTANT: Also update the manifest to ensure consistency
       if (window.updateMEPItemsManifest) {
         window.updateMEPItemsManifest(updatedItems)
@@ -407,6 +411,7 @@ export class PipeInteraction {
       console.error('❌ Error saving pipe position:', error)
     }
   }
+  
 
   updatePipeTierInfo() {
     if (!this.selectedPipe) return

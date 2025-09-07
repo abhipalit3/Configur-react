@@ -14,6 +14,7 @@ import {
   registerWithMepManager
 } from '../utils/common3dHelpers.js'
 import { createMepEventHandler } from '../utils/mepEventHandler.js'
+import { saveMepItemsToTemporaryState } from '../utils/mepTemporaryState.js'
 
 /**
  * ConduitInteraction - Handles user interactions with conduits
@@ -336,6 +337,9 @@ export class ConduitInteraction {
       
       // Save updated items to localStorage
       localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      
+      // Save to temporary state
+      saveMepItemsToTemporaryState(updatedItems, 'conduit')
       // console.log(`⚡ Conduit ${conduitData.id} removed from MEP data storage`)
       
       // Update manifest if function available
@@ -767,6 +771,9 @@ export class ConduitInteraction {
       
       localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
       
+      // Save to temporary state
+      saveMepItemsToTemporaryState(updatedItems, 'conduit')
+      
       // Update manifest if function available
       if (window.updateMEPItemsManifest) {
         window.updateMEPItemsManifest(updatedItems)
@@ -844,6 +851,9 @@ export class ConduitInteraction {
       
       if (updated) {
         localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      
+      // Save to temporary state
+      saveMepItemsToTemporaryState(updatedItems, 'conduit')
         
         // Update manifest if function available
         if (window.updateMEPItemsManifest) {

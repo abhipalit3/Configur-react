@@ -28,6 +28,7 @@ import { AppManualBuilding } from '../components/forms'
 import { ThreeScene } from '../components/3d'
 import { useSceneShell } from '../hooks/useSceneShell'
 import { useSceneRack } from '../hooks/useSceneRack'
+import { addRackPositionChange, addRackParameterChange, addMEPItemChange } from '../utils/projectManifest'
 import { buildingShellDefaults } from '../types/buildingShell'
 import { tradeRackDefaults } from '../types/tradeRack'
 import { 
@@ -116,8 +117,18 @@ const AppPage = (props) => {
   
   // State for trade rack parameters
   const [rackParams, setRackParams] = useState(() => {
-    // First, try to load from active configuration
+    // First, check for temporary state (user's working changes)
     try {
+      const tempState = localStorage.getItem('configurTempRackState')
+      if (tempState) {
+        const parsedTempState = JSON.parse(tempState)
+        console.log('🔄 App loading from temporary rack state:', parsedTempState)
+        // Also update rackParameters to maintain consistency
+        localStorage.setItem('rackParameters', JSON.stringify(parsedTempState))
+        return parsedTempState
+      }
+      
+      // Second, try to load from active configuration
       const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
       const activeConfigId = manifest.tradeRacks?.activeConfigurationId
       
@@ -127,19 +138,18 @@ const AppPage = (props) => {
         
         if (activeConfig) {
           const { id, name, savedAt, importedAt, originalId, buildingShellParams, ...configParams } = activeConfig
+          console.log('🔄 App loading from active saved configuration:', activeConfig.name)
           // Store in localStorage for tier calculations
           localStorage.setItem('rackParameters', JSON.stringify(configParams))
-          
-          // If there are saved building shell parameters, we should use them during initialization
-          // They will be loaded separately through the buildingParams useState initialization
           
           return configParams
         }
       }
       
-      // Fallback to saved rack parameters
+      // Third, fallback to saved rack parameters
       const saved = localStorage.getItem('rackParameters')
       if (saved) {
+        console.log('🔄 App loading from saved rack parameters')
         return JSON.parse(saved)
       }
     } catch (error) {
@@ -147,6 +157,7 @@ const AppPage = (props) => {
     }
     
     // Fall back to defaults and save them
+    console.log('🔄 App using default rack parameters')
     localStorage.setItem('rackParameters', JSON.stringify(tradeRackDefaults))
     return tradeRackDefaults
   })
@@ -157,14 +168,28 @@ const AppPage = (props) => {
   // Trade rack controller
   const tradeRack = useSceneRack()
   
-  // State to track MEP items - initialize from localStorage
+  // State to track MEP items - prioritize temporary state, then localStorage
   const [mepItems, setMepItems] = useState(() => {
     try {
+      // First check if there are MEP items in temporary state
+      const tempState = localStorage.getItem('configurTempRackState')
+      if (tempState) {
+        const parsedTempState = JSON.parse(tempState)
+        if (parsedTempState.mepItems && parsedTempState.mepItems.length > 0) {
+          console.log('🔄 Loading MEP items from temporary state:', parsedTempState.mepItems.length)
+          // Also update configurMepItems to ensure consistency
+          localStorage.setItem('configurMepItems', JSON.stringify(parsedTempState.mepItems))
+          return parsedTempState.mepItems
+        }
+      }
+      
+      // Fallback to regular MEP items storage
       const savedItems = localStorage.getItem('configurMepItems')
       const parsedItems = savedItems ? JSON.parse(savedItems) : []
+      console.log('🔄 Loading MEP items from localStorage:', parsedItems.length)
       return parsedItems
     } catch (error) {
-      // console.error('❌ Error loading MEP items:', error)
+      console.error('❌ Error loading MEP items:', error)
       return []
     }
   })
@@ -217,6 +242,11 @@ const AppPage = (props) => {
       }
     }
     
+    // Make rack change tracking functions available globally for debugging
+    window.addRackPositionChange = addRackPositionChange
+    window.addRackParameterChange = addRackParameterChange
+    window.addMEPItemChange = addMEPItemChange
+    
     // Cleanup function to remove global reference
     return () => {
       if (window.updateManifestMeasurements) {
@@ -230,6 +260,15 @@ const AppPage = (props) => {
       }
       if (window.updateDuctTierInfo) {
         delete window.updateDuctTierInfo
+      }
+      if (window.addRackPositionChange) {
+        delete window.addRackPositionChange
+      }
+      if (window.addRackParameterChange) {
+        delete window.addRackParameterChange
+      }
+      if (window.addMEPItemChange) {
+        delete window.addMEPItemChange
       }
     }
   }, [])
@@ -297,9 +336,25 @@ const AppPage = (props) => {
   }, []) // Only run once on mount
   
   // Save to localStorage and update manifest whenever mepItems changes
+  // Also save to temporary state for persistence across refreshes
   React.useEffect(() => {
     try {
       localStorage.setItem('configurMepItems', JSON.stringify(mepItems))
+      
+      // Save to temporary state so changes persist across refreshes
+      const rackParams = localStorage.getItem('rackParameters')
+      if (rackParams && mepItems.length > 0) {
+        const parsedRackParams = JSON.parse(rackParams)
+        const tempState = {
+          ...parsedRackParams,
+          mepItems: mepItems,
+          lastModified: new Date().toISOString(),
+          isTemporary: true
+        }
+        localStorage.setItem('configurTempRackState', JSON.stringify(tempState))
+        console.log('💾 Saved', mepItems.length, 'MEP items to temporary state (state change)')
+      }
+      
       // Update manifest with current MEP items
       updateMEPItems(mepItems, 'all')
     } catch (error) {
@@ -379,6 +434,18 @@ const AppPage = (props) => {
     // Update manifest with new item
     addMEPItem(newItem)
     
+    // Track the MEP item addition with enhanced tracking
+    if (window.addMEPItemChange) {
+      window.addMEPItemChange('item_added', item.type, newItem.id, item.name || `${item.type} item`, {
+        tier: item.tier || 1,
+        dimensions: {
+          width: item.width,
+          height: item.height,
+          insulation: item.insulation
+        }
+      })
+    }
+    
     // Optionally close the panel after adding
     setActivePanel(null)
     // UI state will be automatically saved by the useEffect
@@ -388,6 +455,14 @@ const AppPage = (props) => {
   const handleRemoveMepItem = (itemId) => {
     const itemToRemove = mepItems.find(item => item.id === itemId)
     setMepItems(mepItems.filter(item => item.id !== itemId))
+    
+    // Track the MEP item removal
+    if (itemToRemove && window.addMEPItemChange) {
+      window.addMEPItemChange('item_removed', itemToRemove.type, itemId, itemToRemove.name || `${itemToRemove.type} item`, {
+        tier: itemToRemove.tier,
+        removedFrom: 'ui_panel'
+      })
+    }
     
     // Update manifest
     if (itemToRemove) {
@@ -779,12 +854,56 @@ const AppPage = (props) => {
     // console.log('✅ Building shell parameters saved to manifest (independent of rack configurations)')
   }
 
+  // Helper function to save rack parameters to both regular and temporary storage
+  const saveRackParamsToStorage = (params) => {
+    console.log('💾 saveRackParamsToStorage called with:', params)
+    
+    // Store in both places to maintain compatibility
+    localStorage.setItem('rackParameters', JSON.stringify(params))
+    
+    // Also save to temporary state for persistence across refreshes
+    const tempState = {
+      ...params,
+      lastModified: new Date().toISOString(),
+      isTemporary: true
+    }
+    localStorage.setItem('configurTempRackState', JSON.stringify(tempState))
+    console.log('💾 Saved rack parameters to temporary state:', {
+      paramKeys: Object.keys(params),
+      hasPosition: !!params.position,
+      timestamp: tempState.lastModified
+    })
+  }
+
   // Handler for adding rack to scene (without saving to configurations)
   const handleAddRack = (params) => {
+    // Get current rack parameters for change tracking
+    const currentParams = rackParams
+    
+    // Use the new parameter tracking system from TradeRackInteraction
+    if (window.TradeRackInteraction?.updateRackParameters) {
+      // Track parameter changes using the new system
+      window.TradeRackInteraction.updateRackParameters(params)
+    } else {
+      // Fallback: track key parameter changes manually
+      if (currentParams.tierCount !== params.tierCount) {
+        console.log('📊 Tier count changed:', { from: currentParams.tierCount, to: params.tierCount })
+      }
+      if (JSON.stringify(currentParams.tierHeights) !== JSON.stringify(params.tierHeights)) {
+        console.log('📊 Tier heights changed')
+      }
+      if (currentParams.bayCount !== params.bayCount) {
+        console.log('📊 Bay count changed:', { from: currentParams.bayCount, to: params.bayCount })
+      }
+      if (currentParams.mountType !== params.mountType) {
+        console.log('📊 Mount type changed:', { from: currentParams.mountType, to: params.mountType })
+      }
+    }
+    
     setRackParams(params)
     
-    // Store current rack parameters in localStorage for tier calculations
-    localStorage.setItem('rackParameters', JSON.stringify(params))
+    // Store rack parameters in both storages
+    saveRackParamsToStorage(params)
     
     // Switch building shell mode based on mount type
     if (buildingShell.switchMode) {
@@ -837,16 +956,39 @@ const AppPage = (props) => {
   const handleRestoreConfiguration = (config) => {
     
     // Update rack parameters with saved config (excluding metadata and building shell params)
-    const { id, name, savedAt, importedAt, originalId, buildingShellParams, ...configParams } = config
+    const { id, name, savedAt, importedAt, originalId, buildingShellParams, mepItems, ...configParams } = config
     setRackParams(configParams)
+    
+    // CRITICAL: Restore MEP items associated with this configuration
+    if (mepItems && Array.isArray(mepItems)) {
+      console.log('🔄 Restoring', mepItems.length, 'MEP items from configuration:', name)
+      setMepItems(mepItems)
+      // The useEffect will automatically save these to localStorage and temporary state
+    } else {
+      console.log('🔄 No MEP items to restore from configuration:', name)
+      // Clear MEP items if configuration has none
+      setMepItems([])
+    }
     
     // Note: Building shell parameters are NOT restored from configurations
     // The rack will use the current building shell parameters from the manifest
     // console.log('📦 Restoring rack configuration:', config.name || `Configuration ${id}`)
     // console.log('🏢 Using current building shell parameters (not from configuration)')
     
-    // Store current rack parameters in localStorage for tier calculations
-    localStorage.setItem('rackParameters', JSON.stringify(configParams))
+    // Store rack parameters and MEP items in both storages
+    saveRackParamsToStorage(configParams)
+    
+    // Also update temporary state to include restored MEP items
+    if (mepItems) {
+      const tempState = {
+        ...configParams,
+        mepItems: mepItems,
+        lastModified: new Date().toISOString(),
+        isTemporary: true
+      }
+      localStorage.setItem('configurTempRackState', JSON.stringify(tempState))
+      console.log('💾 Updated temporary state with restored configuration')
+    }
     
     // Set this as the active configuration in the manifest
     if (id) {
@@ -1237,6 +1379,23 @@ const AppPage = (props) => {
           if (window.ductworkRendererInstance) {
             window.ductworkRendererInstance.updateRackParams(initialRackParams)
           }
+          
+          // Only refresh rack selection if a rack was previously selected (not on initial load)
+          setTimeout(() => {
+            if (window.tradeRackInteractionInstance) {
+              const instance = window.tradeRackInteractionInstance
+              const currentRackId = instance.selectedRack?.userData?.rackId
+              if (currentRackId) {
+                console.log('🔄 Refreshing rack selection after scene rebuild:', currentRackId)
+                const success = instance.findAndSelectRackById(currentRackId)
+                if (success) {
+                  // Update snap points for the reselected rack
+                  instance.updateRackSnapPoints()
+                }
+              }
+              // DON'T auto-select racks on refresh - let user choose when to select
+            }
+          }, 100) // Small delay to ensure scene is fully built
         }}
       />
       ) : (

@@ -14,6 +14,7 @@ import {
   registerWithMepManager
 } from '../utils/common3dHelpers.js'
 import { createMepEventHandler } from '../utils/mepEventHandler.js'
+import { saveMepItemsToTemporaryState } from '../utils/mepTemporaryState.js'
 
 /**
  * CableTrayInteraction - Handles user interactions with cable trays (selection, movement, editing)
@@ -499,6 +500,9 @@ export class CableTrayInteraction {
       // Save updates if any changes were made
       if (updated) {
         localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+        
+        // Save to temporary state
+        saveMepItemsToTemporaryState(updatedItems, 'cableTray')
         
         // Update manifest
         if (window.updateMEPItemsManifest) {

@@ -18,6 +18,7 @@ import { disposeMaterials } from '../materials'
 import { initializeMepSelectionManager } from '../core/MepSelectionManager.js'
 import { TradeRackInteraction } from '../trade-rack/TradeRackInteraction.js'
 import '../styles/measurement-styles.css'
+import { addMEPItemChange } from '../../../utils/projectManifest'
 
 // Import helper functions
 import {
@@ -281,6 +282,12 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
             
             localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
             
+            // Track the MEP item modification
+            addMEPItemChange('item_modified', 'duct', selectedDuctData.id, selectedDuctData.name || 'Ductwork', {
+              modificationType: 'dimensions',
+              newDimensions: newDimensions
+            })
+            
             // Trigger refresh of MEP panel if callback exists
             if (window.refreshMepPanel) {
               window.refreshMepPanel()
@@ -337,6 +344,13 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
             })
             
             localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+            
+            // Track the MEP item modification
+            addMEPItemChange('item_modified', 'pipe', selectedPipeData.id, selectedPipeData.name || 'Piping', {
+              modificationType: 'dimensions',
+              newDimensions: newDimensions,
+              newPosition: currentPosition
+            })
             
             // IMPORTANT: Also update the manifest to ensure consistency
             if (window.updateMEPItemsManifest) {
@@ -410,6 +424,13 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
             })
             
             localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+            
+            // Track the MEP item modification
+            addMEPItemChange('item_modified', 'conduit', selectedConduitData.id, selectedConduitData.name || 'Conduit', {
+              modificationType: 'dimensions',
+              newDimensions: newDimensions,
+              newPosition: currentPosition
+            })
             
             if (window.updateMEPItemsManifest) {
               window.updateMEPItemsManifest(updatedItems)
@@ -497,6 +518,18 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
             localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
             // console.log(`🔌 Updated cable tray ${selectedCableTrayData.id} in localStorage`)
             
+            // Track the MEP item modification
+            addMEPItemChange('item_modified', 'cableTray', selectedCableTrayData.id, selectedCableTrayData.name || 'Cable Tray', {
+              modificationType: 'dimensions',
+              newDimensions: {
+                width: newDimensions.width,
+                height: newDimensions.height,
+                trayType: newDimensions.trayType,
+                tier: newDimensions.tier
+              },
+              newPosition: currentPosition
+            })
+            
             // Dispatch storage event to update other components
             window.dispatchEvent(new Event('storage'))
           } else {
@@ -551,6 +584,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Initialize trade rack interaction system AFTER MEP manager
     const tradeRackInteraction = new TradeRackInteraction(scene, camera, renderer, controls)
     tradeRackInteractionRef.current = tradeRackInteraction
+    
+    // Make TradeRackInteraction class available globally for change tracking
+    window.TradeRackInteraction = TradeRackInteraction
     
     // Add event listeners for trade rack selection
     const handleTradeRackSelected = (event) => {

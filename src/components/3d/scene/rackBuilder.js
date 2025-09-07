@@ -6,6 +6,7 @@
 
 import { buildRackScene } from '../trade-rack/buildRack.js'
 import { createMaterials, loadTextures } from '../materials'
+import { TradeRackInteraction } from '../trade-rack/TradeRackInteraction.js'
 
 /**
  * Build rack parameters from initial configuration
@@ -61,8 +62,18 @@ export function initializeRackScene(scene, initialRackParams, initialBuildingPar
   const textures = loadTextures()
   const materials = createMaterials(textures)
 
-  // Build parameters
-  const params = buildRackParameters(initialRackParams, initialBuildingParams)
+  // Check for temporary state first, then fallback to initial parameters
+  const restoredConfig = TradeRackInteraction.loadRackConfiguration()
+  const effectiveRackParams = restoredConfig || initialRackParams
+  
+  console.log('🔄 Rack scene initialization:', {
+    hasRestoredConfig: !!restoredConfig,
+    isFromTempState: restoredConfig?.isTemporary || false,
+    effectiveParams: effectiveRackParams
+  })
+
+  // Build parameters using the effective (possibly restored) rack params
+  const params = buildRackParameters(effectiveRackParams, initialBuildingParams)
 
   // Build the rack scene
   const snapPoints = buildRackScene(scene, params, materials)
@@ -82,6 +93,7 @@ export function initializeRackScene(scene, initialRackParams, initialBuildingPar
     materials,
     snapPoints,
     rackParams,
-    fullParams: params
+    fullParams: params,
+    wasRestoredFromTempState: restoredConfig?.isTemporary || false
   }
 }

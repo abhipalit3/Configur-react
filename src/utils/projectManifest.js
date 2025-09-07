@@ -449,6 +449,145 @@ export const updateMeasurements = (measurements) => {
 }
 
 /**
+ * Generate human-readable event title
+ */
+const generateEventTitle = (component, action, details = {}) => {
+  switch (component) {
+    case 'tradeRacks':
+      switch (action) {
+        case 'position_moved':
+          const distance = details.distance
+          const totalMove = distance ? Math.sqrt(distance.x**2 + distance.y**2 + distance.z**2).toFixed(1) : '0'
+          return `Rack Moved ${totalMove}ft`
+        case 'parameter_changed':
+          const paramName = details.parameterName
+          const oldVal = details.oldValue
+          const newVal = details.newValue
+          switch (paramName) {
+            case 'tierCount':
+              return `Tier Count: ${oldVal} → ${newVal} tiers`
+            case 'tierHeights':
+              return `Tier Heights Updated`
+            case 'bayCount':
+              return `Bay Count: ${oldVal} → ${newVal} bays`
+            case 'mountType':
+              return `Mount Type: ${oldVal} → ${newVal}`
+            case 'rackLength':
+              return `Rack Length Changed`
+            case 'rackWidth':
+              return `Rack Width Changed`
+            case 'bayWidth':
+              return `Bay Width Changed`
+            default:
+              return `${paramName} Parameter Updated`
+          }
+        case 'configuration_saved':
+          return `Configuration "${details.configurationName}" Saved`
+        case 'configuration_applied':
+          return `Configuration Applied (${details.tierCount} tiers)`
+        case 'configuration_deleted':
+          return `Configuration "${details.configurationName}" Deleted`
+        case 'configuration_activated':
+          return `Configuration Activated`
+        default:
+          return `Rack ${action.replace('_', ' ')}`
+      }
+    case 'mepItems':
+      switch (action) {
+        case 'item_added':
+          const itemType = details.itemType || details.originalType
+          return `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} Added`
+        case 'item_removed':
+          const removedType = details.itemType || details.originalType
+          return `${removedType.charAt(0).toUpperCase() + removedType.slice(1)} Removed`
+        case 'item_moved':
+          const movedType = details.itemType || details.originalType
+          return `${movedType.charAt(0).toUpperCase() + movedType.slice(1)} Moved`
+        case 'item_modified':
+          const modType = details.itemType || details.originalType
+          return `${modType.charAt(0).toUpperCase() + modType.slice(1)} Modified`
+        case 'bulk_update':
+          return `${details.itemCount} MEP Items Updated`
+        case 'category_update':
+          return `${details.category} Items Updated (${details.itemCount})`
+        default:
+          return `MEP ${action.replace('_', ' ')}`
+      }
+    case 'buildingShell':
+      return `Building Shell Updated`
+    case 'measurements':
+      return `Measurements Updated (${details.measurementCount || 0})`
+    default:
+      return `${component} ${action.replace('_', ' ')}`
+  }
+}
+
+/**
+ * Add rack position change to history
+ */
+export const addRackPositionChange = (oldPosition, newPosition, rackId) => {
+  const manifest = getProjectManifest()
+  
+  const details = {
+    rackId: rackId,
+    operation: 'move_position',
+    oldPosition: oldPosition,
+    newPosition: newPosition,
+    distance: oldPosition && newPosition ? {
+      x: Math.abs(newPosition.x - oldPosition.x),
+      y: Math.abs(newPosition.y - oldPosition.y),
+      z: Math.abs(newPosition.z - oldPosition.z)
+    } : null
+  }
+  
+  addChangeToHistory(manifest, 'tradeRacks', 'position_moved', details)
+  
+  saveProjectManifest(manifest)
+  return manifest
+}
+
+/**
+ * Add rack parameter change to history
+ */
+export const addRackParameterChange = (parameterName, oldValue, newValue, rackId) => {
+  const manifest = getProjectManifest()
+  
+  const details = {
+    rackId: rackId,
+    operation: 'update_parameter',
+    parameterName: parameterName,
+    oldValue: oldValue,
+    newValue: newValue,
+    parameterType: typeof newValue
+  }
+  
+  addChangeToHistory(manifest, 'tradeRacks', 'parameter_changed', details)
+  
+  saveProjectManifest(manifest)
+  return manifest
+}
+
+/**
+ * Add MEP item change to history
+ */
+export const addMEPItemChange = (action, itemType, itemId, itemName = null, additionalDetails = {}) => {
+  const manifest = getProjectManifest()
+  
+  const details = {
+    itemType: itemType,
+    itemId: itemId,
+    itemName: itemName || `${itemType} item`,
+    originalType: itemType,
+    ...additionalDetails
+  }
+  
+  addChangeToHistory(manifest, 'mepItems', action, details)
+  
+  saveProjectManifest(manifest)
+  return manifest
+}
+
+/**
  * Add change to history for audit trail
  */
 const addChangeToHistory = (manifest, component, action, details = {}) => {
@@ -457,15 +596,16 @@ const addChangeToHistory = (manifest, component, action, details = {}) => {
     timestamp: new Date().toISOString(),
     component: component,
     action: action,
+    title: generateEventTitle(component, action, details),
     details: details,
     sessionId: getSessionId()
   }
   
   manifest.changeHistory.unshift(change)
   
-  // Keep only last 100 changes to prevent unlimited growth
-  if (manifest.changeHistory.length > 100) {
-    manifest.changeHistory = manifest.changeHistory.slice(0, 100)
+  // Keep only last 1000 changes to prevent unlimited growth
+  if (manifest.changeHistory.length > 1000) {
+    manifest.changeHistory = manifest.changeHistory.slice(0, 1000)
   }
 }
 

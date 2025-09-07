@@ -8,6 +8,8 @@ import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { syncManifestWithLocalStorage, getProjectManifest, setActiveConfiguration } from '../../utils/projectManifest'
 import { calculateTotalHeight } from '../../types/tradeRack'
+import { TradeRackInteraction } from '../3d/trade-rack/TradeRackInteraction.js'
+import { hasUnsavedMepChanges as checkUnsavedMepChanges } from '../3d/utils/mepTemporaryState.js'
 import './app-saved-configurations.css'
 
 const AppSavedConfigurations = (props) => {
@@ -16,6 +18,8 @@ const AppSavedConfigurations = (props) => {
   const [configurationName, setConfigurationName] = useState('')
   const [editingConfigId, setEditingConfigId] = useState(null)
   const [editingName, setEditingName] = useState('')
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [hasUnsavedMepChanges, setHasUnsavedMepChanges] = useState(false)
 
   // Load saved configurations from localStorage on mount and when refreshTrigger changes
   useEffect(() => {
@@ -37,14 +41,52 @@ const AppSavedConfigurations = (props) => {
       // Get active configuration ID from manifest
       const manifest = getProjectManifest()
       setActiveConfigId(manifest.tradeRacks.activeConfigurationId)
+      
+      // Check for unsaved changes (both rack and MEP)
+      setHasUnsavedChanges(TradeRackInteraction.hasUnsavedChanges())
+      setHasUnsavedMepChanges(checkUnsavedMepChanges())
     } catch (error) {
       console.error('Error loading saved configurations:', error)
       setSavedConfigs([])
     }
   }, [props.refreshTrigger])
+  
+  // Check for unsaved changes periodically
+  useEffect(() => {
+    const checkUnsavedChanges = () => {
+      setHasUnsavedChanges(TradeRackInteraction.hasUnsavedChanges())
+      setHasUnsavedMepChanges(checkUnsavedMepChanges())
+    }
+    
+    // Check immediately and then every 2 seconds
+    checkUnsavedChanges()
+    const interval = setInterval(checkUnsavedChanges, 2000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   const handleConfigClick = (config) => {
-    if (props.onRestoreConfiguration) {
+    // Check for unsaved changes before loading a different configuration
+    const hasRackChanges = TradeRackInteraction.hasUnsavedChanges()
+    const hasMepChanges = checkUnsavedMepChanges()
+    
+    if (hasRackChanges || hasMepChanges) {
+      const changeTypes = []
+      if (hasRackChanges) changeTypes.push('rack configuration')
+      if (hasMepChanges) changeTypes.push('MEP system changes')
+      
+      const confirmLoad = window.confirm(
+        `You have unsaved ${changeTypes.join(' and ')}. Loading this configuration will overwrite your current work. Continue?`
+      )
+      if (!confirmLoad) {
+        return
+      }
+    }
+    
+    // Load the configuration into temporary state for editing
+    const success = TradeRackInteraction.loadConfigurationToTempState(config)
+    
+    if (success && props.onRestoreConfiguration) {
       props.onRestoreConfiguration(config)
       setActiveConfigId(config.id) // Update local state immediately for better UX
     }
@@ -56,7 +98,48 @@ const AppSavedConfigurations = (props) => {
       return
     }
     
-    // Get the current rack configuration from localStorage (the actual scene state)
+    // Use the new temporary state system to save the configuration
+    const success = TradeRackInteraction.saveTemporaryStateToPermanent(configurationName.trim())
+    
+    if (success) {
+      // Refresh the configurations list
+      try {
+        const saved = localStorage.getItem('tradeRackConfigurations')
+        if (saved) {
+          const configs = JSON.parse(saved)
+          const sortedConfigs = configs.sort((a, b) => {
+            const dateA = new Date(a.updatedAt || a.savedAt)
+            const dateB = new Date(b.updatedAt || b.savedAt)
+            return dateB - dateA
+          })
+          setSavedConfigs(sortedConfigs)
+          
+          // Get the newly saved config (should be the most recent)
+          const newConfig = sortedConfigs[0]
+          setActiveConfigId(newConfig.id)
+          
+          // Notify parent component if callback exists
+          if (props.onConfigurationSaved) {
+            props.onConfigurationSaved(newConfig)
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing configurations:', error)
+      }
+      
+      // Clear the name input after saving
+      setConfigurationName('')
+      setHasUnsavedChanges(false) // Clear unsaved changes indicator
+      console.log('✅ Configuration saved from temporary state')
+    } else {
+      // Fallback to old method if temporary state system fails
+      console.warn('⚠️ Falling back to old save method')
+      this.handleSaveConfigurationLegacy()
+    }
+  }
+  
+  const handleSaveConfigurationLegacy = () => {
+    // Legacy save method (kept as fallback)
     const currentRackParams = localStorage.getItem('rackParameters')
     if (!currentRackParams) {
       alert('No rack configuration to save. Please add a rack first.')
@@ -68,16 +151,13 @@ const AppSavedConfigurations = (props) => {
     // Get current rack position from the scene if available
     let currentPosition = null
     try {
-      // Try to get position from the current rack in scene
       if (window.tradeRackInteractionInstance) {
         currentPosition = window.tradeRackInteractionInstance.getCurrentRackPosition()
       }
       
-      // Fallback: check for existing position in stored racks
       if (!currentPosition) {
         const storedRacks = JSON.parse(localStorage.getItem('configurTradeRacks') || '[]')
         if (storedRacks.length > 0) {
-          // Get the most recent rack position
           const latestRack = storedRacks[storedRacks.length - 1]
           if (latestRack.position) {
             currentPosition = latestRack.position
@@ -88,13 +168,16 @@ const AppSavedConfigurations = (props) => {
       console.warn('Could not retrieve current rack position:', error)
     }
     
+    // Get current MEP items to include in saved configuration
+    const currentMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+    
     const newConfig = {
       ...rackConfig,
       id: Date.now(),
       name: configurationName.trim(),
       savedAt: new Date().toISOString(),
       totalHeight: calculateTotalHeight(rackConfig),
-      // Include position if available
+      mepItems: currentMepItems, // Include MEP items in saved configuration
       ...(currentPosition && { position: currentPosition })
     }
     
@@ -124,7 +207,49 @@ const AppSavedConfigurations = (props) => {
   const handleUpdateConfig = (configId, event) => {
     event.stopPropagation() // Prevent triggering the card click
     
-    // Get the current rack configuration from localStorage (the actual scene state)
+    // Find the existing configuration
+    const existingConfig = savedConfigs.find(config => config.id === configId)
+    if (!existingConfig) {
+      alert('Configuration not found.')
+      return
+    }
+    
+    // Confirm update
+    if (!window.confirm(`Update "${existingConfig.name}" with the current rack configuration?`)) {
+      return
+    }
+    
+    // Use the new temporary state system to update the configuration
+    const success = TradeRackInteraction.updateSavedConfiguration(configId)
+    
+    if (success) {
+      // Refresh the configurations list
+      try {
+        const saved = localStorage.getItem('tradeRackConfigurations')
+        if (saved) {
+          const configs = JSON.parse(saved)
+          const sortedConfigs = configs.sort((a, b) => {
+            const dateA = new Date(a.updatedAt || a.savedAt)
+            const dateB = new Date(b.updatedAt || b.savedAt)
+            return dateB - dateA
+          })
+          setSavedConfigs(sortedConfigs)
+        }
+      } catch (error) {
+        console.error('Error refreshing configurations:', error)
+      }
+      
+      setHasUnsavedChanges(false) // Clear unsaved changes indicator
+      console.log('✅ Configuration updated from temporary state')
+    } else {
+      // Fallback to old method if temporary state system fails
+      console.warn('⚠️ Falling back to old update method')
+      this.handleUpdateConfigLegacy(configId, event)
+    }
+  }
+  
+  const handleUpdateConfigLegacy = (configId, event) => {
+    // Legacy update method (kept as fallback)
     const currentRackParams = localStorage.getItem('rackParameters')
     if (!currentRackParams) {
       alert('No rack configuration in scene to update with.')
@@ -133,7 +258,6 @@ const AppSavedConfigurations = (props) => {
     
     const rackConfig = JSON.parse(currentRackParams)
     
-    // Find the existing configuration
     const configIndex = savedConfigs.findIndex(config => config.id === configId)
     if (configIndex === -1) {
       alert('Configuration not found.')
@@ -141,11 +265,6 @@ const AppSavedConfigurations = (props) => {
     }
     
     const existingConfig = savedConfigs[configIndex]
-    
-    // Confirm update
-    if (!window.confirm(`Update "${existingConfig.name}" with the current rack configuration?`)) {
-      return
-    }
     
     // Get current rack position from the scene if available
     let currentPosition = null
@@ -179,6 +298,9 @@ const AppSavedConfigurations = (props) => {
       }
     }
 
+    // Get current MEP items to include in updated configuration
+    const currentMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+    
     // Create updated configuration preserving original metadata
     const updatedConfig = {
       ...rackConfig,
@@ -187,6 +309,7 @@ const AppSavedConfigurations = (props) => {
       savedAt: existingConfig.savedAt, // Keep original save time
       updatedAt: new Date().toISOString(), // Add update timestamp
       totalHeight: calculateTotalHeight(rackConfig),
+      mepItems: currentMepItems, // Include current MEP items in update
       // Include position if available
       ...(currentPosition && { position: currentPosition })
     }

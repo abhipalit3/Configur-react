@@ -11,6 +11,7 @@ import {
   buildShell,
   buildPipesFlexible
 } from '../core/utils.js'
+import { extractSnapPoints } from '../core/extractGeometrySnapPoints.js'
 
 // Ensure arrays exist even if user omitted them
 function ensureArrays(p) {
@@ -65,12 +66,16 @@ export function buildRackScene(scene, params, mats) {
 
   const snapPoints = []
 
+  // Generate a consistent rack ID
+  const rackId = params.id || `rack_${Date.now()}`
+  params.id = rackId // Ensure params has the ID for snap point creation
+  
   // rack only - shell will be managed separately
   const rack = buildRack(params, mats.postMaterial, mats.longBeamMaterial, mats.transBeamMaterial, snapPoints)
   rack.userData.isGenerated = true
   rack.userData.type = 'tradeRack'
   rack.userData.selectable = true
-  rack.userData.rackId = params.id || `rack_${Date.now()}`
+  rack.userData.rackId = rackId
   rack.userData.configuration = { ...params } // Store configuration for access
   
   // Set initial position if provided in params
@@ -80,6 +85,44 @@ export function buildRackScene(scene, params, mats) {
       params.position.y || 0,
       params.position.z || 0
     )
+    
+    // IMPORTANT: After moving the rack, we need to update snap points to the new position
+    // The snap points were generated at (0,0,0) but the rack has been moved
+    console.log('💾 Rack positioned at:', params.position, 'updating snap points...')
+    
+    // Update world matrices for all rack components
+    rack.updateMatrixWorld(true)
+    
+    // Clear old snap points for this rack and regenerate them at the correct position
+    const rackSnapPoints = []
+    rack.traverse((child) => {
+      if (child.isMesh && child.geometry) {
+        // Update the child's world matrix to ensure it's current
+        child.updateMatrixWorld(true)
+        
+        // Use the snap point extraction function
+        const { corners, edges } = extractSnapPoints(child.geometry, child.matrixWorld)
+        
+        // Add corners as vertex snap points with rack ID
+        rackSnapPoints.push(...corners.map(p => ({ point: p, type: 'vertex', rackId })))
+        
+        // Add edges as edge snap points with rack ID
+        rackSnapPoints.push(...edges.map(edge => {
+          if (edge.start && edge.end) {
+            return { start: edge.start, end: edge.end, type: 'edge', rackId }
+          } else {
+            return { point: edge, type: 'edge', rackId }
+          }
+        }))
+      }
+    })
+    
+    // Replace old rack snap points with new ones at correct position
+    const nonRackSnapPoints = snapPoints.filter(sp => sp.rackId !== rackId)
+    snapPoints.length = 0
+    snapPoints.push(...nonRackSnapPoints, ...rackSnapPoints)
+    
+    console.log(`🎯 Regenerated ${rackSnapPoints.length} snap points at correct rack position`)
   }
   
   scene.add(rack)
