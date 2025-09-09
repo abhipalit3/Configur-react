@@ -7,7 +7,7 @@
 import * as THREE from 'three'
 import { ConduitGeometry } from './ConduitGeometry.js'
 import { ConduitInteraction } from './ConduitInteraction.js'
-import { getColumnSize } from '../core/mepUtils'
+import { getColumnSize } from '../core/utils'
 
 /**
  * ConduitRenderer - Main class for managing 3D conduit system

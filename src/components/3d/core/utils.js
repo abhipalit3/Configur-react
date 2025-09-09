@@ -49,6 +49,72 @@ export const ft2in = ft   => {
   }
   return ft * 12
 };
+
+/**
+ * Convert feet and inches object to total feet with validation
+ * @param {Object|number} value - Either a {feet, inches} object or a number
+ * @returns {number} - Total feet, returns 0 if input is invalid
+ */
+export function convertToFeet(value) {
+  if (typeof value === 'number') {
+    if (!isFinite(value)) {
+      // console.warn('❌ Invalid numeric feet value:', value)
+      return 0
+    }
+    return value
+  }
+  
+  if (!value || typeof value !== 'object') {
+    // console.warn('❌ Invalid feetInches object:', value)
+    return 0
+  }
+  
+  const feet = value.feet || 0
+  const inches = value.inches || 0
+  
+  if (!isFinite(feet) || !isFinite(inches)) {
+    // console.warn('❌ Invalid feet/inches values:', { feet, inches })
+    return 0
+  }
+  
+  return feet + (inches / 12)
+}
+
+/**
+ * Get the column/post size from rack parameters
+ * Handles both old format (postSize/columnSize) and new format (columnSizes with columnType)
+ * @param {Object} rackParams - The rack parameters object
+ * @returns {number} - Column size in inches
+ */
+export function getColumnSize(rackParams) {
+  let columnSize = null
+  
+  try {
+    // Check for old format first (postSize or columnSize directly)
+    if (rackParams?.postSize && rackParams.postSize > 0) {
+      columnSize = rackParams.postSize
+    } else if (rackParams?.columnSize && rackParams.columnSize > 0) {
+      columnSize = rackParams.columnSize
+    } 
+    // Check for new format (columnSizes object with columnType)
+    else if (rackParams?.columnSizes && rackParams?.columnType) {
+      columnSize = rackParams.columnSizes[rackParams.columnType]
+    }
+    
+    // If still not found, try localStorage as backup
+    if (!columnSize) {
+      const storedParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      if (storedParams?.columnSizes && storedParams?.columnType) {
+        columnSize = storedParams.columnSizes[storedParams.columnType]
+      }
+    }
+  } catch (error) {
+    console.error('Error reading column size:', error)
+  }
+  
+  // Default to 3 inches if not found
+  return columnSize || 3
+}
 /**
  * Recursively disposes of geometries in a THREE.js object hierarchy to prevent memory leaks
  * @param {THREE.Object3D} g - The 3D object to traverse and dispose
@@ -108,32 +174,6 @@ function addEdges(mesh, color = 0x333333, lineWidth = 0.5, opacity = 0.5) {
  */
 export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, snapPoints = []){
   const g     = new THREE.Group();
-
-  // Import convertToFeet utility with safety checks
-  const convertToFeet = (feetInches) => {
-    if (typeof feetInches === 'number') {
-      if (!isFinite(feetInches)) {
-        // console.warn('❌ Invalid numeric feet value:', feetInches)
-        return 0
-      }
-      return feetInches; // backwards compatibility
-    }
-    
-    if (!feetInches || typeof feetInches !== 'object') {
-      // console.warn('❌ Invalid feetInches object:', feetInches)
-      return 0
-    }
-    
-    const feet = feetInches.feet || 0
-    const inches = feetInches.inches || 0
-    
-    if (!isFinite(feet) || !isFinite(inches)) {
-      // console.warn('❌ Invalid feet/inches values:', { feet, inches })
-      return 0
-    }
-    
-    return feet + (inches / 12);
-  };
 
   // Calculate bay configuration from total length and standard bay width
   const totalLengthFeet = p.rackLength ? convertToFeet(p.rackLength) : (p.totalLength || (isFinite(p.bayCount) && isFinite(p.bayWidth) ? (p.bayCount * p.bayWidth) : 12)); // backwards compatibility
@@ -471,12 +511,6 @@ function createIBeamGeometry(depth, length) {
 export function buildShell(p, wallMaterial, ceilingMaterial, floorMaterial, roofMaterial, shellBeamMaterial, snapPoints = []){
   const s   = new THREE.Group();
 
-  // Import convertToFeet utility
-  const convertToFeet = (feetInches) => {
-    if (typeof feetInches === 'number') return feetInches; // backwards compatibility
-    return feetInches.feet + (feetInches.inches / 12);
-  };
-
   /* -- metric dimensions -------------------------------------------------- */
   const defaultBayCount = 2; // Default bay count for now
   const lenM    = ft2m(defaultBayCount * convertToFeet(p.bayWidth)); 
@@ -623,12 +657,6 @@ export function buildShell(p, wallMaterial, ceilingMaterial, floorMaterial, roof
 export function buildFloorOnly(p, floorMaterial, snapPoints = []){
   const s = new THREE.Group();
 
-  // Import convertToFeet utility
-  const convertToFeet = (feetInches) => {
-    if (typeof feetInches === 'number') return feetInches; // backwards compatibility
-    return feetInches.feet + (feetInches.inches / 12);
-  };
-
   /* -- metric dimensions -------------------------------------------------- */
   const defaultBayCount = 4; // Default bay count for floor
   const lenM    = ft2m(defaultBayCount * convertToFeet(p.bayWidth || { feet: 3, inches: 0 })); 
@@ -718,12 +746,6 @@ export function buildPipesFlexible(p, tierIdx, pipes, pipeMat, snapPoints = []) 
   });
 
   pipes = pipes.map(normalise);
-
-  // Use rack length parameter directly to match user input
-  const convertToFeet = (feetInches) => {
-    if (typeof feetInches === 'number') return feetInches;
-    return feetInches.feet + (feetInches.inches / 12);
-  };
   const totalLengthFeet = p.rackLength ? convertToFeet(p.rackLength) : (p.totalLength || (p.bayCount * p.bayWidth));
   const lenM  = ft2m(totalLengthFeet); // pipe length (X-axis) to match user input
   const beamM = in2m(p.beamSize);

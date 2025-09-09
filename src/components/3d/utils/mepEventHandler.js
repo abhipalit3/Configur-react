@@ -191,12 +191,24 @@ export class MepEventHandler {
   onKeyDown(event) {
     if (!this.config.enableKeyboardShortcuts) return
     
+    // Check if user is typing in input fields
+    const isInputFocused = document.activeElement && (
+      document.activeElement.tagName === 'INPUT' ||
+      document.activeElement.tagName === 'TEXTAREA' ||
+      document.activeElement.isContentEditable ||
+      document.activeElement.closest('.editor-ui') ||
+      document.activeElement.closest('[contenteditable]')
+    )
+    
     // Only handle shortcuts when an object is selected (for most operations)
     const hasSelection = !!this.selectedObject
     
     switch (event.key) {
       case 'Delete':
       case 'Backspace':
+        // Only prevent MEP deletion if user is typing in input fields
+        if (isInputFocused) return
+        
         if (hasSelection && this.callbacks.onDelete) {
           event.preventDefault()
           console.log(`🗑️ Deleting ${this.componentType}`)

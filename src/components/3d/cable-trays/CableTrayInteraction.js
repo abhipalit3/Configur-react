@@ -58,7 +58,7 @@ export class CableTrayInteraction {
         // Update measurements during transform
         this.updateCableTrayMeasurements()
         this.renderer.render(this.scene, this.camera)
-      } else if (this.transformControls.object) {
+      } else if (this.transformControls.object && !this.transformControls.object.parent) {
         // If the object is no longer in the scene, detach it
         this.transformControls.detach()
       }
@@ -336,6 +336,12 @@ export class CableTrayInteraction {
         const currentPosition = this.selectedCableTrayGroup.position.clone()
         const currentRotation = this.selectedCableTrayGroup.rotation.clone()
         
+        // Temporarily detach TransformControls to prevent scene graph errors
+        const wasTransformAttached = this.transformControls && this.transformControls.object === this.selectedCableTrayGroup
+        if (wasTransformAttached) {
+          this.transformControls.detach()
+        }
+        
         // Remove old geometry for full update
         while (this.selectedCableTrayGroup.children.length > 0) {
           const child = this.selectedCableTrayGroup.children[0]
@@ -381,8 +387,8 @@ export class CableTrayInteraction {
         // The selectedCableTray reference might have been lost during recreation
         this.selectedCableTray = this.selectedCableTrayGroup
         
-        // Ensure transform controls stay attached (only if in scene)
-        if (this.transformControls && this.selectedCableTrayGroup && this.selectedCableTrayGroup.parent) {
+        // Reattach TransformControls if it was previously attached
+        if (wasTransformAttached && this.transformControls && this.selectedCableTrayGroup && this.selectedCableTrayGroup.parent) {
           this.transformControls.attach(this.selectedCableTrayGroup)
         }
       }

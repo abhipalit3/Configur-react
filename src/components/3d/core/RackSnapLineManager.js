@@ -7,9 +7,9 @@
 import * as THREE from 'three'
 
 /**
- * SnapLineManager - Handles creation and management of snap lines for duct positioning
+ * RackSnapLineManager - Handles creation and management of snap lines for duct positioning
  */
-export class SnapLineManager {
+export class RackSnapLineManager {
   constructor(scene, rackParams = {}) {
     this.scene = scene
     this.rackParams = rackParams

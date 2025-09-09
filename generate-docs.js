@@ -67,7 +67,10 @@ class CodebaseDocumenter {
         const functionName = match[1];
         const parameters = match[2] || '';
         
-        if (functionName && !functions.some(f => f.name === functionName)) {
+        // Filter out JavaScript keywords and control structures
+        const jsKeywords = ['if', 'else', 'for', 'while', 'do', 'switch', 'case', 'try', 'catch', 'finally', 'with', 'return', 'break', 'continue', 'throw', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void'];
+        
+        if (functionName && !jsKeywords.includes(functionName.toLowerCase()) && !functions.some(f => f.name === functionName)) {
           // Find the line number where this function is defined
           const lineIndex = content.substring(0, match.index).split('\n').length - 1;
           

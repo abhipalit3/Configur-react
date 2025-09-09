@@ -5,7 +5,7 @@
  */
 
 import * as THREE from 'three'
-import { SnapLineManager, DuctGeometry, DuctInteraction } from '../ductwork'
+import { RackSnapLineManager, DuctGeometry, DuctInteraction } from '../ductwork'
 
 /**
  * DuctworkRenderer - Main controller for 3D ductwork visualization
@@ -23,7 +23,7 @@ export class DuctworkRenderer {
     
     // Initialize modular components
     try {
-      this.snapLineManager = new SnapLineManager(scene, rackParams)
+      this.snapLineManager = new RackSnapLineManager(scene, rackParams)
       
       this.ductGeometry = new DuctGeometry()
       

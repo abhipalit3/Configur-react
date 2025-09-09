@@ -4,7 +4,7 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-export { SnapLineManager } from './SnapLineManager'
+export { RackSnapLineManager } from '../core/RackSnapLineManager'
 export { DuctGeometry } from './DuctGeometry'
 export { DuctInteraction } from './DuctInteraction'
 export { DuctEditor } from './DuctEditor'

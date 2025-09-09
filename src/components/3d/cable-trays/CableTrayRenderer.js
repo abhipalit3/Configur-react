@@ -6,7 +6,7 @@
 
 import * as THREE from 'three'
 import { CableTrayGeometry } from './CableTrayGeometry'
-import { getColumnSize } from '../core/mepUtils'
+import { getColumnSize } from '../core/utils'
 
 /**
  * CableTrayRenderer - Manages 3D rendering of cable trays in the scene

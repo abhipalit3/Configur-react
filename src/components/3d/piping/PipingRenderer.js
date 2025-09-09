@@ -7,7 +7,7 @@
 import * as THREE from 'three'
 import { PipeGeometry } from './PipeGeometry.js'
 import { PipeInteraction } from './PipeInteraction.js'
-import { getColumnSize } from '../core/mepUtils'
+import { getColumnSize } from '../core/utils'
 
 /**
  * PipingRenderer - Main class for managing 3D piping system

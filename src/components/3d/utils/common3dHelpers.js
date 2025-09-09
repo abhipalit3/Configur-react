@@ -554,10 +554,23 @@ export function createMepKeyboardHandler(selectedItemName, handlers) {
   return (event) => {
     if (!handlers.hasSelection || !handlers.hasSelection()) return
     
+    // Check if user is typing in input fields
+    const isInputFocused = document.activeElement && (
+      document.activeElement.tagName === 'INPUT' ||
+      document.activeElement.tagName === 'TEXTAREA' ||
+      document.activeElement.isContentEditable ||
+      document.activeElement.closest('.editor-ui') ||
+      document.activeElement.closest('[contenteditable]')
+    )
+    
     switch (event.key) {
       case 'Delete':
       case 'Backspace':
+        // Only prevent MEP deletion if user is typing in input fields
+        if (isInputFocused) return
+        
         if (handlers.onDelete) {
+          event.preventDefault() // Prevent default browser behavior
           console.log(`🗑️ Deleting ${selectedItemName}`)
           handlers.onDelete()
         }

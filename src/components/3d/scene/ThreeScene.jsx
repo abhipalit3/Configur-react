@@ -91,8 +91,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     postSize: 2
   })
 
+  // One-time scene setup (renderer, camera, controls)
   useEffect(() => {
-    // console.log('🚀 Building scene with parameters:', { initialRackParams, initialBuildingParams })
+    // console.log('🚀 Initializing scene (one-time setup)')
     
     // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
@@ -729,7 +730,10 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     const handleCableTraySelection = () => {
       const selected = cableTrayRenderer.cableTrayInteraction?.getSelectedCableTray()
       setSelectedCableTray(selected)
-      setShowCableTrayEditor(!!selected)
+      // Only automatically open editor if not currently skipping recreation (during save operations)
+      if (!skipCableTrayRecreation) {
+        setShowCableTrayEditor(!!selected)
+      }
     }
     
     // Poll for duct, pipe, conduit, and cable tray selection changes
@@ -1098,7 +1102,32 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       requestAnimationFrame(animate)
       controls.update()
       updateOrthoCamera(camera, 20)
-      renderer.render(scene, camera)
+      
+      // Global TransformControls safety check
+      try {
+        // Check all MEP interaction instances for orphaned TransformControls
+        const interactions = [
+          ductworkRendererRef.current?.ductInteraction,
+          pipingRendererRef.current?.pipeInteraction, 
+          conduitRendererRef.current?.conduitInteraction,
+          cableTrayRendererRef.current?.cableTrayInteraction
+        ].filter(Boolean)
+        
+        interactions.forEach(interaction => {
+          if (interaction.transformControls?.object && !interaction.transformControls.object.parent) {
+            console.warn('⚠️ Detaching orphaned TransformControls in animation loop')
+            interaction.transformControls.detach()
+          }
+        })
+        
+        renderer.render(scene, camera)
+      } catch (error) {
+        if (error.message.includes('TransformControls')) {
+          console.warn('⚠️ TransformControls error caught in animation loop:', error.message)
+        } else {
+          console.error('❌ Animation loop error:', error)
+        }
+      }
       
       // Apply inverse rotation to ViewCube so it shows correct faces
       // When camera rotates right, ViewCube should rotate left to show the face we're looking from
@@ -1188,7 +1217,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         }
       }
     }
-  }, [initialRackParams, initialBuildingParams]) // Rebuild scene when parameters change
+  }, []) // One-time setup only - prevent WebGL context leaks
+  // TODO: Add separate useEffect for parameter updates that rebuilds scene content without creating new WebGL context
 
   // Handle measurement tool activation/deactivation
   useEffect(() => {
@@ -1763,8 +1793,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               }
             }
             
-            // Don't close the editor immediately - let user click away or edit another cable tray
-            // setShowCableTrayEditor(false)
+            // Close the editor after saving (consistent with duct behavior)
+            setShowCableTrayEditor(false)
           }}
           onCancel={() => {
             setShowCableTrayEditor(false)
