@@ -377,21 +377,87 @@ export class ConduitInteraction {
   }
 
   /**
-   * Copy selected conduit
+   * Copy selected conduit - creates a duplicate with offset
    */
   copySelectedConduit() {
     if (!this.selectedConduitGroup) return
     
-    this.copiedConduitData = {
-      ...this.selectedConduitGroup.userData.conduitData,
+    const conduitData = this.selectedConduitGroup.userData.conduitData
+    if (!conduitData) return
+    
+    // Create new conduit data with unique ID
+    const newConduitData = {
+      ...conduitData,
+      id: Date.now() + Math.random(),
       position: {
         x: this.selectedConduitGroup.position.x,
         y: this.selectedConduitGroup.position.y,
-        z: this.selectedConduitGroup.position.z + 0.2 // Offset for paste
+        z: this.selectedConduitGroup.position.z + 0.3 // Offset by 30cm in Z direction
       }
     }
     
-    // console.log('⚡ Conduit group copied')
+    // Get rack length for conduit creation
+    const rackLength = this.snapLineManager ? this.snapLineManager.getRackLength() : 12
+    const conduitLength = rackLength * 12 // Convert feet to inches
+    
+    // Create the new conduit group
+    const newConduitGroup = this.conduitGeometry.createMultiConduitGroup(
+      newConduitData,
+      conduitLength,
+      newConduitData.position
+    )
+    
+    if (newConduitGroup) {
+      // Add to scene
+      const conduitsGroup = this.scene.getObjectByName('ConduitsGroup')
+      if (conduitsGroup) {
+        conduitsGroup.add(newConduitGroup)
+      }
+      
+      // Add to MEP items storage
+      const mepItem = {
+        type: 'conduit',
+        id: newConduitData.id,
+        name: newConduitData.name || 'Conduit',
+        conduitType: newConduitData.conduitType || 'emt',
+        diameter: newConduitData.diameter || 1,
+        spacing: newConduitData.spacing || 4,
+        count: newConduitData.count || 1,
+        tier: newConduitData.tier || 1,
+        position: newConduitData.position,
+        color: newConduitData.color
+      }
+      
+      // Update localStorage
+      try {
+        const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+        storedMepItems.push(mepItem)
+        localStorage.setItem('configurMepItems', JSON.stringify(storedMepItems))
+        
+        // Update manifest if function available
+        if (window.updateMEPItemsManifest) {
+          window.updateMEPItemsManifest(storedMepItems)
+        }
+        
+        // Refresh MEP panel
+        if (window.refreshMepPanel) {
+          window.refreshMepPanel()
+        }
+        
+        // Dispatch storage event
+        window.dispatchEvent(new Event('storage'))
+        
+      } catch (error) {
+        console.error('❌ Error saving copied conduit to storage:', error)
+      }
+      
+      // Select the new conduit
+      setTimeout(() => {
+        this.selectConduit(newConduitGroup)
+      }, 100)
+      
+      console.log('✅ Conduit copied successfully')
+    }
   }
 
   /**
@@ -1113,10 +1179,11 @@ export class ConduitInteraction {
           }
 
           // Create new geometry with updated dimensions
+          const diameterM = this.conduitGeometry.in2m(updatedConduitData.diameter || 1)
+          const lengthM = this.conduitGeometry.in2m(conduitLength)
           const newGeometry = this.conduitGeometry.createConduitGeometry(
-            updatedConduitData.diameter || 1,
-            conduitLength,
-            updatedConduitData.conduitType || 'EMT'
+            lengthM,
+            diameterM
           )
 
           // Apply materials
@@ -1151,10 +1218,68 @@ export class ConduitInteraction {
       // Refresh measurements for the primary conduit
       this.updateConduitMeasurements()
 
+      // Save updated conduit data to localStorage
+      this.saveConduitDataToStorage(newDimensions)
+
       // console.log('⚡ Conduit group dimensions updated for', this.selectedConduitGroup.children.length, 'conduits')
       
     } catch (error) {
       console.error('❌ Error updating conduit group dimensions:', error)
+    }
+  }
+
+  /**
+   * Save conduit data to localStorage for MEP panel updates
+   */
+  saveConduitDataToStorage(newDimensions) {
+    if (!this.selectedConduitGroup?.userData?.conduitData) return
+    
+    try {
+      const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      const conduitData = this.selectedConduitGroup.userData.conduitData
+      const baseId = conduitData.id.toString().split('_')[0]
+      
+      let updated = false
+      const updatedItems = storedMepItems.map(item => {
+        const itemBaseId = item.id.toString().split('_')[0]
+        
+        if (itemBaseId === baseId && item.type === 'conduit') {
+          // Update the stored MEP item with new dimensions
+          updated = true
+          return {
+            ...item,
+            ...newDimensions,
+            position: {
+              x: this.selectedConduitGroup.position.x,
+              y: this.selectedConduitGroup.position.y,
+              z: this.selectedConduitGroup.position.z
+            }
+          }
+        }
+        return item
+      })
+      
+      if (updated) {
+        localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+        
+        // Update manifest if function available
+        if (window.updateMEPItemsManifest) {
+          window.updateMEPItemsManifest(updatedItems)
+        }
+        
+        // Refresh MEP panel
+        if (window.refreshMepPanel) {
+          window.refreshMepPanel()
+        }
+        
+        // Dispatch storage event for other components
+        window.dispatchEvent(new Event('storage'))
+        
+        // console.log('⚡ Conduit data saved to localStorage with new dimensions')
+      }
+      
+    } catch (error) {
+      console.error('❌ Error saving conduit data to localStorage:', error)
     }
   }
 

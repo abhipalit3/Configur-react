@@ -16,13 +16,13 @@ export const ConduitEditorUI = ({
   renderer, 
   onSave, 
   onCancel,
+  onCopy,
   visible = true,
   rackParams = {}
 }) => {
   const [dimensions, setDimensions] = useState({
     diameter: 1,
     conduitType: 'EMT',
-    fillPercentage: 0,
     spacing: 4,
     count: 1,
     tier: 1,
@@ -106,7 +106,6 @@ export const ConduitEditorUI = ({
       setDimensions({
         diameter: conduitData.diameter || 1,
         conduitType: conduitData.conduitType || 'EMT',
-        fillPercentage: conduitData.fillPercentage || 0,
         spacing: conduitData.spacing || 4,
         count: groupSize,
         tier: conduitData.tier || 1,
@@ -220,15 +219,28 @@ export const ConduitEditorUI = ({
     }
   }
 
+  const handleCopy = () => {
+    if (onCopy) {
+      onCopy()
+    }
+  }
+
   const handleInputChange = (field, value) => {
-    // For count field, use parseInt; for others, use parseFloat
-    const numValue = field === 'count' ? parseInt(value) || 1 : parseFloat(value)
+    // Handle different field types appropriately
+    let processedValue
+    if (field === 'count') {
+      processedValue = parseInt(value) || 1
+    } else if (field === 'conduitType') {
+      processedValue = value // Keep as string
+    } else {
+      processedValue = parseFloat(value) // Numeric fields
+    }
     
-    // console.log(`⚡ ConduitEditor: handleInputChange called with field=${field}, value=${value}, numValue=${numValue}`)
+    // console.log(`⚡ ConduitEditor: handleInputChange called with field=${field}, value=${value}, processedValue=${processedValue}`)
     
     // For tier changes, handle immediately like pipe editor
     if (field === 'tier') {
-      const validValue = Math.max(1, Math.floor(numValue))
+      const validValue = Math.max(1, Math.floor(processedValue))
       
       setDimensions(prev => ({
         ...prev,
@@ -332,7 +344,7 @@ export const ConduitEditorUI = ({
       // For non-tier fields, handle normally
       setDimensions(prev => ({
         ...prev,
-        [field]: numValue
+        [field]: processedValue
       }))
     }
   }
@@ -530,37 +542,6 @@ export const ConduitEditorUI = ({
         />
       </div>
 
-      {/* Fill Percentage */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <span style={{ 
-          fontSize: '12px', 
-          fontWeight: '500',
-          color: 'rgba(255, 255, 255, 0.8)',
-          minWidth: '15px'
-        }}>
-          F
-        </span>
-        <input
-          type="number"
-          value={dimensions.fillPercentage}
-          onChange={(e) => handleInputChange('fillPercentage', parseFloat(e.target.value) || 0)}
-          onKeyDown={handleKeyDown}
-          style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '4px',
-            color: 'white',
-            fontSize: '12px',
-            padding: '4px 6px',
-            textAlign: 'center',
-            width: '50px',
-            outline: 'none'
-          }}
-          step="5"
-          min="0"
-          max="100"
-        />
-      </div>
 
       {/* Buttons */}
       <div style={{ 
@@ -568,6 +549,33 @@ export const ConduitEditorUI = ({
         gap: '6px',
         marginLeft: '8px'
       }}>
+        <button
+          onClick={handleCopy}
+          style={{
+            padding: '4px 8px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '4px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: '12px',
+            cursor: 'pointer',
+            outline: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.1)'
+            e.target.style.color = 'white'
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.05)'
+            e.target.style.color = 'rgba(255, 255, 255, 0.7)'
+          }}
+          title="Copy Conduit"
+        >
+          📋
+        </button>
         <button
           onClick={handleCancel}
           style={{

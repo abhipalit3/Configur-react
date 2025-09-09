@@ -11,6 +11,11 @@ import { extractSnapPoints } from './extractGeometrySnapPoints.js'
 const FT2M = 0.3048;
 const IN2M = 0.0254;
 
+/**
+ * Converts feet to meters with validation
+ * @param {number} ft - Length in feet to convert
+ * @returns {number} Length in meters, returns 0 if input is invalid
+ */
 export const ft2m  = ft   => {
   if (!isFinite(ft)) {
     // console.warn('❌ Invalid feet value for conversion:', ft)
@@ -19,6 +24,11 @@ export const ft2m  = ft   => {
   return ft * FT2M
 };
 
+/**
+ * Converts inches to meters with validation
+ * @param {number} inch - Length in inches to convert
+ * @returns {number} Length in meters, returns 0 if input is invalid
+ */
 export const in2m  = inch => {
   if (!isFinite(inch)) {
     // console.warn('❌ Invalid inches value for conversion:', inch)
@@ -27,6 +37,11 @@ export const in2m  = inch => {
   return inch * IN2M
 };
 
+/**
+ * Converts feet to inches with validation
+ * @param {number} ft - Length in feet to convert
+ * @returns {number} Length in inches, returns 0 if input is invalid
+ */
 export const ft2in = ft   => {
   if (!isFinite(ft)) {
     // console.warn('❌ Invalid feet value for conversion:', ft)
@@ -34,8 +49,19 @@ export const ft2in = ft   => {
   }
   return ft * 12
 };
+/**
+ * Recursively disposes of geometries in a THREE.js object hierarchy to prevent memory leaks
+ * @param {THREE.Object3D} g - The 3D object to traverse and dispose
+ */
 export const dispose = g => g.traverse(o => o.isMesh && o.geometry?.dispose());
 
+/**
+ * Adds wireframe edges to a mesh for better visibility and definition
+ * @param {THREE.Mesh} mesh - The mesh to add edges to
+ * @param {number} [color=0x333333] - Hex color for the edge lines
+ * @param {number} [lineWidth=0.5] - Width of the edge lines
+ * @param {number} [opacity=0.5] - Opacity of the edge lines (0-1)
+ */
 function addEdges(mesh, color = 0x333333, lineWidth = 0.5, opacity = 0.5) {
   const geometry = new THREE.EdgesGeometry(mesh.geometry);
   const material = new THREE.LineBasicMaterial({ color, linewidth: lineWidth });
@@ -331,10 +357,11 @@ return g;
 
 /* ---------- I-beam builder ---------- */
 /**
- * Create a standard I-beam geometry for structural elements
- * @param {number} depth - Beam depth in inches
- * @param {number} length - Beam length in meters (already converted)
- * @returns {THREE.BufferGeometry} I-beam geometry
+ * Creates a standard structural I-beam geometry with proper proportions
+ * Generates an I-beam with top flange, bottom flange, and connecting web
+ * @param {number} depth - Overall beam depth in inches
+ * @param {number} length - Beam length in meters (pre-converted)
+ * @returns {THREE.BufferGeometry} Complete I-beam geometry ready for mesh creation
  */
 function createIBeamGeometry(depth, length) {
   const depthM = in2m(depth);
@@ -632,9 +659,21 @@ export function buildFloorOnly(p, floorMaterial, snapPoints = []){
 }
 
 /* ---------- tier helpers ---------- */
+/**
+ * Gets the height of a specific tier in feet
+ * @param {Object} p - Rack parameters containing tierHeights array
+ * @param {number} idx - 1-based tier index
+ * @returns {number} Tier height in feet
+ */
 export function tierHeightFt(p,idx){ return p.tierHeights[idx-1]; }
 
-/* centre‑Y of the bottom beam for tier idx (1‑based) */
+/**
+ * Calculates the Y-coordinate of the center of the bottom beam for a given tier
+ * Used for positioning MEP components within rack tiers
+ * @param {Object} p - Rack parameters with topClearance, beamSize, and tierHeights
+ * @param {number} idx - 1-based tier index
+ * @returns {number} Y-coordinate in meters of the bottom beam center
+ */
 export function bottomBeamCenterY(p, idx){
   const beamM = in2m(p.beamSize);
   let y = ft2m(p.topClearance) - beamM/2;     // centre of roof beam

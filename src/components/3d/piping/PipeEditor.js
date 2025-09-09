@@ -23,6 +23,7 @@ export const PipeEditor = ({
   renderer, 
   onSave, 
   onCancel,
+  onCopy,
   visible = true,
   rackParams = {}
 }) => {
@@ -228,6 +229,12 @@ export const PipeEditor = ({
     }
   }
 
+  const handleCopy = () => {
+    if (onCopy) {
+      onCopy()
+    }
+  }
+
   const handleKeyDown = createEditorKeyHandler(handleSave, handleCancel)
 
   if (!visible || !selectedPipe) {
@@ -387,6 +394,30 @@ export const PipeEditor = ({
         gap: '6px',
         marginLeft: '8px'
       }}>
+        <button
+          onClick={handleCopy}
+          style={{
+            padding: '4px 8px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '4px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: '12px',
+            cursor: 'pointer',
+            outline: 'none'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.1)'
+            e.target.style.color = 'white'
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.05)'
+            e.target.style.color = 'rgba(255, 255, 255, 0.7)'
+          }}
+          title="Copy Pipe"
+        >
+          📋
+        </button>
         <button
           onClick={handleCancel}
           style={{

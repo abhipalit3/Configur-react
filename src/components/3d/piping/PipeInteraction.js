@@ -825,6 +825,89 @@ export class PipeInteraction {
     this.deselectPipe()
   }
 
+  /**
+   * Duplicate/copy selected pipe - creates a duplicate with offset
+   */
+  duplicateSelectedPipe() {
+    if (!this.selectedPipe) return
+    
+    const pipeData = this.selectedPipe.userData.pipeData
+    if (!pipeData) return
+    
+    // Create new pipe data with unique ID
+    const newPipeData = {
+      ...pipeData,
+      id: Date.now() + Math.random(),
+      position: {
+        x: this.selectedPipe.position.x,
+        y: this.selectedPipe.position.y,
+        z: this.selectedPipe.position.z + 0.3 // Offset by 30cm in Z direction
+      }
+    }
+    
+    // Get rack length for pipe creation
+    const rackLength = this.snapLineManager ? this.snapLineManager.getRackLength() : 12
+    const pipeLength = rackLength * 12 // Convert feet to inches
+    
+    // Create the new pipe
+    const newPipeGroup = this.pipeGeometry.createPipeGroup(
+      newPipeData,
+      pipeLength,
+      newPipeData.position
+    )
+    
+    if (newPipeGroup) {
+      // Add to scene
+      const pipingGroup = this.scene.getObjectByName('PipingGroup')
+      if (pipingGroup) {
+        pipingGroup.add(newPipeGroup)
+      }
+      
+      // Add to MEP items storage
+      const mepItem = {
+        type: 'pipe',
+        id: newPipeData.id,
+        name: newPipeData.name || 'Pipe',
+        diameter: newPipeData.diameter || 2,
+        insulation: newPipeData.insulation || 0,
+        pipeType: newPipeData.pipeType || 'copper',
+        tier: newPipeData.tier || 1,
+        position: newPipeData.position,
+        color: newPipeData.color
+      }
+      
+      // Update localStorage
+      try {
+        const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+        storedMepItems.push(mepItem)
+        localStorage.setItem('configurMepItems', JSON.stringify(storedMepItems))
+        
+        // Update manifest if function available
+        if (window.updateMEPItemsManifest) {
+          window.updateMEPItemsManifest(storedMepItems)
+        }
+        
+        // Refresh MEP panel
+        if (window.refreshMepPanel) {
+          window.refreshMepPanel()
+        }
+        
+        // Dispatch storage event
+        window.dispatchEvent(new Event('storage'))
+        
+      } catch (error) {
+        console.error('❌ Error saving copied pipe to storage:', error)
+      }
+      
+      // Select the new pipe
+      setTimeout(() => {
+        this.selectPipe(newPipeGroup)
+      }, 100)
+      
+      console.log('✅ Pipe copied successfully')
+    }
+  }
+
   dispose() {
     // Dispose of centralized event handler
     if (this.eventHandler) {

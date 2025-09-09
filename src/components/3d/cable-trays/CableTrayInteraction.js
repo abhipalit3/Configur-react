@@ -959,6 +959,89 @@ export class CableTrayInteraction {
   }
 
   /**
+   * Duplicate/copy selected cable tray - creates a duplicate with offset
+   */
+  duplicateSelectedCableTray() {
+    if (!this.selectedCableTray) return
+    
+    const cableTrayData = this.selectedCableTray.userData.cableTrayData
+    if (!cableTrayData) return
+    
+    // Create new cable tray data with unique ID
+    const newCableTrayData = {
+      ...cableTrayData,
+      id: Date.now() + Math.random(),
+      position: {
+        x: this.selectedCableTray.position.x,
+        y: this.selectedCableTray.position.y,
+        z: this.selectedCableTray.position.z + 0.3 // Offset by 30cm in Z direction
+      }
+    }
+    
+    // Get rack length for cable tray creation
+    const rackLength = this.snapLineManager ? this.snapLineManager.getRackLength() : 12
+    const cableTrayLength = rackLength * 12 // Convert feet to inches
+    
+    // Create the new cable tray
+    const newCableTrayGroup = this.cableTrayRenderer.cableTrayGeometry.createCableTrayGroup(
+      newCableTrayData,
+      cableTrayLength,
+      newCableTrayData.position
+    )
+    
+    if (newCableTrayGroup) {
+      // Add to scene
+      const cableTraysGroup = this.scene.getObjectByName('CableTraysGroup')
+      if (cableTraysGroup) {
+        cableTraysGroup.add(newCableTrayGroup)
+      }
+      
+      // Add to MEP items storage
+      const mepItem = {
+        type: 'cableTray',
+        id: newCableTrayData.id,
+        name: newCableTrayData.name || 'Cable Tray',
+        width: newCableTrayData.width || 12,
+        height: newCableTrayData.height || 4,
+        trayType: newCableTrayData.trayType || 'ladder',
+        tier: newCableTrayData.tier || 1,
+        position: newCableTrayData.position,
+        color: newCableTrayData.color
+      }
+      
+      // Update localStorage
+      try {
+        const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+        storedMepItems.push(mepItem)
+        localStorage.setItem('configurMepItems', JSON.stringify(storedMepItems))
+        
+        // Update manifest if function available
+        if (window.updateMEPItemsManifest) {
+          window.updateMEPItemsManifest(storedMepItems)
+        }
+        
+        // Refresh MEP panel
+        if (window.refreshMepPanel) {
+          window.refreshMepPanel()
+        }
+        
+        // Dispatch storage event
+        window.dispatchEvent(new Event('storage'))
+        
+      } catch (error) {
+        console.error('❌ Error saving copied cable tray to storage:', error)
+      }
+      
+      // Select the new cable tray
+      setTimeout(() => {
+        this.selectCableTray(newCableTrayGroup)
+      }, 100)
+      
+      console.log('✅ Cable tray copied successfully')
+    }
+  }
+
+  /**
    * Dispose of the interaction handler
    */
   dispose() {

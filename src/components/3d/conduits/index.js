@@ -7,5 +7,4 @@
 export { ConduitGeometry } from './ConduitGeometry.js'
 export { ConduitInteraction } from './ConduitInteraction.js'
 export { ConduitRenderer } from './ConduitRenderer.js'
-export { ConduitEditor } from './ConduitEditor.js'
 export { ConduitEditorUI } from './ConduitEditorUI.js'

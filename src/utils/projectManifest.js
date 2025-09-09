@@ -85,7 +85,10 @@ export const createInitialManifest = () => ({
 })
 
 /**
- * Get the current project manifest from localStorage
+ * Retrieves the current project manifest from localStorage
+ * Creates initial manifest if none exists or if there are errors loading
+ * Validates and migrates manifest structure when necessary
+ * @returns {Object} Current project manifest object
  */
 export const getProjectManifest = () => {
   try {
@@ -108,7 +111,10 @@ export const getProjectManifest = () => {
 }
 
 /**
- * Save the project manifest to localStorage
+ * Saves the project manifest to localStorage with automatic timestamp updates
+ * Updates the lastUpdated field and persists the manifest data
+ * @param {Object} manifest - Complete project manifest object to save
+ * @returns {boolean} True if save was successful, false otherwise
  */
 export const saveProjectManifest = (manifest) => {
   try {

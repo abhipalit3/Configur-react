@@ -25,6 +25,20 @@ import { TradeRackInteraction } from '../trade-rack/TradeRackInteraction.js'
 import '../styles/measurement-styles.css'
 
 
+/**
+ * Main 3D scene component for the prefabrication assembly automation application
+ * Manages Three.js renderer, cameras, controls, and all 3D content including rack structures,
+ * MEP systems (ductwork, piping, conduits, cable trays), measurement tools, and interactions
+ * 
+ * @param {Object} props - Component properties
+ * @param {boolean} props.isMeasurementActive - Whether measurement tool is currently active
+ * @param {Array} props.mepItems - Array of MEP (mechanical, electrical, plumbing) items to render
+ * @param {Object} props.initialRackParams - Initial rack configuration parameters
+ * @param {Object} props.initialBuildingParams - Initial building shell parameters
+ * @param {string} props.initialViewMode - Initial view mode ('3D', '2D', etc.)
+ * @param {Function} props.onSceneReady - Callback fired when scene is initialized and ready
+ * @returns {JSX.Element} The rendered 3D scene canvas
+ */
 export default function ThreeScene({ isMeasurementActive, mepItems = [], initialRackParams, initialBuildingParams, initialViewMode = '3D', onSceneReady }) {
   const mountRef = useRef(null)
   const measurementToolRef = useRef(null)
@@ -1433,6 +1447,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           onCancel={() => {
             setShowDuctEditor(false)
           }}
+          onCopy={() => {
+            if (ductworkRendererRef.current?.ductInteraction) {
+              ductworkRendererRef.current.ductInteraction.duplicateSelectedDuct()
+            }
+          }}
         />
       )}
       
@@ -1529,6 +1548,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           }}
           onCancel={() => {
             setShowPipeEditor(false)
+          }}
+          onCopy={() => {
+            if (pipingRendererRef.current?.pipeInteraction) {
+              pipingRendererRef.current.pipeInteraction.duplicateSelectedPipe()
+            }
           }}
         />
       )}
@@ -1627,6 +1651,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           }}
           onCancel={() => {
             setShowConduitEditor(false)
+          }}
+          onCopy={() => {
+            if (conduitRendererRef.current?.conduitInteraction) {
+              conduitRendererRef.current.conduitInteraction.copySelectedConduit()
+            }
           }}
         />
       )}
@@ -1739,6 +1768,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           }}
           onCancel={() => {
             setShowCableTrayEditor(false)
+          }}
+          onCopy={() => {
+            if (cableTrayRendererRef.current?.cableTrayInteraction) {
+              cableTrayRendererRef.current.cableTrayInteraction.duplicateSelectedCableTray()
+            }
           }}
         />
       )}

@@ -427,7 +427,8 @@ export class ConduitGeometry {
       })
     } else {
       // Use default material for conduit type
-      conduitMaterial = this.materials[conduitType.toLowerCase()] || this.materials.emt
+      const materialKey = (conduitType && typeof conduitType === 'string') ? conduitType.toLowerCase() : 'emt'
+      conduitMaterial = this.materials[materialKey] || this.materials.emt
     }
 
     // Create main conduit cylinder (rotated to align with X-axis like pipes)
@@ -556,7 +557,9 @@ export class ConduitGeometry {
    * Get material type based on conduit type and state
    */
   getMaterialType(conduitType, selected = false, hover = false) {
-    const baseType = conduitType.toLowerCase()
+    // Ensure conduitType is a string, default to 'emt' if not provided
+    const typeString = (conduitType && typeof conduitType === 'string') ? conduitType : 'emt'
+    const baseType = typeString.toLowerCase()
     if (selected) return `${baseType}Selected`
     if (hover) return `${baseType}Hover`
     return baseType

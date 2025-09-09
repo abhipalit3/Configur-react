@@ -850,6 +850,89 @@ export class DuctInteraction {
     this.deselectDuct()
   }
 
+  /**
+   * Duplicate/copy selected duct - creates a duplicate with offset
+   */
+  duplicateSelectedDuct() {
+    if (!this.selectedDuct) return
+    
+    const ductData = this.selectedDuct.userData.ductData
+    if (!ductData) return
+    
+    // Create new duct data with unique ID
+    const newDuctData = {
+      ...ductData,
+      id: Date.now() + Math.random(),
+      position: {
+        x: this.selectedDuct.position.x,
+        y: this.selectedDuct.position.y,
+        z: this.selectedDuct.position.z + 0.3 // Offset by 30cm in Z direction
+      }
+    }
+    
+    // Get rack length for duct creation
+    const rackLength = this.snapLineManager ? this.snapLineManager.getRackLength() : 12
+    const ductLength = rackLength * 12 // Convert feet to inches
+    
+    // Create the new duct
+    const newDuctGroup = this.ductGeometry.createDuctGroup(
+      newDuctData,
+      ductLength,
+      newDuctData.position
+    )
+    
+    if (newDuctGroup) {
+      // Add to scene
+      const ductsGroup = this.scene.getObjectByName('DuctsGroup')
+      if (ductsGroup) {
+        ductsGroup.add(newDuctGroup)
+      }
+      
+      // Add to MEP items storage
+      const mepItem = {
+        type: 'duct',
+        id: newDuctData.id,
+        name: newDuctData.name || 'Duct',
+        width: newDuctData.width || 12,
+        height: newDuctData.height || 8,
+        insulation: newDuctData.insulation || 0,
+        tier: newDuctData.tier || 1,
+        position: newDuctData.position,
+        color: newDuctData.color
+      }
+      
+      // Update localStorage
+      try {
+        const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+        storedMepItems.push(mepItem)
+        localStorage.setItem('configurMepItems', JSON.stringify(storedMepItems))
+        
+        // Update manifest if function available
+        if (window.updateMEPItemsManifest) {
+          window.updateMEPItemsManifest(storedMepItems)
+        }
+        
+        // Refresh MEP panel
+        if (window.refreshMepPanel) {
+          window.refreshMepPanel()
+        }
+        
+        // Dispatch storage event
+        window.dispatchEvent(new Event('storage'))
+        
+      } catch (error) {
+        console.error('❌ Error saving copied duct to storage:', error)
+      }
+      
+      // Select the new duct
+      setTimeout(() => {
+        this.selectDuct(newDuctGroup)
+      }, 100)
+      
+      console.log('✅ Duct copied successfully')
+    }
+  }
+
   dispose() {
     // Dispose of centralized event handler
     if (this.eventHandler) {
