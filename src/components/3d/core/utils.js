@@ -233,7 +233,7 @@ export function buildRack(p, postMaterial, longBeamMaterial, transBeamMaterial, 
   
   // Calculate rack positioning based on mount type
   let rackBaseY = 0; // Base Y position of rack (where bottom starts)
-  let topClearanceFt = p.topClearance || 10; // default fallback for deck mounted
+  let topClearanceFt = p.topClearance || 0; // default fallback for deck mounted
   
   const mountType = p.mountType || 'deck'; // default to deck mounted
   

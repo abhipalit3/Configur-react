@@ -10,7 +10,8 @@ import { PipeInteraction } from './PipeInteraction.js'
 import { getColumnSize } from '../core/utils'
 
 /**
- * PipingRenderer - Main class for managing 3D piping system
+ * PipingRenderer - Using the new base interaction class
+ * This demonstrates how to use the simplified base class approach
  */
 export class PipingRenderer {
   constructor(scene, camera, renderer, orbitControls, snapLineManager) {
@@ -37,11 +38,12 @@ export class PipingRenderer {
       bayWidth: { feet: 3, inches: 0 }
     }
 
-    // console.log('🔧 PipingRenderer initialized')
+    console.log('🔧 PipingRenderer initialized with base classes')
   }
 
   /**
-   * Setup interaction controls (similar to DuctworkRenderer)
+   * Setup interaction controls using the new base class
+   * This is much simpler now - just instantiate the base class!
    */
   setupInteractions(camera, renderer, orbitControls) {
     this.pipeInteraction = new PipeInteraction(
@@ -52,341 +54,234 @@ export class PipingRenderer {
       this.pipeGeometry, 
       this.snapLineManager
     )
-  }
-
-  /**
-   * Update piping display with new MEP items
-   */
-  updatePiping(mepItems = []) {
-    try {
-      // Clear existing pipes
-      this.clearPiping()
-
-      // Filter pipe items
-      const pipeItems = mepItems.filter(item => item.type === 'pipe')
-      
-      // console.log('🔧 Updating piping display with', pipeItems.length, 'pipes')
-
-      // Create pipes
-      pipeItems.forEach((pipeData, index) => {
-        this.createPipe(pipeData, index)
-      })
-
-      // Update tier information for all pipes
-      setTimeout(() => {
-        this.pipeInteraction.updateAllPipeTierInfo()
-      }, 100)
-
-    } catch (error) {
-      console.error('❌ Error updating piping:', error)
-    }
-  }
-
-  /**
-   * Create a single pipe in the 3D scene
-   */
-  createPipe(pipeData, index = 0) {
-    try {
-      // Validate pipe data
-      if (!pipeData || typeof pipeData !== 'object') {
-        console.error('❌ Invalid pipe data:', pipeData)
-        return
-      }
-
-      // Default pipe parameters with validation
-      const diameter = isFinite(pipeData.diameter) ? parseFloat(pipeData.diameter) : 2
-      const insulation = isFinite(pipeData.insulation) ? parseFloat(pipeData.insulation) : 0
-      const spacing = isFinite(pipeData.spacing) ? parseFloat(pipeData.spacing) : 6
-      const count = isFinite(pipeData.count) ? parseInt(pipeData.count) : 1
-      const pipeType = pipeData.pipeType || 'copper'
-
-      // console.log('🔧 Creating pipes:', { diameter, insulation, spacing, count, pipeType })
-
-      // Use rack length parameter directly to match user input
-      const rackLength = this.calculateRackLength()
-      
-      // Get column size using consistent utility function
-      const columnSize = getColumnSize(this.rackParams) // inches
-      
-      // Pipe length equals rack length (converted to inches)
-      const pipeLength = rackLength * 12 // Convert feet to inches
-
-      // Create multiple pipes based on count
-      for (let i = 0; i < count; i++) {
-        const pipeId = pipeData.id ? `${pipeData.id}_${i}` : `pipe_${Date.now()}_${index}_${i}`
-        
-        const individualPipeData = {
-          ...pipeData,
-          id: pipeId,
-          diameter: diameter,
-          insulation: insulation,
-          pipeType: pipeType,
-          tier: pipeData.tier || 1
-        }
-
-        // Calculate position
-        const position = this.calculatePipePosition(individualPipeData, i, spacing, pipeLength)
-        
-        // Create pipe group
-        const pipeGroup = this.pipeGeometry.createPipeGroup(
-          individualPipeData,
-          pipeLength,
-          position
-        )
-
-        if (pipeGroup && pipeGroup.children.length > 0) {
-          this.pipingGroup.add(pipeGroup)
-          // console.log('✅ Pipe created:', pipeId)
-        } else {
-          console.warn('⚠️ Failed to create pipe geometry for:', pipeId)
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ Error creating pipe:', error, pipeData)
-    }
-  }
-
-  /**
-   * Calculate pipe position based on tier and spacing
-   */
-  calculatePipePosition(pipeData, pipeIndex, spacing, pipeLength) {
-    try {
-      // Default position at origin
-      let x = 0
-      let y = 1 // Default height of 1 meter
-      let z = pipeIndex * (spacing * 0.0254) // Convert spacing from inches to meters
-
-      // If pipe has a saved position, use it
-      if (pipeData.position && 
-          isFinite(pipeData.position.x) && 
-          isFinite(pipeData.position.y) && 
-          isFinite(pipeData.position.z)) {
-        return new THREE.Vector3(
-          pipeData.position.x,
-          pipeData.position.y,
-          pipeData.position.z
-        )
-      }
-
-      // Calculate tier-based position
-      const tier = pipeData.tier || 1
-      const tierPosition = this.calculateTierPosition(tier)
-      
-      if (tierPosition && isFinite(tierPosition.y)) {
-        y = tierPosition.y
-        
-        // Adjust for pipe diameter (like ducts adjust for their height)
-        const pipeDiameter = this.snapLineManager ? this.snapLineManager.in2m(pipeData.diameter || 2) : 0.05
-        const insulation = this.snapLineManager ? this.snapLineManager.in2m(pipeData.insulation || 0) : 0
-        const totalDiameter = pipeDiameter + (2 * insulation)
-        const pipeRadius = totalDiameter / 2
-        
-        // Position pipe center so bottom sits on beam (like ducts)
-        y = y + pipeRadius
-      }
-
-      // Get column size to calculate X offset (same as ducts)
-      const columnSize = getColumnSize(this.rackParams) // inches
-      const columnSizeM = columnSize * 0.0254 // convert to meters
-      
-      // Position pipe offset by postSize/2 in X to align with rack (same as ducts)
-      x = columnSizeM / 2
-      z = z - (this.getRackWidth() / 2) + 0.3 // Position along rack width with offset (similar to ducts)
-
-      return new THREE.Vector3(x, y, z)
-    } catch (error) {
-      // console.error('❌ Error calculating pipe position:', error)
-      return new THREE.Vector3(0, 1, pipeIndex * 0.15) // Fallback position
-    }
-  }
-
-  /**
-   * Calculate Y position for a given tier
-   */
-  calculateTierPosition(tierNumber) {
-    try {
-      // Use snap line manager to get tier positions from actual geometry
-      if (this.snapLineManager) {
-        const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
-        const allHorizontalLines = snapLines.horizontal.filter(line => isFinite(line.y)).sort((a, b) => b.y - a.y)
-
-        // Find tier spaces by analyzing beam positions
-        const tierSpaces = []
-        const minTierHeight = 0.3
-
-        // Group lines by type
-        const beamTops = allHorizontalLines.filter(line => line.type === 'beam_top')
-        const beamBottoms = allHorizontalLines.filter(line => line.type === 'beam_bottom')
-
-        // Create tier spaces from beam pairs
-        for (let i = 0; i < beamTops.length - 1; i++) {
-          const bottomBeam = beamTops[i + 1] // Lower beam top
-          const topBeam = beamTops[i] // Upper beam top
-          
-          if (bottomBeam && topBeam) {
-            const gap = topBeam.y - bottomBeam.y
-            if (gap >= minTierHeight && isFinite(gap)) {
-              tierSpaces.push({
-                tierIndex: tierSpaces.length + 1,
-                topBeamY: topBeam.y,
-                bottomBeamY: bottomBeam.y,
-                centerY: (topBeam.y + bottomBeam.y) / 2,
-                // Position pipes on bottom beam (like ducts)
-                defaultPipeY: bottomBeam.y
-              })
-            }
-          }
-        }
-
-        // Find the requested tier and position pipe on its bottom beam
-        const tierSpace = tierSpaces.find(space => space.tierIndex === tierNumber)
-        if (tierSpace) {
-          return { y: tierSpace.defaultPipeY }
-        }
-      }
-
-      // Fallback calculation - position on estimated beam
-      const tierHeightFeet = 2 // Default tier height
-      const tierHeightMeters = tierHeightFeet * 0.3048
-      return { y: (tierNumber - 1) * tierHeightMeters } // Subtract 1 to start at ground level
-    } catch (error) {
-      // console.error('❌ Error calculating tier position:', error)
-      return { y: (tierNumber - 1) * 0.6 } // Fallback
-    }
-  }
-
-  /**
-   * Calculate rack length from parameters (same as ducts)
-   */
-  calculateRackLength() {
-    try {
-      // First try to get from snapLineManager if available (more accurate)
-      if (this.snapLineManager && this.snapLineManager.getRackLength) {
-        return this.snapLineManager.getRackLength()
-      }
-      
-      // Fallback to rack parameters
-      const bayCount = this.rackParams.bayCount || 4
-      const bayWidth = this.rackParams.bayWidth || { feet: 3, inches: 0 }
-      
-      let bayWidthFeet
-      if (typeof bayWidth === 'number') {
-        bayWidthFeet = bayWidth
-      } else {
-        bayWidthFeet = (bayWidth.feet || 0) + (bayWidth.inches || 0) / 12
-      }
-      
-      return bayCount * bayWidthFeet
-    } catch (error) {
-      // console.error('❌ Error calculating rack length:', error)
-      return 12 // Fallback 12 feet
-    }
-  }
-
-  /**
-   * Get rack width in meters
-   */
-  getRackWidth() {
-    try {
-      // Default rack width is typically 4 feet
-      return 4 * 0.3048 // Convert feet to meters
-    } catch (error) {
-      return 1.2 // Fallback 1.2 meters
-    }
-  }
-
-  /**
-   * Get column depth in meters for x-axis positioning
-   */
-  getColumnDepth() {
-    try {
-      // Get column size using consistent utility function
-      const columnSize = getColumnSize(this.rackParams) // inches
-      
-      // Convert inches to meters
-      const columnDepthM = columnSize * 0.0254
-      
-      return columnDepthM
-    } catch (error) {
-      // Fallback to 3 inches (7.62 cm) in meters
-      return 3 * 0.0254
-    }
+    
+    // The base class handles all the complex interaction logic automatically!
+    // No need for hundreds of lines of manual event handling, snapping, etc.
+    console.log('✅ Piping interactions setup with base class')
   }
 
   /**
    * Update rack parameters
    */
-  updateRackParams(params) {
-    this.rackParams = { ...this.rackParams, ...params }
-    // console.log('🔧 Piping rack parameters updated:', this.rackParams)
+  updateRackParams(rackParams) {
+    this.rackParams = { ...this.rackParams, ...rackParams }
+    // The snapLineManager is shared, so no need to update it here
   }
 
   /**
-   * Clear all pipes from the scene
+   * Recalculate tier information for all pipes - now uses base class method
    */
-  clearPiping() {
-    try {
-      // Clear the piping group
-      while (this.pipingGroup.children.length > 0) {
-        const pipe = this.pipingGroup.children[0]
-        this.pipingGroup.remove(pipe)
-        
-        // Dispose of geometries and materials
-        pipe.traverse((child) => {
-          if (child.geometry) child.geometry.dispose()
-          if (child.material) {
-            if (child.material.map) child.material.map.dispose()
-            child.material.dispose()
-          }
-        })
-      }
+  recalculateTierInfo() {
+    if (!this.pipeInteraction) return
+    
+    // The base class provides comprehensive tier calculation automatically
+    const pipesGroup = this.scene.getObjectByName('PipingGroup')
+    if (pipesGroup) {
+      pipesGroup.children.forEach(pipe => {
+        if (pipe.userData.type === 'pipe') {
+          const tierInfo = this.pipeInteraction.calculateTier(pipe.position.y)
+          pipe.userData.pipeData.tier = tierInfo.tier
+          pipe.userData.pipeData.tierName = tierInfo.tierName
+        }
+      })
       
-      // Deselect any selected pipe
-      if (this.pipeInteraction) {
-        this.pipeInteraction.deselectPipe()
-      }
-      
-      // console.log('🔧 Piping cleared')
-    } catch (error) {
-      console.error('❌ Error clearing piping:', error)
+      // Update storage
+      this.pipeInteraction.saveObjectPosition()
     }
   }
 
   /**
-   * Get the piping group
+   * Update piping visualization
+   */
+  updatePiping(mepItems) {
+    if (!Array.isArray(mepItems)) return
+    
+    this.clearPiping()
+    
+    const pipeItems = mepItems.filter(item => item && item.type === 'pipe')
+    
+    pipeItems.forEach(pipe => {
+      this.createPipe(pipe)
+    })
+  }
+
+  /**
+   * Create a single pipe
+   */
+  createPipe(pipeData) {
+    const {
+      diameter = 2,
+      pipeType = 'copper',
+      tier = 1,
+      position = 'bottom'
+    } = pipeData
+
+    // Get pipe length from snapLineManager
+    const pipeLength = this.snapLineManager?.getAvailableDuctLength() || 
+                      this.snapLineManager?.ft2m(this.snapLineManager?.getRackLength() || 12) || 
+                      12 * 0.3048
+
+    let pipePosition
+    let calculatedTierInfo = null
+    
+    // Check if this pipe has a saved position
+    if (pipeData.position && typeof pipeData.position === 'object' && pipeData.position.x !== undefined) {
+      pipePosition = new THREE.Vector3(
+        pipeData.position.x,
+        pipeData.position.y,
+        pipeData.position.z
+      )
+      
+      // Calculate tier info using base class method
+      if (!pipeData.tierName && this.pipeInteraction) {
+        calculatedTierInfo = this.pipeInteraction.calculateTier(pipeData.position.y)
+      }
+    } else {
+      // Calculate default position within tier
+      const yPos = this.calculatePipeYPosition(pipeData, tier, position)
+      
+      const postSizeInches = this.snapLineManager?.getPostSize() || 2
+      const postSizeM = postSizeInches * 0.0254
+      const xPos = postSizeM / 2
+      
+      pipePosition = new THREE.Vector3(xPos, yPos, 0)
+      
+      // Calculate tier info using base class method
+      if (this.pipeInteraction) {
+        calculatedTierInfo = this.pipeInteraction.calculateTier(yPos)
+      }
+    }
+    
+    // Update pipe data with tier info if calculated
+    if (calculatedTierInfo && !pipeData.tierName) {
+      pipeData.tier = calculatedTierInfo.tier
+      pipeData.tierName = calculatedTierInfo.tierName
+      
+      // Update in localStorage
+      try {
+        const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+        const updatedItems = storedMepItems.map(item => {
+          if (item.id === pipeData.id) {
+            return { ...item, tier: calculatedTierInfo.tier, tierName: calculatedTierInfo.tierName }
+          }
+          return item
+        })
+        localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      } catch (error) {
+        console.error('Error updating tier info:', error)
+      }
+    }
+    
+    // Create pipe group using geometry
+    const pipeGroup = this.pipeGeometry.createPipeGroup(
+      pipeData,
+      pipeLength,
+      pipePosition
+    )
+    
+    this.pipingGroup.add(pipeGroup)
+  }
+
+  /**
+   * Calculate pipe Y position within tier
+   */
+  calculatePipeYPosition(pipeData, tier = 1, position = 'bottom') {
+    const snapLines = this.snapLineManager?.getSnapLinesFromRackGeometry()
+    
+    if (!snapLines?.horizontal) {
+      console.warn('⚠️ No snap lines found, using fallback position')
+      return 2 - (tier - 1) * 2 // Fallback
+    }
+
+    const beamTopSurfaces = snapLines.horizontal
+      .filter(line => line.type === 'beam_top')
+      .sort((a, b) => b.y - a.y)
+    
+    if (beamTopSurfaces.length === 0) {
+      console.warn('⚠️ No beam top surfaces found, using fallback position')
+      return 2 - (tier - 1) * 2
+    }
+    
+    // Calculate pipe dimensions
+    const diameter = pipeData.diameter || 2
+    const insulation = pipeData.insulation || 0
+    const diameterM = diameter * 0.0254
+    const insulationM = insulation * 0.0254
+    const totalHeight = diameterM + (2 * insulationM)
+    
+    // Tier mapping: similar to ducts but for circular pipes
+    const tierIndex = (tier - 1) * 2 + 1
+    
+    if (tierIndex < beamTopSurfaces.length) {
+      const tierBeamTop = beamTopSurfaces[tierIndex]
+      const pipeCenterY = tierBeamTop.y + (totalHeight / 2)
+      return pipeCenterY
+    }
+    
+    // Fallback - use the lowest available beam top
+    console.warn(`⚠️ Tier ${tier} not available, using lowest beam`)
+    const lowestBeam = beamTopSurfaces[beamTopSurfaces.length - 1]
+    return lowestBeam.y + (totalHeight / 2)
+  }
+
+  /**
+   * Clear all piping - now uses base class methods
+   */
+  clearPiping() {
+    if (this.pipeInteraction?.selectedObject) {
+      this.pipeInteraction.deselectObject()
+    }
+    
+    while (this.pipingGroup.children.length > 0) {
+      const child = this.pipingGroup.children[0]
+      this.pipingGroup.remove(child)
+      
+      // Use base class dispose method
+      if (this.pipeInteraction) {
+        this.pipeInteraction.disposeObject(child)
+      }
+    }
+  }
+
+  /**
+   * Get piping group
    */
   getPipingGroup() {
     return this.pipingGroup
   }
 
   /**
-   * Recalculate tier info for all pipes
+   * Set visibility
    */
-  recalculateTierInfo() {
-    if (this.pipeInteraction) {
-      this.pipeInteraction.updateAllPipeTierInfo()
-    }
+  setVisible(visible) {
+    this.pipingGroup.visible = visible
   }
 
   /**
-   * Dispose of the piping renderer
+   * Dispose all resources
    */
   dispose() {
-    try {
-      this.clearPiping()
-      
-      if (this.pipingGroup) {
-        this.scene.remove(this.pipingGroup)
+    this.pipeInteraction?.dispose()
+    this.pipeGeometry?.dispose()
+    
+    this.clearPiping()
+    this.scene.remove(this.pipingGroup)
+  }
+
+  // Backward compatibility methods
+  get selectedPipe() {
+    return this.pipeInteraction?.selectedObject
+  }
+
+  set selectedPipe(pipe) {
+    if (this.pipeInteraction) {
+      if (pipe) {
+        this.pipeInteraction.selectObject(pipe)
+      } else {
+        this.pipeInteraction.deselectObject()
       }
-      
-      if (this.pipeInteraction) {
-        this.pipeInteraction.dispose()
-      }
-      
-      // console.log('🔧 PipingRenderer disposed')
-    } catch (error) {
-      console.error('❌ Error disposing piping renderer:', error)
     }
   }
 }
+
+export default PipingRenderer

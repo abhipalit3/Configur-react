@@ -5,13 +5,13 @@
  */
 
 import React from 'react'
-import { BaseMepEditor } from '../base/BaseMepEditor.js'
+import { BaseMepEditor } from '../BaseMepEditor.js'
 
 /**
- * PipeEditor - Pipe-specific implementation using base component
- * This dramatically simplifies the pipe editor code
+ * Example PipeEditor using base component
+ * Shows how to customize fields for different MEP types
  */
-export const PipeEditor = (props) => {
+export const PipeEditorBase = (props) => {
   // Define pipe-specific fields
   const fields = [
     {
@@ -32,16 +32,14 @@ export const PipeEditor = (props) => {
     },
     {
       type: 'select',
-      name: 'pipeType',
-      label: 'Type',
-      width: '90px',
+      name: 'material',
+      label: 'Mat',
+      width: '80px',
       options: [
-        { value: 'copper', label: 'Copper' },
         { value: 'steel', label: 'Steel' },
+        { value: 'copper', label: 'Copper' },
         { value: 'pvc', label: 'PVC' },
-        { value: 'hdpe', label: 'HDPE' },
-        { value: 'cast_iron', label: 'Cast Iron' },
-        { value: 'pex', label: 'PEX' }
+        { value: 'hdpe', label: 'HDPE' }
       ]
     },
     {
@@ -61,20 +59,18 @@ export const PipeEditor = (props) => {
     if (!selectedPipe?.userData?.pipeData) {
       return {
         diameter: 2,
-        pipeType: 'copper',
+        material: 'steel',
         insulation: 0,
-        tier: 1,
-        color: ''
+        tier: 1
       }
     }
     
     const pipeData = selectedPipe.userData.pipeData
     return {
       diameter: pipeData.diameter || 2,
-      pipeType: pipeData.pipeType || pipeData.material || 'copper', // Handle both field names
+      material: pipeData.material || 'steel',
       insulation: pipeData.insulation || 0,
-      tier: pipeData.tier || 1,
-      color: pipeData.color || ''
+      tier: pipeData.tier || 1
     }
   }
 
@@ -103,9 +99,9 @@ export const PipeEditor = (props) => {
       fields={fields}
       getInitialDimensions={getInitialDimensions}
       getOffsetY={getOffsetY}
-      minWidth="400px"
+      minWidth="350px"
     />
   )
 }
 
-export default PipeEditor
+export default PipeEditorBase

@@ -52,6 +52,13 @@ function syncArrays(p) {
  * @param {Object} mats  { postMaterial, longBeamMaterial, transBeamMaterial, wallMaterial, ceilingMaterial, floorMaterial, roofMaterial, ductMat }
  */
 export function buildRackScene(scene, params, mats) {
+  console.log('🔧 BUILD RACK SCENE: Received params:', JSON.stringify({
+    position: params.position,
+    topClearance: params.topClearance,
+    topClearanceInches: params.topClearanceInches,
+    mountType: params.mountType
+  }, null, 2))
+  
   ensureArrays(params)
   syncArrays(params)
 
@@ -71,16 +78,44 @@ export function buildRackScene(scene, params, mats) {
   rack.userData.type = 'tradeRack'
   rack.userData.selectable = true
   rack.userData.rackId = params.id || `rack_${Date.now()}`
-  rack.userData.configuration = { ...params } // Store configuration for access
+  // Store the baseline Y position (where rack was built by buildRack logic)
+  const baselineY = rack.position.y
   
-  // Set initial position if provided in params
+  // Handle positioning: saved position takes precedence over clearance calculations
   if (params.position) {
+    // If this is a restored configuration, use the exact saved position
     rack.position.set(
       params.position.x || 0,
       params.position.y || 0,
       params.position.z || 0
     )
+    console.log('🔧 Applied saved position:', params.position)
+  } else {
+    // For new racks without saved position, set default position and apply clearance
+    // Default position: X=0, Y=baseline (adjusted by clearance), Z=0
+    rack.position.x = 0
+    rack.position.z = 0 // Force Z position to 0 for new racks
+    
+    if (params.topClearanceInches && params.topClearanceInches > 0) {
+      // Apply clearance to Y position
+      const IN2M = 0.0254
+      const clearanceMeters = params.topClearanceInches * IN2M
+      rack.position.y = baselineY - clearanceMeters
+      console.log('🔧 Applied user clearance:', params.topClearanceInches, 'inches, moved rack from', baselineY, 'to', rack.position.y)
+    } else {
+      // No clearance specified, keep at baseline position
+      rack.position.y = baselineY
+      console.log('🔧 New rack positioned at baseline Y:', baselineY, 'with default Z=0')
+    }
   }
+
+  rack.userData.configuration = { 
+    ...params,
+    // Store the baseline Y position - this is where the rack was built with 0 clearance
+    baselineY: baselineY,
+    // Store the user's clearance in inches (or 0 if not specified)
+    topClearance: (params.topClearanceInches || 0) / 12 // Convert to feet for storage consistency
+  } // Store configuration for access
   
   scene.add(rack)
 

@@ -21,7 +21,7 @@ import { CableTrayRenderer } from '../cable-trays'
 import { CableTrayEditor } from '../cable-trays/CableTrayEditor'
 import { createMaterials, loadTextures, disposeMaterials } from '../materials'
 import { initializeMepSelectionManager } from '../core/MepSelectionManager.js'
-import { TradeRackInteraction } from '../trade-rack/TradeRackInteraction.js'
+import { TradeRackInteraction, TradeRackEditor } from '../trade-rack'
 import '../styles/measurement-styles.css'
 
 
@@ -79,6 +79,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
   
   // State for trade rack selection
   const [selectedTradeRack, setSelectedTradeRack] = useState(null)
+  const [showTradeRackEditor, setShowTradeRackEditor] = useState(false)
+  const [skipTradeRackRecreation, setSkipTradeRackRecreation] = useState(false)
   
   // State for rack parameters (to access in render)
   const [rackParams, setRackParams] = useState({
@@ -228,6 +230,24 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // console.log('🔧 Scene building with rack params:', initialRackParams)
     // console.log('🔧 Scene building with building params:', initialBuildingParams)
     
+    // Load temporary state FIRST to override any configuration values
+    // But only if we're not creating a new rack
+    let tempState = null
+    if (!initialRackParams?.isNewRack) {
+      try {
+        const tempStateStr = localStorage.getItem('rackTemporaryState')
+        if (tempStateStr) {
+          tempState = JSON.parse(tempStateStr)
+          console.log('🔧 Loading temporary state BEFORE building rack:', tempState)
+          console.log('🔧 Temporary state position:', tempState.position)
+        }
+      } catch (error) {
+        console.error('Error loading temporary state:', error)
+      }
+    } else {
+      console.log('🔧 Skipping temporary state load - creating new rack')
+    }
+
     const params = {
     // Building parameters
     corridorWidth  : initialBuildingParams?.corridorWidth || 10,
@@ -237,12 +257,13 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     slabDepth      : initialBuildingParams?.slabDepth || 4,
     wallThickness  : initialBuildingParams?.wallThickness || 6,
 
-    // Rack parameters - use passed props or defaults
+    // Rack parameters - use TEMPORARY STATE first, then passed props or defaults
     bayCount  : initialRackParams?.bayCount || 4,
     bayWidth  : initialRackParams?.bayWidth || 3,
     depth     : initialRackParams?.depth || 4,
 
-    topClearance : initialRackParams?.topClearance || 15,
+    // Use temporary state topClearance if available, otherwise use config/default
+    topClearance : tempState?.topClearance !== undefined ? tempState.topClearance : (initialRackParams?.topClearance || 0),
     // Handle both old postSize format and new columnSizes + columnType format
     postSize     : initialRackParams?.columnSizes && initialRackParams?.columnType 
                    ? initialRackParams.columnSizes[initialRackParams.columnType] 
@@ -265,8 +286,13 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     ductEnabled  : [false, false],
     ductWidths   : [18, 18], // in  (parallel array #2)
     ductHeights  : [16, 16], // in  (parallel array #3)
-    ductOffsets  : [ 0,  0]  // in  (parallel array #4)
+    ductOffsets  : [ 0,  0], // in  (parallel array #4)
+    
+    // Add position: temporary state for existing racks, saved position for restored configs, undefined for new racks
+    position: initialRackParams?.isNewRack ? undefined : (tempState?.position || initialRackParams?.position)
     };
+    
+    console.log('🔧 Final params position before buildRack:', params.position)
 
     const mats = {
         postMaterial,
@@ -281,6 +307,36 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         };
     
     const snapPoints = buildRackScene(scene, params, mats)
+    
+    // Update rack configuration and position with temporary state values for consistency
+    if (tempState) {
+      scene.traverse((child) => {
+        if (child.userData?.type === 'tradeRack') {
+          // Update position if temporary state has different position than what was built
+          if (tempState.position) {
+            child.position.set(
+              tempState.position.x || child.position.x,
+              tempState.position.y || child.position.y,
+              tempState.position.z || child.position.z
+            )
+          }
+          
+          // Update configuration with temporary state values
+          if (child.userData.configuration) {
+            child.userData.configuration.topClearance = tempState.topClearance || 0
+            
+            // Update position in configuration as well for editor consistency
+            if (tempState.position) {
+              child.userData.configuration.position = {
+                x: tempState.position.x || 0,
+                y: tempState.position.y || 0,
+                z: tempState.position.z || 0
+              }
+            }
+          }
+        }
+      })
+    }
     
     // Update rack parameters state for use in render
     setRackParams({
@@ -707,21 +763,21 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     
     // Setup duct editor callbacks
     const handleDuctSelection = () => {
-      const selected = ductworkRenderer.ductInteraction?.getSelectedDuct()
+      const selected = ductworkRenderer.ductInteraction?.selectedObject
       setSelectedDuct(selected)
       setShowDuctEditor(!!selected)
     }
     
     // Setup pipe editor callbacks
     const handlePipeSelection = () => {
-      const selected = pipingRenderer.pipeInteraction?.getSelectedPipe()
+      const selected = pipingRenderer.pipeInteraction?.selectedObject
       setSelectedPipe(selected)
       setShowPipeEditor(!!selected)
     }
     
     // Setup conduit editor callbacks
     const handleConduitSelection = () => {
-      const selected = conduitRenderer.conduitInteraction?.getSelectedConduit()
+      const selected = conduitRenderer.conduitInteraction?.selectedObject
       setSelectedConduit(selected)
       setShowConduitEditor(!!selected)
     }
@@ -736,12 +792,22 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       }
     }
     
-    // Poll for duct, pipe, conduit, and cable tray selection changes
+    // Setup trade rack editor callbacks
+    const handleTradeRackSelection = () => {
+      const selected = tradeRackInteractionRef.current?.selectedObject
+      setSelectedTradeRack(selected)
+      if (!skipTradeRackRecreation) {
+        setShowTradeRackEditor(!!selected)
+      }
+    }
+    
+    // Poll for duct, pipe, conduit, cable tray, and trade rack selection changes
     const pollSelection = setInterval(() => {
       handleDuctSelection()
       handlePipeSelection()
       handleConduitSelection()
       handleCableTraySelection()
+      handleTradeRackSelection()
     }, 100)
     
     // Periodically update tier information for all ducts
@@ -763,8 +829,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     const handleDuctEditorSave = (newDimensions) => {
       
       if (ductworkRenderer.ductInteraction) {
-        // Update the 3D duct
-        ductworkRenderer.ductInteraction.updateDuctDimensions(newDimensions)
+        // Update the 3D duct using base class method
+        ductworkRenderer.ductInteraction.updateObjectDimensions(newDimensions)
         
         // Update localStorage (MEP panel data)
         try {
@@ -804,7 +870,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       
       if (pipingRenderer.pipeInteraction) {
         // Update the 3D pipe
-        pipingRenderer.pipeInteraction.updatePipeDimensions(newDimensions)
+        pipingRenderer.pipeInteraction.updateObjectDimensions(newDimensions)
         
         // Update localStorage (MEP panel data)
         try {
@@ -1016,13 +1082,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       setShowCableTrayEditor(false)
     }
     
-    // Set callbacks on duct interaction
-    if (ductworkRenderer.ductInteraction) {
-      ductworkRenderer.ductInteraction.setDuctEditorCallbacks(
-        handleDuctEditorSave,
-        handleDuctEditorCancel
-      )
-    }
+    
+    // Base class handles editor callbacks automatically through events
     
     // Initial ductwork, piping, conduit, and cable tray update
     setTimeout(() => {
@@ -1145,20 +1206,23 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
 
     // Initialize centralized MEP selection manager AFTER all interactions are set up
     const mepSelectionManager = initializeMepSelectionManager(scene, camera, renderer)
-    console.log('🎯 MEP Selection Manager initialized in ThreeScene at end')
+    // console.log('🎯 MEP Selection Manager initialized in ThreeScene at end')
 
     // Initialize trade rack interaction system AFTER MEP manager
     const tradeRackInteraction = new TradeRackInteraction(scene, camera, renderer, controls)
     tradeRackInteractionRef.current = tradeRackInteraction
     
+    // Expose globally for configuration saving
+    window.tradeRackInteractionInstance = tradeRackInteraction
+    
     // Add event listeners for trade rack selection
     const handleTradeRackSelected = (event) => {
-      console.log('🎯 Trade rack selected event:', event.detail)
+      // console.log('🎯 Trade rack selected event:', event.detail)
       setSelectedTradeRack(event.detail.rack)
     }
     
     const handleTradeRackDeselected = () => {
-      console.log('❌ Trade rack deselected event')
+      // console.log('❌ Trade rack deselected event')
       setSelectedTradeRack(null)
     }
     
@@ -1386,11 +1450,10 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       {/* Duct Editor */}
       {showDuctEditor && selectedDuct && cameraRef.current && rendererRef.current && (
         <DuctEditor
-          selectedDuct={selectedDuct}
+          selectedObject={selectedDuct}
           camera={cameraRef.current}
           renderer={rendererRef.current}
           visible={showDuctEditor}
-          rackParams={rackParams}
           onSave={(dimensions) => {
             
             // Set flag to prevent duct recreation
@@ -1405,8 +1468,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                 }
               }
               
-              // Update the 3D duct
-              ductworkRendererRef.current.ductInteraction.updateDuctDimensions(dimensions)
+              // Update the 3D duct using base class method
+              ductworkRendererRef.current.ductInteraction.updateObjectDimensions(dimensions)
               
               // Update localStorage (MEP panel data)
               try {
@@ -1479,7 +1542,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           }}
           onCopy={() => {
             if (ductworkRendererRef.current?.ductInteraction) {
-              ductworkRendererRef.current.ductInteraction.duplicateSelectedDuct()
+              ductworkRendererRef.current.ductInteraction.copySelectedObject()
             }
           }}
         />
@@ -1488,11 +1551,10 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       {/* Pipe Editor */}
       {showPipeEditor && selectedPipe && cameraRef.current && rendererRef.current && (
         <PipeEditor
-          selectedPipe={selectedPipe}
+          selectedObject={selectedPipe}
           camera={cameraRef.current}
           renderer={rendererRef.current}
           visible={showPipeEditor}
-          rackParams={rackParams}
           onSave={(dimensions) => {
             
             // Set flag to prevent pipe recreation
@@ -1508,7 +1570,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               }
               
               // Update the 3D pipe
-              pipingRendererRef.current.pipeInteraction.updatePipeDimensions(dimensions)
+              pipingRendererRef.current.pipeInteraction.updateObjectDimensions(dimensions)
               
               // Update localStorage (MEP panel data)
               try {
@@ -1581,7 +1643,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           }}
           onCopy={() => {
             if (pipingRendererRef.current?.pipeInteraction) {
-              pipingRendererRef.current.pipeInteraction.duplicateSelectedPipe()
+              pipingRendererRef.current.pipeInteraction.copySelectedObject()
             }
           }}
         />
@@ -1803,6 +1865,40 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
             if (cableTrayRendererRef.current?.cableTrayInteraction) {
               cableTrayRendererRef.current.cableTrayInteraction.duplicateSelectedCableTray()
             }
+          }}
+        />
+      )}
+      
+      {/* Trade Rack Editor */}
+      {showTradeRackEditor && selectedTradeRack && cameraRef.current && rendererRef.current && (
+        <TradeRackEditor
+          selectedObject={selectedTradeRack}
+          camera={cameraRef.current}
+          renderer={rendererRef.current}
+          visible={showTradeRackEditor}
+          onSave={(newDimensions) => {
+            console.log(`🔧 ThreeScene: TradeRackEditor save called with:`, newDimensions)
+            
+            // Set flag to prevent trade rack recreation
+            setSkipTradeRackRecreation(true)
+            
+            if (tradeRackInteractionRef.current && tradeRackInteractionRef.current.selectedObject) {
+              // Call the update method to rebuild the rack with new top clearance
+              tradeRackInteractionRef.current.updateTradeRackDimensions(newDimensions)
+              
+              console.log('🔧 Triggered trade rack rebuild with new dimensions:', newDimensions)
+            }
+            
+            // Reset flag after a brief delay
+            setTimeout(() => {
+              setSkipTradeRackRecreation(false)
+            }, 100)
+            
+            // Close the editor after saving
+            setShowTradeRackEditor(false)
+          }}
+          onCancel={() => {
+            setShowTradeRackEditor(false)
           }}
         />
       )}

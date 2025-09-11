@@ -42,12 +42,9 @@ export class CableTrayRenderer {
       camera, 
       renderer, 
       orbitControls,
-      this
+      this.cableTrayGeometry,
+      this.snapLineManager
     )
-    
-    if (this.snapLineManager) {
-      this.cableTrayInteraction.setSnapLineManager(this.snapLineManager)
-    }
     
     // Make cable tray interaction globally accessible
     window.cableTrayInteractionInstance = this.cableTrayInteraction

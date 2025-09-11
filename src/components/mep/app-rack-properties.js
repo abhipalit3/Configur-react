@@ -150,7 +150,7 @@ const AppRackProperties = (props) => {
             <div className="feet-inches-input">
               <input
                 type="number"
-                value={tierHeight.feet}
+                value={tierHeight.feet || 0}
                 onChange={(e) => handleTierHeightChange(i, 'feet', e.target.value)}
                 className="input-form"
                 min="0"
@@ -159,7 +159,7 @@ const AppRackProperties = (props) => {
               <span className="unit-label">ft</span>
               <input
                 type="number"
-                value={tierHeight.inches}
+                value={tierHeight.inches || 0}
                 onChange={(e) => handleTierHeightChange(i, 'inches', e.target.value)}
                 className="input-form"
                 min="0"
@@ -235,7 +235,7 @@ const AppRackProperties = (props) => {
             <div className="feet-inches-input">
               <input
                 type="number"
-                value={formData.rackLength.feet}
+                value={formData.rackLength ? formData.rackLength.feet : 0}
                 onChange={(e) => handleFeetInchesChange('rackLength', 'feet', e.target.value)}
                 className={`input-form ${errors.rackLength ? 'error' : ''}`}
                 min="0"
@@ -244,7 +244,7 @@ const AppRackProperties = (props) => {
               <span className="unit-label">ft</span>
               <input
                 type="number"
-                value={formData.rackLength.inches}
+                value={formData.rackLength ? formData.rackLength.inches : 0}
                 onChange={(e) => handleFeetInchesChange('rackLength', 'inches', e.target.value)}
                 className={`input-form ${errors.rackLength ? 'error' : ''}`}
                 min="0"
@@ -273,7 +273,7 @@ const AppRackProperties = (props) => {
             <div className="feet-inches-input">
               <input
                 type="number"
-                value={formData.rackWidth.feet}
+                value={formData.rackWidth ? formData.rackWidth.feet : 0}
                 onChange={(e) => handleFeetInchesChange('rackWidth', 'feet', e.target.value)}
                 className={`input-form ${errors.rackWidth ? 'error' : ''}`}
                 min="0"
@@ -282,7 +282,7 @@ const AppRackProperties = (props) => {
               <span className="unit-label">ft</span>
               <input
                 type="number"
-                value={formData.rackWidth.inches}
+                value={formData.rackWidth ? formData.rackWidth.inches : 0}
                 onChange={(e) => handleFeetInchesChange('rackWidth', 'inches', e.target.value)}
                 className={`input-form ${errors.rackWidth ? 'error' : ''}`}
                 min="0"
@@ -327,7 +327,7 @@ const AppRackProperties = (props) => {
             <div className="feet-inches-input">
               <input
                 type="number"
-                value={formData.bayWidth.feet}
+                value={formData.bayWidth ? formData.bayWidth.feet : 0}
                 onChange={(e) => handleFeetInchesChange('bayWidth', 'feet', e.target.value)}
                 className={`input-form ${errors.bayWidth ? 'error' : ''}`}
                 min="0"
@@ -336,7 +336,7 @@ const AppRackProperties = (props) => {
               <span className="unit-label">ft</span>
               <input
                 type="number"
-                value={formData.bayWidth.inches}
+                value={formData.bayWidth ? formData.bayWidth.inches : 0}
                 onChange={(e) => handleFeetInchesChange('bayWidth', 'inches', e.target.value)}
                 className={`input-form ${errors.bayWidth ? 'error' : ''}`}
                 min="0"
@@ -434,6 +434,43 @@ const AppRackProperties = (props) => {
               <option value="heavy">Heavy Duty Beam (4")</option>
               <option value="light">Light Beam (2")</option>
             </select>
+          </div>
+
+          <div className="app-rack-properties-title7">
+            <span className="title">Top Clearance</span>
+            <span className="app-rack-properties-info-wrapper" data-tooltip="Distance between the top of the rack and the beam/joist above (0 = attached directly below beam)">
+              <svg 
+                className="app-rack-properties-info-icon"
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/>
+              </svg>
+            </span>
+          </div>
+          <div className="app-rack-properties-input7">
+            <div className="feet-inches-input">
+              <input
+                type="number"
+                value={formData.topClearance ? formData.topClearance.feet : 0}
+                onChange={(e) => handleFeetInchesChange('topClearance', 'feet', e.target.value)}
+                className="input-form"
+                min="0"
+                step="1"
+              />
+              <span className="unit-label">ft</span>
+              <input
+                type="number"
+                value={formData.topClearance ? formData.topClearance.inches : 0}
+                onChange={(e) => handleFeetInchesChange('topClearance', 'inches', e.target.value)}
+                className="input-form"
+                min="0"
+                max="11"
+                step="1"
+              />
+              <span className="unit-label">in</span>
+            </div>
           </div>
 
           {/* Tier Heights Heading */}

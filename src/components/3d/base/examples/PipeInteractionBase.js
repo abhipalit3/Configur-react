@@ -4,14 +4,14 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-import { BaseMepInteraction } from '../base/BaseMepInteraction.js'
+import { BaseMepInteraction } from '../BaseMepInteraction.js'
 import * as THREE from 'three'
 
 /**
- * PipeInteraction - Piping-specific implementation using base class
- * This dramatically simplifies the piping interaction code
+ * Example PipeInteraction using base class
+ * Shows how simple it is to implement different MEP types
  */
-export class PipeInteraction extends BaseMepInteraction {
+export class PipeInteractionBase extends BaseMepInteraction {
   constructor(scene, camera, renderer, orbitControls, pipeGeometry, snapLineManager) {
     super({
       scene,
@@ -25,14 +25,11 @@ export class PipeInteraction extends BaseMepInteraction {
       geometryManager: pipeGeometry
     })
     
-    // pipeGeometry is available via getter that returns this.geometryManager
+    this.pipeGeometry = pipeGeometry
   }
 
   // Implement abstract methods for pipe-specific behavior
   
-  /**
-   * Find the selectable pipe object from a target
-   */
   findSelectableObject(target) {
     let current = target
     while (current && current.parent) {
@@ -44,37 +41,22 @@ export class PipeInteraction extends BaseMepInteraction {
     return null
   }
 
-  /**
-   * Find the group containing a pipe object
-   */
   findGroupForObject(object) {
     return object // For pipes, the object itself is the group
   }
 
-  /**
-   * Update pipe appearance (normal, hover, selected)
-   */
   updateObjectAppearance(object, state) {
-    this.geometryManager.updatePipeAppearance(object, state)
+    this.pipeGeometry.updatePipeAppearance(object, state)
   }
 
-  /**
-   * Get pipe data from object
-   */
   getObjectData(object) {
     return object.userData.pipeData
   }
 
-  /**
-   * Set pipe data on object
-   */
   setObjectData(object, data) {
     object.userData.pipeData = data
   }
 
-  /**
-   * Calculate pipe dimensions in meters
-   */
   calculateObjectDimensions(pipeData) {
     if (!pipeData || !this.snapLineManager) {
       return { width: 0.1, height: 0.1 }
@@ -91,26 +73,17 @@ export class PipeInteraction extends BaseMepInteraction {
     }
   }
 
-  /**
-   * Calculate tier tolerance based on pipe size
-   */
   calculateTierTolerance(pipeHeight) {
     const diameterInches = pipeHeight || 2
     const diameterM = diameterInches * 0.0254
     return diameterM / 2
   }
 
-  /**
-   * Check if geometry needs to be recreated
-   */
   needsGeometryUpdate(newDimensions) {
-    // Pipes need geometry update for diameter, material, or insulation changes
+    // Pipes need geometry update for diameter or material changes
     return !!(newDimensions.diameter || newDimensions.material || newDimensions.insulation)
   }
 
-  /**
-   * Recreate pipe geometry
-   */
   recreateObjectGeometry(pipe, updatedData) {
     const pipeLength = this.snapLineManager.ft2m(this.snapLineManager.getRackLength()) + 
                        this.snapLineManager.in2m(12)
@@ -123,7 +96,7 @@ export class PipeInteraction extends BaseMepInteraction {
     }
     
     // Create new geometry
-    const newPipeGroup = this.geometryManager.createPipeGroup(
+    const newPipeGroup = this.pipeGeometry.createPipeGroup(
       updatedData,
       pipeLength,
       new THREE.Vector3(0, 0, 0)
@@ -140,28 +113,22 @@ export class PipeInteraction extends BaseMepInteraction {
     })
 
     // Restore appearance
-    this.geometryManager.updatePipeAppearance(pipe, 'selected')
+    this.pipeGeometry.updatePipeAppearance(pipe, 'selected')
   }
 
-  /**
-   * Create a new pipe object
-   */
   createNewObject(pipeData) {
     const rackLength = this.snapLineManager ? this.snapLineManager.getRackLength() : 12
     const pipeLength = this.snapLineManager ? 
       this.snapLineManager.ft2m(rackLength) + this.snapLineManager.in2m(12) : 
       rackLength * 0.3048 + 0.3048
     
-    return this.geometryManager.createPipeGroup(
+    return this.pipeGeometry.createPipeGroup(
       pipeData,
       pipeLength,
       pipeData.position
     )
   }
 
-  /**
-   * Save new pipe to storage
-   */
   saveNewObjectToStorage(pipeData) {
     const mepItem = {
       type: 'pipe',
@@ -194,9 +161,6 @@ export class PipeInteraction extends BaseMepInteraction {
     }
   }
 
-  /**
-   * Save pipe data to storage
-   */
   saveObjectDataToStorage(pipeData) {
     try {
       const storedItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
@@ -226,18 +190,11 @@ export class PipeInteraction extends BaseMepInteraction {
     }
   }
 
-  // Backward compatibility methods for MepSelectionManager and existing code
-  
-  /**
-   * Get selected pipe (for backward compatibility)
-   */
+  // Backward compatibility
   get selectedPipe() {
     return this.selectedObject
   }
 
-  /**
-   * Set selected pipe (for backward compatibility)
-   */
   set selectedPipe(pipe) {
     if (pipe) {
       this.selectObject(pipe)
@@ -245,62 +202,6 @@ export class PipeInteraction extends BaseMepInteraction {
       this.deselectObject()
     }
   }
-
-  /**
-   * Backward compatibility methods
-   */
-  getSelectedPipe() {
-    return this.selectedObject
-  }
-
-  selectPipe(pipe) {
-    return this.selectObject(pipe)
-  }
-
-  deselectPipe() {
-    return this.deselectObject()
-  }
-
-  findPipeGroup(object) {
-    return this.findSelectableObject(object)
-  }
-
-  updateAllPipeTierInfo() {
-    // console.warn('updateAllPipeTierInfo is deprecated, use recalculateTierInfo on renderer instead')
-    
-    // Update tier info for all pipes in the scene
-    const pipesGroup = this.scene.getObjectByName(this.groupName)
-    if (pipesGroup) {
-      pipesGroup.children.forEach(pipe => {
-        if (pipe.userData?.type === 'pipe') {
-          const tierInfo = this.calculateTier(pipe.position.y)
-          const pipeData = this.getObjectData(pipe)
-          if (pipeData) {
-            pipeData.tier = tierInfo.tier
-            pipeData.tierName = tierInfo.tierName
-            this.setObjectData(pipe, pipeData)
-          }
-        }
-      })
-    }
-  }
-
-  updatePipeDimensions(dimensions) {
-    console.warn('updatePipeDimensions is deprecated, use updateObjectDimensions instead')
-    return this.updateObjectDimensions(dimensions)
-  }
-
-  duplicateSelectedPipe() {
-    console.warn('duplicateSelectedPipe is deprecated, use copySelectedObject instead')
-    return this.copySelectedObject()
-  }
-
-  /**
-   * Provide access to pipeGeometry for MepSelectionManager compatibility
-   */
-  get pipeGeometry() {
-    return this.geometryManager
-  }
 }
 
-export default PipeInteraction
+export default PipeInteractionBase

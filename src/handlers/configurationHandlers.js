@@ -76,20 +76,43 @@ export const createConfigurationHandlers = (
 
   // Handler for adding rack to scene
   const handleAddRack = (params, setIsRackPropertiesVisible) => {
-    setRackParams(params)
+    // FIRST: Clear any existing temporary state since we're creating a new rack
+    localStorage.removeItem('rackTemporaryState')
+    console.log('🔧 Cleared temporary state for new rack creation')
     
-    // Store current rack parameters in localStorage
-    localStorage.setItem('rackParameters', JSON.stringify(params))
+    // Convert topClearance from feet+inches object to total inches
+    let processedParams = { 
+      ...params,
+      // Add flag to indicate this is a fresh rack, not a restoration
+      isNewRack: true,
+      // Explicitly remove any position to force fresh positioning
+      position: undefined
+    }
+    if (params.topClearance && typeof params.topClearance === 'object') {
+      const totalInches = (params.topClearance.feet || 0) * 12 + (params.topClearance.inches || 0)
+      processedParams.topClearanceInches = totalInches
+      // Keep the original for buildRack positioning (it still needs this for initial positioning)
+      processedParams.topClearance = totalInches / 12
+      console.log('🔧 Converted topClearance from', params.topClearance, 'to', totalInches, 'inches')
+    } else if (processedParams.topClearanceInches === undefined) {
+      // Ensure topClearanceInches is always set, default to 0
+      processedParams.topClearanceInches = 0
+    }
+    
+    setRackParams(processedParams)
+    
+    // Store processed rack parameters in localStorage
+    localStorage.setItem('rackParameters', JSON.stringify(processedParams))
     
     // Switch building shell mode based on mount type
     if (buildingShell.switchMode) {
-      const isFloorMounted = params.mountType === 'floor'
+      const isFloorMounted = processedParams.mountType === 'floor'
       buildingShell.switchMode(buildingParams, isFloorMounted)
     }
     
     // Combine rack params with building shell context
     const combinedParams = {
-      ...params,
+      ...processedParams,
       buildingContext: {
         corridorHeight: buildingParams.corridorHeight,
         beamDepth: buildingParams.beamDepth
@@ -131,12 +154,32 @@ export const createConfigurationHandlers = (
   // Handler for restoring saved rack configuration
   const handleRestoreConfiguration = (config) => {
     
+    console.log('🔧 RESTORE CONFIG DEBUG:')
+    console.log('- config received:', config)
+    console.log('- config.position:', config.position)
+    console.log('- config.topClearance:', config.topClearance)
+    
     // Update rack parameters with saved config
     const { id, name, savedAt, importedAt, originalId, buildingShellParams, ...configParams } = config
-    setRackParams(configParams)
     
-    // Store current rack parameters in localStorage
-    localStorage.setItem('rackParameters', JSON.stringify(configParams))
+    // Convert topClearance from feet+inches object to total inches (same as handleAddRack)
+    let processedParams = { ...configParams }
+    if (configParams.topClearance && typeof configParams.topClearance === 'object') {
+      const totalInches = (configParams.topClearance.feet || 0) * 12 + (configParams.topClearance.inches || 0)
+      processedParams.topClearanceInches = totalInches
+      // Keep the original for buildRack positioning
+      processedParams.topClearance = totalInches / 12
+      console.log('🔧 Restored config - converted topClearance from', configParams.topClearance, 'to', totalInches, 'inches')
+    }
+    
+    // Clear any existing temporary state since we're restoring a configuration
+    localStorage.removeItem('rackTemporaryState')
+    console.log('🔧 Cleared temporary state for configuration restore')
+    
+    setRackParams(processedParams)
+    
+    // Store processed rack parameters in localStorage
+    localStorage.setItem('rackParameters', JSON.stringify(processedParams))
     
     // Set this as the active configuration
     if (id) {
@@ -145,18 +188,23 @@ export const createConfigurationHandlers = (
     
     // Apply the configuration to the 3D scene
     if (buildingShell.switchMode) {
-      const isFloorMounted = configParams.mountType === 'floor'
+      const isFloorMounted = processedParams.mountType === 'floor'
       buildingShell.switchMode(buildingParams, isFloorMounted)
     }
     
     // Ensure building context is passed for deck-mounted racks
     const combinedParams = {
-      ...configParams,
+      ...processedParams,
       buildingContext: {
         corridorHeight: buildingParams.corridorHeight,
         beamDepth: buildingParams.beamDepth || { feet: 0, inches: 0 }
       }
     }
+    
+    console.log('🔧 RESTORE FINAL PARAMS DEBUG:')
+    console.log('- combinedParams.position:', combinedParams.position)
+    console.log('- combinedParams.topClearance:', combinedParams.topClearance)
+    console.log('- combinedParams.topClearanceInches:', combinedParams.topClearanceInches)
     
     // Force a complete rebuild of the rack
     if (tradeRack.update) {

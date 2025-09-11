@@ -20,6 +20,9 @@ export const tradeRackDefaults = {
     { feet: 2, inches: 0 }  // Tier 2 height
   ],
   
+  // Top clearance - distance from top of rack to beam/joist above
+  topClearance: { feet: 0, inches: 0 }, // 0 = attached directly below beam
+  
   // Column and beam types with default sizes
   columnType: 'standard', // 'standard', 'heavy', 'light'
   beamType: 'standard',   // 'standard', 'heavy', 'light'

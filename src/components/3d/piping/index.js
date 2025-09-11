@@ -4,7 +4,10 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
+// Core classes
 export { PipeGeometry } from './PipeGeometry.js'
+
+// Main piping classes (using advanced base class architecture)
 export { PipeInteraction } from './PipeInteraction.js' 
 export { PipingRenderer } from './PipingRenderer.js'
 export { PipeEditor } from './PipeEditor.js'

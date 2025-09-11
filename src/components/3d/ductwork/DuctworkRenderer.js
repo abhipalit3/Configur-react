@@ -5,11 +5,12 @@
  */
 
 import * as THREE from 'three'
-import { RackSnapLineManager, DuctGeometry, DuctInteraction } from '../ductwork'
+import { RackSnapLineManager, DuctGeometry } from '../ductwork'
+import { DuctInteraction } from './DuctInteraction.js'
 
 /**
- * DuctworkRenderer - Main controller for 3D ductwork visualization
- * Now modular and much cleaner!
+ * DuctworkRenderer - Using the new base interaction class
+ * This demonstrates how to use the simplified base class approach
  */
 export class DuctworkRenderer {
   constructor(scene, rackParams = {}) {
@@ -24,9 +25,7 @@ export class DuctworkRenderer {
     // Initialize modular components
     try {
       this.snapLineManager = new RackSnapLineManager(scene, rackParams)
-      
       this.ductGeometry = new DuctGeometry()
-      
       this.ductInteraction = null // Will be set up in setupInteractions
     } catch (error) {
       console.error('🏭 Error initializing modular components:', error)
@@ -44,7 +43,8 @@ export class DuctworkRenderer {
   }
 
   /**
-   * Setup interaction controls
+   * Setup interaction controls using the new base class
+   * This is much simpler now - just instantiate the base class!
    */
   setupInteractions(camera, renderer, orbitControls) {
     this.ductInteraction = new DuctInteraction(
@@ -55,6 +55,9 @@ export class DuctworkRenderer {
       this.ductGeometry, 
       this.snapLineManager
     )
+    
+    // The base class handles all the complex interaction logic automatically!
+    // No need for hundreds of lines of manual event handling, snapping, etc.
   }
 
   /**
@@ -67,13 +70,25 @@ export class DuctworkRenderer {
   }
 
   /**
-   * Recalculate tier information for all ducts based on their current 3D positions
+   * Recalculate tier information for all ducts - now uses base class method
    */
   recalculateTierInfo() {
     if (!this.ductInteraction) return
     
-    // Use the new comprehensive tier update method
-    this.ductInteraction.updateAllDuctTierInfo()
+    // The base class provides comprehensive tier calculation automatically
+    const ductsGroup = this.scene.getObjectByName('DuctsGroup')
+    if (ductsGroup) {
+      ductsGroup.children.forEach(duct => {
+        if (duct.userData.type === 'duct') {
+          const tierInfo = this.ductInteraction.calculateTier(duct.position.y)
+          duct.userData.ductData.tier = tierInfo.tier
+          duct.userData.ductData.tierName = tierInfo.tierName
+        }
+      })
+      
+      // Update storage
+      this.ductInteraction.saveObjectPosition()
+    }
   }
 
   /**
@@ -83,7 +98,6 @@ export class DuctworkRenderer {
     try {
       const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
       const ductItems = storedMepItems.filter(item => item && item.type === 'duct')
-      
       
       if (ductItems.length > 0) {
         this.updateDuctwork(ductItems)
@@ -106,11 +120,10 @@ export class DuctworkRenderer {
     ductItems.forEach(duct => {
       this.createDuct(duct)
     })
-    
   }
 
   /**
-   * Create a single duct
+   * Create a single duct - same logic but cleaner
    */
   createDuct(ductData) {
     const {
@@ -120,49 +133,37 @@ export class DuctworkRenderer {
       position = 'bottom'
     } = ductData
 
-    // Get duct length from snapLineManager - already accounts for posts and validation
+    // Get duct length from snapLineManager
     const ductLength = this.snapLineManager.getAvailableDuctLength()
     
-    // Log parameters for debugging if needed
-    if (ductLength <= 0.1) {
-      console.warn('⚠️ Duct length is at minimum viable value:', {
-        ductLength,
-        rackLength: this.snapLineManager.getRackLength(),
-        postSize: this.snapLineManager.getPostSize()
-      })
-    }
-
     let ductPosition
     let calculatedTierInfo = null
     
     // Check if this duct has a saved position
     if (ductData.position && typeof ductData.position === 'object' && ductData.position.x !== undefined) {
-      // Use saved position
       ductPosition = new THREE.Vector3(
         ductData.position.x,
         ductData.position.y,
         ductData.position.z
       )
       
-      // Calculate tier info based on Y position if not already present
+      // Calculate tier info using base class method
       if (!ductData.tierName && this.ductInteraction) {
-        calculatedTierInfo = this.ductInteraction.calculateDuctTier(ductData.position.y)
+        calculatedTierInfo = this.ductInteraction.calculateTier(ductData.position.y)
       }
     } else {
       // Calculate default position within tier
       const yPos = this.calculateDuctYPosition(ductData, tier, position)
       
-      // Get post size to calculate X offset
       const postSizeInches = this.snapLineManager.getPostSize()
       const postSizeM = this.snapLineManager.in2m(postSizeInches)
-      
-      // Position duct offset by -postSize/2 in X to align with rack
       const xPos = postSizeM / 2
+      
       ductPosition = new THREE.Vector3(xPos, yPos, 0)
       
-      // Calculate tier info for new position
+      // Calculate tier info using base class method
       if (this.ductInteraction) {
-        calculatedTierInfo = this.ductInteraction.calculateDuctTier(yPos)
+        calculatedTierInfo = this.ductInteraction.calculateTier(yPos)
       }
     }
     
@@ -171,7 +172,7 @@ export class DuctworkRenderer {
       ductData.tier = calculatedTierInfo.tier
       ductData.tierName = calculatedTierInfo.tierName
       
-      // Update in localStorage too
+      // Update in localStorage
       try {
         const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
         const updatedItems = storedMepItems.map(item => {
@@ -197,71 +198,52 @@ export class DuctworkRenderer {
   }
 
   /**
-   * Calculate duct Y position within tier
-   * Tier 1 = topmost tier, Tier 2 = below it, etc.
-   * Duct bottom sits on the TOP surface of the bottom beam in each tier
+   * Calculate duct Y position within tier - unchanged logic
    */
   calculateDuctYPosition(ductData, tier = 1, position = 'bottom') {
     const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
     
-    // Get beam top surfaces (where ducts sit)
     const beamTopSurfaces = snapLines.horizontal
       .filter(line => line.type === 'beam_top')
-      .sort((a, b) => b.y - a.y) // Top to bottom (highest Y first)
-    
+      .sort((a, b) => b.y - a.y)
     
     if (beamTopSurfaces.length === 0) {
       console.warn('⚠️ No beam top surfaces found, using fallback position')
-      return 2 - (tier - 1) * 2 // Fallback
+      return 2 - (tier - 1) * 2
     }
     
-    // Calculate duct dimensions
     const heightM = this.snapLineManager.in2m(ductData.height || 8)
     const insulationM = this.snapLineManager.in2m(ductData.insulation || 0)
     const totalHeight = heightM + (2 * insulationM)
     
-    // Tier mapping: 
-    // Tier 1 = topmost tier, use the top surface of the bottom beam in tier 1
-    // Tier 2 = next tier down, use the top surface of the bottom beam in tier 2
-    // Each tier has 2 beams (top and bottom), we want the TOP surface of the bottom beam
-    const tierIndex = (tier - 1) * 2 + 1 // +1 to get the bottom beam of the tier
+    const tierIndex = (tier - 1) * 2 + 1
     
     if (tierIndex < beamTopSurfaces.length) {
       const tierBeamTop = beamTopSurfaces[tierIndex]
-      // Position duct so its bottom sits on the beam top surface
       const ductCenterY = tierBeamTop.y + (totalHeight / 2)
-      
-      
       return ductCenterY
     }
     
-    // Fallback - use the lowest available beam top
     console.warn(`⚠️ Tier ${tier} not available, using lowest beam`)
     const lowestBeam = beamTopSurfaces[beamTopSurfaces.length - 1]
     return lowestBeam.y + (totalHeight / 2)
   }
 
-
   /**
-   * Clear all ductwork
+   * Clear all ductwork - now uses base class methods
    */
   clearDuctwork() {
-    if (this.ductInteraction?.selectedDuct) {
-      this.ductInteraction.deselectDuct()
+    if (this.ductInteraction?.selectedObject) {
+      this.ductInteraction.deselectObject()
     }
     
     while (this.ductworkGroup.children.length > 0) {
       const child = this.ductworkGroup.children[0]
       this.ductworkGroup.remove(child)
       
-      // Dispose geometries and materials
-      if (child.geometry) child.geometry.dispose()
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach(material => material.dispose())
-        } else {
-          child.material.dispose()
-        }
+      // Use base class dispose method
+      if (this.ductInteraction) {
+        this.ductInteraction.disposeObject(child)
       }
     }
   }
@@ -271,15 +253,10 @@ export class DuctworkRenderer {
    */
   getColumnDepth() {
     try {
-      // Try to get column size from rack parameters
-      const columnSize = this.rackParams.postSize || this.rackParams.columnSize || 3 // Default 3 inches
-      
-      // Convert inches to meters
+      const columnSize = this.rackParams.postSize || this.rackParams.columnSize || 3
       const columnDepthM = columnSize * 0.0254
-      
       return columnDepthM
     } catch (error) {
-      // Fallback to 3 inches (7.62 cm) in meters
       return 3 * 0.0254
     }
   }
@@ -309,4 +286,21 @@ export class DuctworkRenderer {
     this.clearDuctwork()
     this.scene.remove(this.ductworkGroup)
   }
+
+  // Backward compatibility methods
+  get selectedDuct() {
+    return this.ductInteraction?.selectedObject
+  }
+
+  set selectedDuct(duct) {
+    if (this.ductInteraction) {
+      if (duct) {
+        this.ductInteraction.selectObject(duct)
+      } else {
+        this.ductInteraction.deselectObject()
+      }
+    }
+  }
 }
+
+export default DuctworkRenderer

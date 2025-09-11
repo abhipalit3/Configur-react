@@ -44,6 +44,7 @@ const AppSavedConfigurations = (props) => {
   }, [props.refreshTrigger])
 
   const handleConfigClick = (config) => {
+    console.log('🔧 CONFIG CLICK: Attempting to restore config:', JSON.stringify(config, null, 2))
     if (props.onRestoreConfiguration) {
       props.onRestoreConfiguration(config)
       setActiveConfigId(config.id) // Update local state immediately for better UX
@@ -69,8 +70,10 @@ const AppSavedConfigurations = (props) => {
     let currentPosition = null
     try {
       // Try to get position from the current rack in scene
+      console.log('🔧 SAVE CONFIG: Checking for tradeRackInteractionInstance:', !!window.tradeRackInteractionInstance)
       if (window.tradeRackInteractionInstance) {
         currentPosition = window.tradeRackInteractionInstance.getCurrentRackPosition()
+        console.log('🔧 SAVE CONFIG: Got position from interaction:', currentPosition)
       }
       
       // Fallback: check for existing position in stored racks
@@ -98,6 +101,12 @@ const AppSavedConfigurations = (props) => {
       ...(currentPosition && { position: currentPosition })
     }
     
+    console.log('🔧 SAVE CONFIG DEBUG:')
+    console.log('- rackConfig:', rackConfig)
+    console.log('- currentPosition:', currentPosition)
+    console.log('- newConfig.position:', newConfig.position)
+    console.log('- newConfig.topClearance:', newConfig.topClearance)
+    
     
     // Add new config at the beginning so newest is first
     const updatedConfigs = [newConfig, ...savedConfigs]
@@ -106,6 +115,8 @@ const AppSavedConfigurations = (props) => {
     try {
       // Update localStorage
       localStorage.setItem('tradeRackConfigurations', JSON.stringify(updatedConfigs))
+      console.log('🔧 SAVE CONFIG: Stored to localStorage:', JSON.stringify(newConfig, null, 2))
+      
       // Update manifest by syncing with localStorage (this ensures consistency)
       syncManifestWithLocalStorage()
       // Clear the name input after saving
