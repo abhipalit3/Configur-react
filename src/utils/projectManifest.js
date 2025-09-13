@@ -301,29 +301,40 @@ export const setActiveConfiguration = (configurationId) => {
 }
 
 /**
- * Sync manifest with current localStorage configurations
+ * Sync manifest with current localStorage configurations (legacy migration only)
  */
 export const syncManifestWithLocalStorage = () => {
   const manifest = getProjectManifest()
   
   try {
-    // Get current configurations from localStorage
+    // Check for legacy configurations in old localStorage key
     const localStorageConfigs = JSON.parse(localStorage.getItem('tradeRackConfigurations') || '[]')
     
-    // Update manifest to match localStorage
-    manifest.tradeRacks.configurations = localStorageConfigs.map(config => ({
-      ...config,
-      syncedAt: new Date().toISOString()
-    }))
-    manifest.tradeRacks.totalCount = localStorageConfigs.length
-    manifest.tradeRacks.lastModified = new Date().toISOString()
-    
-    addChangeToHistory(manifest, 'tradeRacks', 'synced_with_localstorage', {
-      configurationCount: localStorageConfigs.length
-    })
-    
-    saveProjectManifest(manifest)
-    // Manifest synced with localStorage
+    // Only sync if there are legacy configs AND no configs in manifest
+    if (localStorageConfigs.length > 0 && (!manifest.tradeRacks.configurations || manifest.tradeRacks.configurations.length === 0)) {
+      console.log('🔄 Migrating legacy configurations from localStorage to manifest')
+      
+      // Migrate legacy configurations to manifest
+      manifest.tradeRacks.configurations = localStorageConfigs.map(config => ({
+        ...config,
+        syncedAt: new Date().toISOString(),
+        migratedFromLegacy: true
+      }))
+      manifest.tradeRacks.totalCount = localStorageConfigs.length
+      manifest.tradeRacks.lastModified = new Date().toISOString()
+      
+      addChangeToHistory(manifest, 'tradeRacks', 'migrated_from_legacy_storage', {
+        configurationCount: localStorageConfigs.length
+      })
+      
+      saveProjectManifest(manifest)
+      
+      // Clean up legacy storage after successful migration
+      localStorage.removeItem('tradeRackConfigurations')
+      console.log('✅ Legacy configurations migrated and old storage cleaned up')
+    } else {
+      console.log('📊 No legacy migration needed - using manifest configurations')
+    }
     
     return manifest
   } catch (error) {

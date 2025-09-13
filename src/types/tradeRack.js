@@ -9,7 +9,7 @@ export const tradeRackDefaults = {
   mountType: 'deck', // 'deck' or 'floor'
   
   // Length dimensions - stored as separate feet and inches  
-  rackLength: { feet: 20, inches: 0 }, // Total rack length
+  rackLength: { feet: 15, inches: 0 }, // Total rack length
   rackWidth: { feet: 4, inches: 0 },   // Rack depth/width
   bayWidth: { feet: 3, inches: 0 },    // Standard bay width
   
@@ -90,7 +90,7 @@ export const calculateTotalHeight = (config) => {
     console.error('Error calculating total height:', error)
     return 'N/A'
   }
-}
+};
 
 // Calculate number of bays and last bay width from total length and standard bay width
 export const calculateBayConfiguration = (totalLength, standardBayWidth) => {

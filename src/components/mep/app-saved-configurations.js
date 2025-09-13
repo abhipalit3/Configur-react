@@ -114,11 +114,6 @@ const AppSavedConfigurations = (props) => {
     console.log('- newConfig.position:', newConfig.position)
     console.log('- newConfig.topClearance:', newConfig.topClearance)
     
-    
-    // Add new config at the beginning so newest is first
-    const updatedConfigs = [newConfig, ...savedConfigs]
-    setSavedConfigs(updatedConfigs)
-    
     try {
       console.log('🔧 SAVE CONFIG: Saving to manifest:', JSON.stringify(newConfig, null, 2))
       
@@ -126,13 +121,23 @@ const AppSavedConfigurations = (props) => {
       saveConfigurationToList(newConfig)
       console.log('🔧 SAVE CONFIG: Configuration saved to list only')
       
+      // Reload configurations from manifest to ensure consistency
+      const manifest = getProjectManifest()
+      const configs = manifest.tradeRacks?.configurations || []
+      const sortedConfigs = configs.sort((a, b) => {
+        const dateA = new Date(a.updatedAt || a.savedAt)
+        const dateB = new Date(b.updatedAt || b.savedAt)
+        return dateB - dateA
+      })
+      setSavedConfigs(sortedConfigs)
+      
       // Clear the name input after saving
       setConfigurationName('')
       
       // Notify parent component if callback exists
       if (props.onConfigurationSaved) {
         props.onConfigurationSaved(newConfig)
-}
+      }
     } catch (error) {
       console.error('Error saving configuration:', error)
       alert('Failed to save configuration. Please try again.')

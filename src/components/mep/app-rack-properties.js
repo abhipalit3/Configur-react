@@ -363,6 +363,43 @@ const AppRackProperties = (props) => {
             </span>
           </div>
 
+          <div className="app-rack-properties-title7">
+            <span className="title">Top Clearance</span>
+            <span className="app-rack-properties-info-wrapper" data-tooltip="Distance between the top of the rack and the beam/joist above (0 = attached directly below beam)">
+              <svg 
+                className="app-rack-properties-info-icon"
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/>
+              </svg>
+            </span>
+          </div>
+          <div className="app-rack-properties-input7">
+            <div className="feet-inches-input">
+              <input
+                type="number"
+                value={formData.topClearance?.feet ?? 0}
+                onChange={(e) => handleFeetInchesChange('topClearance', 'feet', e.target.value)}
+                className="input-form"
+                min="0"
+                step="1"
+              />
+              <span className="unit-label">ft</span>
+              <input
+                type="number"
+                value={formData.topClearance?.inches ?? 0}
+                onChange={(e) => handleFeetInchesChange('topClearance', 'inches', e.target.value)}
+                className="input-form"
+                min="0"
+                max="11"
+                step="1"
+              />
+              <span className="unit-label">in</span>
+            </div>
+          </div>
+
           <div className="app-rack-properties-title4">
             <span className="title">Number of Tiers</span>
             <span className="app-rack-properties-info-wrapper" data-tooltip="The number of horizontal levels in the trade rack for storing equipment">
@@ -443,42 +480,6 @@ const AppRackProperties = (props) => {
             </select>
           </div>
 
-          <div className="app-rack-properties-title7">
-            <span className="title">Top Clearance</span>
-            <span className="app-rack-properties-info-wrapper" data-tooltip="Distance between the top of the rack and the beam/joist above (0 = attached directly below beam)">
-              <svg 
-                className="app-rack-properties-info-icon"
-                width="12" 
-                height="12" 
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/>
-              </svg>
-            </span>
-          </div>
-          <div className="app-rack-properties-input7">
-            <div className="feet-inches-input">
-              <input
-                type="number"
-                value={formData.topClearance ? formData.topClearance.feet : 0}
-                onChange={(e) => handleFeetInchesChange('topClearance', 'feet', e.target.value)}
-                className="input-form"
-                min="0"
-                step="1"
-              />
-              <span className="unit-label">ft</span>
-              <input
-                type="number"
-                value={formData.topClearance ? formData.topClearance.inches : 0}
-                onChange={(e) => handleFeetInchesChange('topClearance', 'inches', e.target.value)}
-                className="input-form"
-                min="0"
-                max="11"
-                step="1"
-              />
-              <span className="unit-label">in</span>
-            </div>
-          </div>
 
           {/* Tier Heights Heading */}
           {formData.tierCount > 0 && (

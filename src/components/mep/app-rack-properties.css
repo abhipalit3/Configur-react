@@ -174,7 +174,8 @@
 .app-rack-properties-input3,
 .app-rack-properties-input4,
 .app-rack-properties-input5,
-.app-rack-properties-input6 {
+.app-rack-properties-input6,
+.app-rack-properties-input7 {
   gap: 8px;
   flex: 0 0 auto;
   width: 280px;
