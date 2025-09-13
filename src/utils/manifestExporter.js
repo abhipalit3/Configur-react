@@ -10,6 +10,8 @@
  */
 
 import { exportProjectManifest, getProjectStatistics } from './projectManifest'
+import { initializeStorageSystem, getStorageSystemStatus, cleanupLegacyStorage, debugRackTemporaryState } from './initializeStorage'
+import { testStorageSystem } from './testStorage'
 
 /**
  * Export current manifest to browser console
@@ -135,4 +137,20 @@ if (typeof window !== 'undefined') {
   window.downloadManifest = downloadManifest
   window.getManifestInfo = getManifestInfo
   
+  // Storage system functions
+  window.initializeStorage = initializeStorageSystem
+  window.getStorageStatus = getStorageSystemStatus
+  window.testStorage = testStorageSystem
+  window.cleanupLegacyStorage = cleanupLegacyStorage
+  window.debugRackTempState = debugRackTemporaryState
+  
+  console.log('📋 DPR Configur debugging tools loaded:')
+  console.log('- window.exportManifest() - View manifest in console')
+  console.log('- window.downloadManifest() - Download manifest as JSON')
+  console.log('- window.getManifestInfo() - Get manifest size info')
+  console.log('- window.initializeStorage() - Initialize storage system')
+  console.log('- window.getStorageStatus() - Check storage system status')
+  console.log('- window.testStorage() - Run storage system tests')
+  console.log('- window.cleanupLegacyStorage() - Remove all legacy localStorage keys')
+  console.log('- window.debugRackTempState() - Debug rack temporary state')
 }

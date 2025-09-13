@@ -7,6 +7,7 @@
 import { useRef, useCallback } from 'react';
 import { buildRackScene } from '../components/3d/trade-rack/buildRack';
 import { TradeRackInteraction } from '../components/3d/trade-rack/TradeRackInteraction';
+import { getRackTemporaryState } from '../utils/temporaryState';
 
 export function useSceneRack() {
   const sceneRef = useRef(null);
@@ -33,9 +34,9 @@ export function useSceneRack() {
       // Load temporary state FIRST to override any configuration values
       let tempState = null
       try {
-        const tempStateStr = localStorage.getItem('rackTemporaryState')
-        if (tempStateStr) {
-          tempState = JSON.parse(tempStateStr)
+        const tempRackState = getRackTemporaryState()
+        if (tempRackState.temporaryPosition) {
+          tempState = { position: tempRackState.temporaryPosition, isDragging: tempRackState.isDragging }
           console.log('🔧 useSceneRack: Loading temporary state:', tempState)
         }
       } catch (error) {
@@ -50,13 +51,15 @@ export function useSceneRack() {
       const isNewRack = !!params.isNewRack
       const isUsingPreservedPosition = !!params.isUsingPreservedPosition
       const isRestoringConfig = !!params.position && !isNewRack && !isUsingPreservedPosition
-      const shouldUseTempState = tempState && !isRestoringConfig && !isNewRack
+      // Always use temp state if it exists
+      const shouldUseTempState = !!tempState
       
       const updatedParams = {
         ...params,
-        // Only apply temp state if we're not restoring a config and temp state exists
+        // Apply temp state clearance if available
         topClearance: shouldUseTempState && tempState?.topClearance !== undefined ? tempState.topClearance : params.topClearance,
-        position: isRestoringConfig ? params.position : (shouldUseTempState ? tempState?.position : undefined)
+        // Don't pass position when temp state should be used - let buildRack handle it
+        position: shouldUseTempState ? undefined : params.position
       }
       
       console.log('🔧 useSceneRack: isNewRack:', isNewRack, 'isUsingPreservedPosition:', isUsingPreservedPosition, 'isRestoringConfig:', isRestoringConfig, 'shouldUseTempState:', shouldUseTempState)
@@ -74,10 +77,12 @@ export function useSceneRack() {
         currentSnapPointsRef.current = rackSnapPoints;
       }
 
-      // Update rack position with temporary state values after building (same as ThreeScene.jsx)
-      // But only if we should use temp state (not for new racks or restored configs)
-      if (shouldUseTempState) {
-        console.log('🔧 useSceneRack: Applying temporary state since no saved position exists')
+      // Don't apply temporary state here - buildRack already handled it when position was undefined
+      // useSceneRack should not override buildRack's positioning logic
+      if (updatedParams.position === undefined) {
+        console.log('🔧 useSceneRack: buildRack handled temporary state - not overriding')
+      } else if (shouldUseTempState && isRestoringConfig) {
+        console.log('🔧 useSceneRack: Applying temporary state - overriding saved position')
         scene.traverse((child) => {
           if (child.userData?.type === 'tradeRack') {
             // Update position if temporary state has different position than what was built
@@ -105,12 +110,8 @@ export function useSceneRack() {
             }
           }
         })
-      } else if (isRestoringConfig) {
-        console.log('🔧 useSceneRack: Skipping temporary state - using saved position:', params.position)
-      } else if (isNewRack) {
-        console.log('🔧 useSceneRack: Creating NEW rack - no temp state applied')
       } else {
-        console.log('🔧 useSceneRack: Creating fresh rack - no temp state applied')
+        console.log('🔧 useSceneRack: No position override needed')
       }
       
       return true;

@@ -5,10 +5,12 @@
  */
 
 import { 
+  getProjectManifest,
   updateBuildingShell,
   updateTradeRackConfiguration,
   setActiveConfiguration
 } from '../utils/projectManifest'
+import { clearRackTemporaryState, updateRackTemporaryState } from '../utils/temporaryState'
 
 /**
  * Creates configuration handlers for the application
@@ -30,12 +32,13 @@ export const createConfigurationHandlers = (
     // Update manifest with building shell data
     updateBuildingShell(params)
     
-    // Get the latest rack parameters from localStorage
+    // Get the latest rack parameters from manifest
     let currentRackParams = rackParams
     try {
-      const savedRackParams = localStorage.getItem('rackParameters')
-      if (savedRackParams) {
-        currentRackParams = JSON.parse(savedRackParams)
+      const manifest = getProjectManifest()
+      if (manifest.tradeRacks?.active) {
+        const { lastApplied, ...configParams } = manifest.tradeRacks.active
+        currentRackParams = configParams
       }
     } catch (error) {
       console.error('Error loading current rack parameters:', error)
@@ -67,8 +70,14 @@ export const createConfigurationHandlers = (
           window.ductworkRendererInstance.refreshDuctwork()
         }
         if (window.pipingRendererInstance) {
-          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-          window.pipingRendererInstance.updatePiping(storedMepItems)
+          const manifest = getProjectManifest()
+          const allMepItems = [
+            ...(manifest.mepItems?.ductwork || []),
+            ...(manifest.mepItems?.piping || []),
+            ...(manifest.mepItems?.conduits || []),
+            ...(manifest.mepItems?.cableTrays || [])
+          ]
+          window.pipingRendererInstance.updatePiping(allMepItems)
         }
       }, 100)
     }
@@ -76,23 +85,30 @@ export const createConfigurationHandlers = (
 
   // Handler for adding rack to scene
   const handleAddRack = (params, setIsRackPropertiesVisible) => {
-    // FIRST: Clear any existing temporary state since we're creating a new rack
-    localStorage.removeItem('rackTemporaryState')
-    console.log('🔧 Cleared temporary state for new rack creation')
+    // Convert topClearance from feet+inches object to total inches first
+    let topClearanceInches = 0
+    if (params.topClearance && typeof params.topClearance === 'object') {
+      topClearanceInches = (params.topClearance.feet || 0) * 12 + (params.topClearance.inches || 0)
+    } else if (typeof params.topClearance === 'number') {
+      topClearanceInches = params.topClearance * 12 // Convert feet to inches
+    }
+    
+    // For new racks, set temporary state with Z=0 and preserve top clearance from properties panel
+    updateRackTemporaryState({
+      position: { x: 0, y: 0, z: 0 },
+      topClearance: topClearanceInches / 12, // Store in feet for consistency
+      isDragging: false
+    })
+    console.log('🔧 Set temporary state for new rack: Z=0, topClearance=', topClearanceInches, 'inches')
     
     // Convert topClearance from feet+inches object to total inches
     let processedParams = { 
-      ...params,
-      // Add flag to indicate this is a fresh rack, not a restoration
-      isNewRack: true,
-      // Add flag to indicate we're using preserved position (not restoring config)
-      isUsingPreservedPosition: !!params.preservedPosition,
-      // Use preserved position if available, otherwise reset to center (z=0)
-      position: params.preservedPosition || { x: 0, y: 0, z: 0 }
+      ...params
     }
     
-    // Clean up the preservedPosition from params to avoid storing it
+    // Clean up preserved position
     delete processedParams.preservedPosition
+    
     if (params.topClearance && typeof params.topClearance === 'object') {
       const totalInches = (params.topClearance.feet || 0) * 12 + (params.topClearance.inches || 0)
       processedParams.topClearanceInches = totalInches
@@ -104,10 +120,19 @@ export const createConfigurationHandlers = (
       processedParams.topClearanceInches = 0
     }
     
+    // Calculate Y position based on top clearance for new racks
+    // For deck-mounted racks, the baseline Y should be calculated from building context
+    const clearanceInches = processedParams.topClearanceInches || 0
+    const clearanceMeters = clearanceInches * 0.0254 // Convert inches to meters
+    
+    // For new racks, don't pass a position so buildRack will calculate it based on clearance
+    // The buildRack will handle Z=0 for new racks via the isNewRack flag
+    delete processedParams.position
+    
     setRackParams(processedParams)
     
-    // Store processed rack parameters in localStorage
-    localStorage.setItem('rackParameters', JSON.stringify(processedParams))
+    // Update manifest with new rack configuration
+    updateTradeRackConfiguration(processedParams, false)
     
     // Switch building shell mode based on mount type
     if (buildingShell.switchMode) {
@@ -126,6 +151,18 @@ export const createConfigurationHandlers = (
     
     if (tradeRack.update) {
       tradeRack.update(combinedParams)
+      
+      // Update temporary state with final rack position AFTER the rack is built
+      // For fresh racks, this should be Z=0 as calculated by buildRack
+      setTimeout(() => {
+        // Get the actual final position from the built rack
+        const finalPosition = { x: 0, y: combinedParams.position?.y || 0, z: 0 }
+        updateRackTemporaryState({
+          position: finalPosition,
+          isDragging: false
+        })
+        console.log('🔧 Updated temporary state for new rack:', finalPosition)
+      }, 100)
     }
 
     // Update ductwork renderer with new rack parameters
@@ -149,11 +186,9 @@ export const createConfigurationHandlers = (
     // Trigger refresh of saved configurations panel
     setSavedConfigsRefresh(prev => prev + 1)
     
-    // Update manifest with new trade rack configuration
-    updateTradeRackConfiguration(config, true)
-    
-    // Set this as the active configuration
-    setActiveConfiguration(config.id)
+    // DON'T update the active configuration or trigger rebuilds
+    // Just let the save happen without changing the current rack
+    console.log('🔧 Configuration saved, not changing active rack')
   }
 
   // Handler for restoring saved rack configuration
@@ -177,14 +212,18 @@ export const createConfigurationHandlers = (
       console.log('🔧 Restored config - converted topClearance from', configParams.topClearance, 'to', totalInches, 'inches')
     }
     
-    // Clear any existing temporary state since we're restoring a configuration
-    localStorage.removeItem('rackTemporaryState')
-    console.log('🔧 Cleared temporary state for configuration restore')
+    // Update temporary state with restored configuration position instead of clearing
+    // Make sure we use the exact position from the saved configuration
+    updateRackTemporaryState({
+      position: processedParams.position || { x: 0, y: 0, z: 0 },
+      isDragging: false
+    })
+    console.log('🔧 Updated temporary state with restored configuration position:', processedParams.position)
     
     setRackParams(processedParams)
     
-    // Store processed rack parameters in localStorage
-    localStorage.setItem('rackParameters', JSON.stringify(processedParams))
+    // Update manifest with restored rack configuration
+    updateTradeRackConfiguration(processedParams, false)
     
     // Set this as the active configuration
     if (id) {

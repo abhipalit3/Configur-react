@@ -6,6 +6,7 @@
 
 import { useEffect } from 'react'
 import { 
+  getProjectManifest,
   updateMeasurements,
   updateMEPItems
 } from '../utils/projectManifest'
@@ -46,23 +47,29 @@ export const useEventListeners = (
       }
     }
 
-    const handleStorageChange = (event) => {
-      if (event.key === 'configurMepItems') {
+    const handleManifestChange = (event) => {
+      if (event.key === 'projectManifest') {
         try {
-          const updatedItems = JSON.parse(event.newValue || '[]')
-          setMepItems(updatedItems)
+          const manifest = JSON.parse(event.newValue)
+          const allMepItems = [
+            ...(manifest.mepItems?.ductwork || []),
+            ...(manifest.mepItems?.piping || []),
+            ...(manifest.mepItems?.conduits || []),
+            ...(manifest.mepItems?.cableTrays || [])
+          ]
+          setMepItems(allMepItems)
         } catch (error) {
-          console.error('Error parsing updated MEP items from storage:', error)
+          console.error('Error parsing updated MEP items from manifest:', error)
         }
       }
     }
 
     window.addEventListener('mepItemsUpdated', handleMepItemsUpdated)
-    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('storage', handleManifestChange)
 
     return () => {
       window.removeEventListener('mepItemsUpdated', handleMepItemsUpdated)
-      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('storage', handleManifestChange)
     }
   }, [setMepItems])
 
@@ -213,9 +220,14 @@ export const useEventListeners = (
     // Make MEP panel refresh function available globally
     window.refreshMepPanel = () => {
       try {
-        const savedItems = localStorage.getItem('configurMepItems')
-        const parsedItems = savedItems ? JSON.parse(savedItems) : []
-        setMepItems([...parsedItems])
+        const manifest = getProjectManifest()
+        const allMepItems = [
+          ...(manifest.mepItems?.ductwork || []),
+          ...(manifest.mepItems?.piping || []),
+          ...(manifest.mepItems?.conduits || []),
+          ...(manifest.mepItems?.cableTrays || [])
+        ]
+        setMepItems([...allMepItems])
       } catch (error) {
         console.error('❌ Error refreshing MEP panel:', error)
       }

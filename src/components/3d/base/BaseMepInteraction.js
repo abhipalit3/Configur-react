@@ -6,6 +6,7 @@
 
 import * as THREE from 'three'
 import { getMepSelectionManager } from '../core/MepSelectionManager.js'
+import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
 import {
   setupTransformControls,
   setupRaycaster,
@@ -487,7 +488,13 @@ export class BaseMepInteraction {
       const objectData = this.getObjectData(this.selectedObject)
       const tierInfo = this.calculateTier(this.selectedObject.position.y)
       
-      const storedItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      const manifest = getProjectManifest()
+      const storedItems = [
+        ...(manifest.mepItems?.ductwork || []),
+        ...(manifest.mepItems?.piping || []),
+        ...(manifest.mepItems?.conduits || []),
+        ...(manifest.mepItems?.cableTrays || [])
+      ]
       const baseId = objectData.id.toString().split('_')[0]
       
       const updatedItems = storedItems.map(item => {
@@ -508,7 +515,7 @@ export class BaseMepInteraction {
         return item
       })
       
-      localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      updateMEPItems(updatedItems, 'all')
       
       if (window.updateMEPItemsManifest) {
         window.updateMEPItemsManifest(updatedItems)
@@ -537,14 +544,20 @@ export class BaseMepInteraction {
     
     // Remove from storage
     try {
-      const storedItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      const manifest = getProjectManifest()
+      const storedItems = [
+        ...(manifest.mepItems?.ductwork || []),
+        ...(manifest.mepItems?.piping || []),
+        ...(manifest.mepItems?.conduits || []),
+        ...(manifest.mepItems?.cableTrays || [])
+      ]
       const updatedItems = storedItems.filter(item => {
         const baseId = objectData.id.toString().split('_')[0]
         const itemBaseId = item.id.toString().split('_')[0]
         return !(item.type === this.mepType && itemBaseId === baseId)
       })
       
-      localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      updateMEPItems(updatedItems, 'all')
       
       if (window.updateMEPItemsManifest) {
         window.updateMEPItemsManifest(updatedItems)

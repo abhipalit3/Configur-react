@@ -93,41 +93,40 @@ export function buildRackScene(scene, params, mats) {
     }
   })
   
-  // Also check temporary state for Z position and clearance
+  // Also check NEW temporary state system for Z position and clearance
   try {
-    const tempStateStr = localStorage.getItem('rackTemporaryState')
+    const tempStateStr = localStorage.getItem('temporaryState')
     if (tempStateStr) {
       const tempState = JSON.parse(tempStateStr)
-      if (tempState.position && tempState.position.z !== undefined) {
-        preservedZPosition = tempState.position.z
-        console.log('🔧 Preserving Z position from temporary state:', preservedZPosition)
+      if (tempState.rack && tempState.rack.position && tempState.rack.position.z !== undefined) {
+        preservedZPosition = tempState.rack.position.z
+        console.log('🔧 Preserving Z position from new temporary state:', preservedZPosition)
       }
-      if (tempState.topClearance !== undefined) {
-        preservedClearance = tempState.topClearance * 12 // Convert feet to inches
-        console.log('🔧 Preserving top clearance from temporary state:', preservedClearance, 'inches')
+      if (tempState.rack && tempState.rack.topClearance !== undefined) {
+        preservedClearance = tempState.rack.topClearance * 12 // Convert feet to inches
+        console.log('🔧 Preserving top clearance from new temporary state:', preservedClearance, 'inches')
       }
     }
   } catch (error) {
-    console.warn('Error reading temporary state for position and clearance:', error)
+    console.warn('Error reading new temporary state for position and clearance:', error)
   }
   
   // Calculate the clearance to use (preserved state takes precedence over params)
   const clearanceInches = preservedClearance !== null ? preservedClearance : (params.topClearanceInches || 0)
   
-  // Handle positioning: saved position takes precedence over clearance calculations
+  // Handle positioning: if position is passed, use it exactly
   if (params.position) {
-    // If this is a restored configuration, use the exact saved position
     rack.position.set(
       params.position.x || 0,
       params.position.y || 0,
       params.position.z || 0
     )
-    console.log('🔧 Applied saved position:', params.position)
+    console.log('🔧 Applied exact position:', params.position)
   } else {
-    // For new racks without saved position, set default position and apply clearance
-    // Default position: X=0, Y=baseline (adjusted by clearance), Z=preserved or 0
+    // Calculate position from scratch - always use Z from temporary state
     rack.position.x = 0
-    rack.position.z = preservedZPosition // Preserve Z position during rebuilds
+    rack.position.z = preservedZPosition
+    console.log('🔧 Using preserved Z position:', preservedZPosition)
     
     if (clearanceInches > 0) {
       // Apply clearance to Y position

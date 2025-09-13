@@ -6,6 +6,8 @@
 
 import { BaseMepInteraction } from '../base/BaseMepInteraction.js'
 import * as THREE from 'three'
+import { getProjectManifest, updateTradeRackConfiguration } from '../../../utils/projectManifest'
+import { saveRackTemporaryPosition, getRackTemporaryState, updateRackTemporaryState } from '../../../utils/temporaryState'
 
 /**
  * TradeRackInteraction - Trade rack-specific implementation using base class
@@ -266,13 +268,14 @@ export class TradeRackInteraction extends BaseMepInteraction {
   saveNewObjectToStorage(rackData) {
     try {
       // Trade racks might use different storage mechanism
-      const storedConfigs = JSON.parse(localStorage.getItem('tradeRackConfigurations') || '[]')
+      const manifest = getProjectManifest()
+      const storedConfigs = manifest.tradeRacks.configurations || []
       storedConfigs.push({
         id: rackData.id || Date.now().toString(),
         configuration: rackData,
         position: rackData.position
       })
-      localStorage.setItem('tradeRackConfigurations', JSON.stringify(storedConfigs))
+      updateTradeRackConfiguration(configToSave, true)
       window.dispatchEvent(new Event('storage'))
     } catch (error) {
       console.error('Error saving trade rack to storage:', error)
@@ -581,15 +584,28 @@ export class TradeRackInteraction extends BaseMepInteraction {
     console.log('🔧 Saving rack TEMPORARY state:', temporaryState)
     
     try {
-      // Save temporary state separately from configurations
-      localStorage.setItem('rackTemporaryState', JSON.stringify(temporaryState))
-      
-      // Dispatch event for other components to react
-      window.dispatchEvent(new CustomEvent('rackTemporaryStateChanged', { 
-        detail: temporaryState 
-      }))
-      
-      // console.log('🔧 Rack temporary state saved')
+      // Save temporary state using the unified position field and calculated clearance
+      const positionToSave = this.selectedObject ? this.selectedObject.position : this.selectedRackGroup?.position
+      if (positionToSave) {
+        updateRackTemporaryState({
+          position: {
+            x: positionToSave.x,
+            y: positionToSave.y,
+            z: positionToSave.z
+          },
+          topClearance: currentClearanceFeet, // Include calculated top clearance
+          isDragging: false
+        })
+        
+        // Dispatch event for other components to react
+        window.dispatchEvent(new CustomEvent('rackTemporaryStateChanged', { 
+          detail: temporaryState 
+        }))
+        
+        console.log('🔧 Rack temporary state saved successfully with clearance:', currentClearanceFeet, 'feet')
+      } else {
+        console.warn('⚠️ No selected rack to save temporary state for')
+      }
     } catch (error) {
       console.error('Error saving rack temporary state:', error)
     }
@@ -600,9 +616,12 @@ export class TradeRackInteraction extends BaseMepInteraction {
    */
   static loadRackTemporaryState() {
     try {
-      const stateStr = localStorage.getItem('rackTemporaryState')
-      if (stateStr) {
-        return JSON.parse(stateStr)
+      const tempState = getRackTemporaryState()
+      if (tempState && tempState.position) {
+        return {
+          position: tempState.position,
+          isDragging: tempState.isDragging
+        }
       }
     } catch (error) {
       console.error('Error loading rack temporary state:', error)
@@ -616,6 +635,11 @@ export class TradeRackInteraction extends BaseMepInteraction {
   saveObjectPosition() {
     if (!this.selectedObject || this.selectedObject.userData?.type !== 'tradeRack') {
       return
+    }
+    
+    // Ensure selectedRackGroup is set to the same as selectedObject for rack interactions
+    if (this.selectedObject && !this.selectedRackGroup) {
+      this.selectedRackGroup = this.selectedObject
     }
     
     // Save to temporary state instead of MEP items storage

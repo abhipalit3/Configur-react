@@ -8,11 +8,13 @@ import { useState, useEffect } from 'react'
 import { buildingShellDefaults } from '../types/buildingShell'
 import { tradeRackDefaults } from '../types/tradeRack'
 import { 
+  getProjectManifest,
   updateUIState,
   setActiveConfiguration,
   updateBuildingShell,
   updateTradeRackConfiguration
 } from '../utils/projectManifest'
+import { getTemporaryState, updateUIState as updateTempUIState, getRackTemporaryState } from '../utils/temporaryState'
 
 /**
  * Custom hook for managing application state
@@ -21,7 +23,7 @@ export const useAppState = () => {
   // Helper function to restore UI state from manifest
   const getInitialUIState = () => {
     try {
-      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+      const manifest = getProjectManifest()
       const savedUIState = manifest.uiState || {}
       return savedUIState
     } catch (error) {
@@ -33,7 +35,8 @@ export const useAppState = () => {
 
   // State to track project name
   const [projectName, setProjectName] = useState(() => {
-    return localStorage.getItem('projectName') || 'Office Building'
+    const manifest = getProjectManifest()
+    return manifest.project?.name || 'Office Building'
   })
 
   // UI State
@@ -57,7 +60,7 @@ export const useAppState = () => {
   // Building parameters state
   const [buildingParams, setBuildingParams] = useState(() => {
     try {
-      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+      const manifest = getProjectManifest()
       const savedBuildingShell = manifest.buildingShell?.parameters
       
       if (savedBuildingShell) {
@@ -73,51 +76,65 @@ export const useAppState = () => {
   // Trade rack parameters state
   const [rackParams, setRackParams] = useState(() => {
     try {
-      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
-      const activeConfigId = manifest.tradeRacks?.activeConfigurationId
+      const manifest = getProjectManifest()
       
-      if (activeConfigId) {
-        const savedConfigs = JSON.parse(localStorage.getItem('tradeRackConfigurations') || '[]')
-        const activeConfig = savedConfigs.find(config => config.id === activeConfigId)
+      // Try to get active configuration from manifest first
+      if (manifest.tradeRacks?.active) {
+        const { lastApplied, ...configParams } = manifest.tradeRacks.active
+        return configParams
+      }
+      
+      // Fallback to active configuration by ID
+      const activeConfigId = manifest.tradeRacks?.activeConfigurationId
+      if (activeConfigId && manifest.tradeRacks?.configurations) {
+        const activeConfig = manifest.tradeRacks.configurations.find(config => config.id === activeConfigId)
         
         if (activeConfig) {
-          const { id, name, savedAt, importedAt, originalId, buildingShellParams, ...configParams } = activeConfig
-          localStorage.setItem('rackParameters', JSON.stringify(configParams))
+          const { id, name, savedAt, importedAt, originalId, buildingShellParams, syncedAt, ...configParams } = activeConfig
           return configParams
         }
       }
       
-      const saved = localStorage.getItem('rackParameters')
-      if (saved) {
-        return JSON.parse(saved)
-      }
+      return tradeRackDefaults
     } catch (error) {
       console.error('Error loading rack parameters:', error)
+      return tradeRackDefaults
     }
-    
-    localStorage.setItem('rackParameters', JSON.stringify(tradeRackDefaults))
-    return tradeRackDefaults
   })
 
   // MEP items state
   const [mepItems, setMepItems] = useState(() => {
     try {
-      const savedItems = localStorage.getItem('configurMepItems')
-      const parsedItems = savedItems ? JSON.parse(savedItems) : []
-      return parsedItems
+      const manifest = getProjectManifest()
+      
+      // Get all MEP items from manifest
+      const allMepItems = [
+        ...(manifest.mepItems?.ductwork || []),
+        ...(manifest.mepItems?.piping || []),
+        ...(manifest.mepItems?.conduits || []),
+        ...(manifest.mepItems?.cableTrays || [])
+      ]
+      
+      return allMepItems
     } catch (error) {
+      console.error('Error loading MEP items:', error)
       return []
     }
   })
 
   // Save UI state whenever it changes
   useEffect(() => {
+    // Update persistent UI state in manifest
     updateUIState({
-      activePanel: activePanel,
       isRackPropertiesVisible: isRackPropertiesVisible,
       isMeasurementActive: isMeasurementActive,
       isAddMEPVisible: isAddMEPVisible,
       viewMode: viewMode
+    })
+    
+    // Update temporary UI state
+    updateTempUIState({
+      activePanel: activePanel
     })
   }, [activePanel, isRackPropertiesVisible, isMeasurementActive, isAddMEPVisible, viewMode])
 
@@ -131,12 +148,19 @@ export const useAppState = () => {
   }, [])
 
   /**
-   * Updates the project name in state and localStorage
+   * Updates the project name in state and manifest
    * @param {string} newName - The new project name
    */
   const handleProjectNameChange = (newName) => {
     setProjectName(newName)
-    localStorage.setItem('projectName', newName)
+    
+    // Update project name in manifest
+    const manifest = getProjectManifest()
+    manifest.project.name = newName
+    manifest.project.lastModified = new Date().toISOString()
+    
+    // Save updated manifest
+    require('../utils/projectManifest').saveProjectManifest(manifest)
   }
 
   /**
@@ -148,14 +172,29 @@ export const useAppState = () => {
     if (panelName === 'tradeRack') {
       const newRackPropertiesState = !isRackPropertiesVisible
       
-      // When opening trade rack properties, preserve current rack position
+      // When opening trade rack properties, preserve current rack position and top clearance
       if (newRackPropertiesState && window.tradeRackInteractionInstance) {
         const currentPosition = window.tradeRackInteractionInstance.getCurrentRackPosition()
         if (currentPosition) {
           console.log('🔧 Preserving current rack position when opening properties:', currentPosition)
+          
+          // Also get current top clearance from temporary state
+          let currentTopClearance = null
+          try {
+            const tempState = getRackTemporaryState()
+            if (tempState?.topClearance !== undefined) {
+              currentTopClearance = tempState.topClearance // Already in feet
+              console.log('🔧 Preserving current top clearance from temp state:', currentTopClearance, 'feet')
+            }
+          } catch (error) {
+            console.warn('Could not get current top clearance:', error)
+          }
+          
           setRackParams(prevParams => ({
             ...prevParams,
-            currentPosition: currentPosition
+            currentPosition: currentPosition,
+            // Update top clearance if available from temporary state
+            ...(currentTopClearance !== null && { topClearance: currentTopClearance })
           }))
         }
       }

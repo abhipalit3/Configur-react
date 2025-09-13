@@ -6,6 +6,7 @@
 
 import React, { Fragment, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
+import { getProjectManifest } from '../../utils/projectManifest'
 import './app-tier-mep.css'
 
 const AppTierMEP = (props) => {
@@ -144,8 +145,12 @@ const AppTierMEP = (props) => {
         }
       }
       
-      // Fallback to localStorage
-      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      // Try manifest first, then fallback to localStorage
+      const manifest = getProjectManifest()
+      let rackParams = manifest.tradeRacks?.active || {}
+      if (!rackParams.tierCount) {
+        rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      }
       if (rackParams.tierCount && rackParams.tierCount > 0) {
         return Array.from({ length: rackParams.tierCount }, (_, i) => i + 1)
       }

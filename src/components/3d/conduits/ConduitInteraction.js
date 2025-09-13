@@ -6,6 +6,7 @@
 
 import { BaseMepInteraction } from '../base/BaseMepInteraction.js'
 import * as THREE from 'three'
+import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
 
 /**
  * ConduitInteraction - Conduit-specific implementation using base class
@@ -231,13 +232,19 @@ export class ConduitInteraction extends BaseMepInteraction {
     }
     
     try {
-      const storedItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-      storedItems.push(mepItem)
-      localStorage.setItem('configurMepItems', JSON.stringify(storedItems))
+      // Get current MEP items from manifest
+      const manifest = getProjectManifest()
+      const currentItems = [
+        ...manifest.mepItems.ductwork,
+        ...manifest.mepItems.piping,
+        ...manifest.mepItems.conduits,
+        ...manifest.mepItems.cableTrays
+      ]
       
-      if (window.updateMEPItemsManifest) {
-        window.updateMEPItemsManifest(storedItems)
-      }
+      const updatedItems = [...currentItems, mepItem]
+      updateMEPItems(updatedItems, 'all')
+      
+      // Legacy support - also update localStorage for components that still use it
       
       if (window.refreshMepPanel) {
         window.refreshMepPanel()
@@ -254,10 +261,18 @@ export class ConduitInteraction extends BaseMepInteraction {
    */
   saveObjectDataToStorage(conduitData) {
     try {
-      const storedItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      // Get current MEP items from manifest
+      const manifest = getProjectManifest()
+      const currentItems = [
+        ...manifest.mepItems.ductwork,
+        ...manifest.mepItems.piping,
+        ...manifest.mepItems.conduits,
+        ...manifest.mepItems.cableTrays
+      ]
+      
       const baseId = conduitData.id.toString().split('_')[0]
       
-      const updatedItems = storedItems.map(item => {
+      const updatedItems = currentItems.map(item => {
         const itemBaseId = item.id.toString().split('_')[0]
         if (itemBaseId === baseId && item.type === 'conduit') {
           return { ...item, ...conduitData }
@@ -265,11 +280,9 @@ export class ConduitInteraction extends BaseMepInteraction {
         return item
       })
       
-      localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      updateMEPItems(updatedItems, 'all')
       
-      if (window.updateMEPItemsManifest) {
-        window.updateMEPItemsManifest(updatedItems)
-      }
+      // Legacy support - also update localStorage for components that still use it
       
       if (window.refreshMepPanel) {
         window.refreshMepPanel()

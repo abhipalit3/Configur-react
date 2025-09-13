@@ -1,6 +1,206 @@
 {
   "files": {
+    "src/components/3d/base/BaseMepEditor.js": {
+      "functions": [
+        "BaseMepEditor",
+        "updatePosition",
+        "handleFieldChange",
+        "handleTierChange",
+        "calculateObjectDimensions",
+        "getTierOptions",
+        "handleSave",
+        "handleCancel",
+        "handleCopyClick"
+      ],
+      "imports": [
+        {
+          "items": [
+            "calculateScreenPosition",
+            "validateDimensionInput",
+            "getTierOptionsFromGeometry",
+            "findTierSpace",
+            "calculateTierYPosition",
+            "createAnimationLoop",
+            "createEditorKeyHandler"
+          ],
+          "source": "../utils/common3dHelpers",
+          "type": "named",
+          "file": "src/components/3d/base/BaseMepEditor.js"
+        },
+        {
+          "items": [
+            "THREE"
+          ],
+          "source": "three",
+          "type": "namespace",
+          "file": "src/components/3d/base/BaseMepEditor.js"
+        }
+      ],
+      "exports": [
+        {
+          "name": "BaseMepEditor",
+          "type": "named",
+          "file": "src/components/3d/base/BaseMepEditor.js"
+        },
+        {
+          "name": "BaseMepEditor",
+          "type": "default",
+          "file": "src/components/3d/base/BaseMepEditor.js"
+        }
+      ],
+      "lineCount": 414
+    },
+    "src/components/3d/base/BaseMepInteraction.js": {
+      "functions": [
+        "onTransformChange",
+        "onDragEnd",
+        "fallbackSetup",
+        "constructor",
+        "setupTransformControls",
+        "getTransformControlsConfig",
+        "setupEventHandler",
+        "registerWithMepManager",
+        "selectObject",
+        "deselectObject",
+        "setHover",
+        "clearHover",
+        "handleClick",
+        "handleMouseMove",
+        "handleTransformKeys",
+        "applyRealTimeSnapping",
+        "snapToHorizontalLines",
+        "snapToVerticalLines",
+        "calculateTier",
+        "findTierSpaces",
+        "saveObjectPosition",
+        "deleteSelectedObject",
+        "copySelectedObject",
+        "updateObjectDimensions",
+        "createMeasurements",
+        "clearMeasurements",
+        "updateMeasurements",
+        "triggerSelectionEvent",
+        "disposeObject",
+        "dispose",
+        "findSelectableObject",
+        "findGroupForObject",
+        "updateObjectAppearance",
+        "getObjectData",
+        "setObjectData",
+        "calculateObjectDimensions",
+        "calculateTierTolerance",
+        "needsGeometryUpdate",
+        "recreateObjectGeometry",
+        "createNewObject",
+        "saveNewObjectToStorage",
+        "saveObjectDataToStorage"
+      ],
+      "imports": [
+        {
+          "items": [
+            "getMepSelectionManager"
+          ],
+          "source": "../core/MepSelectionManager.js",
+          "type": "named",
+          "file": "src/components/3d/base/BaseMepInteraction.js"
+        },
+        {
+          "items": [
+            "setupTransformControls",
+            "setupRaycaster",
+            "updateMouseCoordinates",
+            "registerWithMepManager"
+          ],
+          "source": "../utils/common3dHelpers.js",
+          "type": "named",
+          "file": "src/components/3d/base/BaseMepInteraction.js"
+        },
+        {
+          "items": [
+            "createMepEventHandler"
+          ],
+          "source": "../utils/mepEventHandler.js",
+          "type": "named",
+          "file": "src/components/3d/base/BaseMepInteraction.js"
+        },
+        {
+          "items": [
+            "THREE"
+          ],
+          "source": "three",
+          "type": "namespace",
+          "file": "src/components/3d/base/BaseMepInteraction.js"
+        }
+      ],
+      "exports": [
+        {
+          "name": "BaseMepInteraction",
+          "type": "named",
+          "file": "src/components/3d/base/BaseMepInteraction.js"
+        },
+        {
+          "name": "BaseMepInteraction",
+          "type": "default",
+          "file": "src/components/3d/base/BaseMepInteraction.js"
+        }
+      ],
+      "lineCount": 843
+    },
+    "src/components/3d/base/index.js": {
+      "functions": [],
+      "imports": [],
+      "exports": [
+        {
+          "name": "BaseMepInteraction",
+          "type": "named",
+          "file": "src/components/3d/base/index.js"
+        },
+        {
+          "name": "BaseMepEditor",
+          "type": "named",
+          "file": "src/components/3d/base/index.js"
+        }
+      ],
+      "lineCount": 8
+    },
     "src/components/3d/cable-trays/CableTrayEditor.js": {
+      "functions": [
+        "CableTrayEditor",
+        "getInitialDimensions"
+      ],
+      "imports": [
+        {
+          "items": [
+            "BaseMepEditor"
+          ],
+          "source": "../base/BaseMepEditor.js",
+          "type": "named",
+          "file": "src/components/3d/cable-trays/CableTrayEditor.js"
+        },
+        {
+          "items": [
+            "React"
+          ],
+          "source": "react",
+          "type": "default",
+          "file": "src/components/3d/cable-trays/CableTrayEditor.js"
+        }
+      ],
+      "exports": [
+        {
+          "name": "CableTrayEditor",
+          "type": "named",
+          "file": "src/components/3d/cable-trays/CableTrayEditor.js"
+        },
+        {
+          "name": "CableTrayEditor",
+          "type": "default",
+          "file": "src/components/3d/cable-trays/CableTrayEditor.js"
+        }
+      ],
+      "lineCount": 81
+    },
+    "src/components/3d/cable-trays/CableTrayEditor_original.js": {
       "functions": [
         "CableTrayEditor",
         "updatePosition",
@@ -25,7 +225,7 @@
           ],
           "source": "../utils/common3dHelpers",
           "type": "named",
-          "file": "src/components/3d/cable-trays/CableTrayEditor.js"
+          "file": "src/components/3d/cable-trays/CableTrayEditor_original.js"
         },
         {
           "items": [
@@ -33,14 +233,14 @@
           ],
           "source": "three",
           "type": "namespace",
-          "file": "src/components/3d/cable-trays/CableTrayEditor.js"
+          "file": "src/components/3d/cable-trays/CableTrayEditor_original.js"
         }
       ],
       "exports": [
         {
           "name": "CableTrayEditor",
           "type": "named",
-          "file": "src/components/3d/cable-trays/CableTrayEditor.js"
+          "file": "src/components/3d/cable-trays/CableTrayEditor_original.js"
         }
       ],
       "lineCount": 442
@@ -93,6 +293,65 @@
     },
     "src/components/3d/cable-trays/CableTrayInteraction.js": {
       "functions": [
+        "constructor",
+        "findSelectableObject",
+        "findGroupForObject",
+        "updateObjectAppearance",
+        "getObjectData",
+        "setObjectData",
+        "calculateObjectDimensions",
+        "calculateTierTolerance",
+        "needsGeometryUpdate",
+        "recreateObjectGeometry",
+        "createNewObject",
+        "saveNewObjectToStorage",
+        "saveObjectDataToStorage",
+        "selectedCableTray",
+        "getSelectedCableTray",
+        "selectCableTray",
+        "deselectCableTray",
+        "findCableTrayGroup",
+        "updateAllCableTrayTierInfo",
+        "forEach",
+        "updateCableTrayDimensions",
+        "duplicateSelectedCableTray",
+        "copySelectedCableTray",
+        "cableTrayGeometry"
+      ],
+      "imports": [
+        {
+          "items": [
+            "BaseMepInteraction"
+          ],
+          "source": "../base/BaseMepInteraction.js",
+          "type": "named",
+          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+        },
+        {
+          "items": [
+            "THREE"
+          ],
+          "source": "three",
+          "type": "namespace",
+          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+        }
+      ],
+      "exports": [
+        {
+          "name": "CableTrayInteraction",
+          "type": "named",
+          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+        },
+        {
+          "name": "CableTrayInteraction",
+          "type": "default",
+          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+        }
+      ],
+      "lineCount": 321
+    },
+    "src/components/3d/cable-trays/CableTrayInteraction_original.js": {
+      "functions": [
         "onTransformChange",
         "onDragEnd",
         "fallbackSetup",
@@ -136,7 +395,7 @@
           ],
           "source": "../core/MepSelectionManager.js",
           "type": "named",
-          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+          "file": "src/components/3d/cable-trays/CableTrayInteraction_original.js"
         },
         {
           "items": [
@@ -148,7 +407,7 @@
           ],
           "source": "../utils/common3dHelpers.js",
           "type": "named",
-          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+          "file": "src/components/3d/cable-trays/CableTrayInteraction_original.js"
         },
         {
           "items": [
@@ -156,7 +415,7 @@
           ],
           "source": "../utils/mepEventHandler.js",
           "type": "named",
-          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+          "file": "src/components/3d/cable-trays/CableTrayInteraction_original.js"
         },
         {
           "items": [
@@ -164,17 +423,17 @@
           ],
           "source": "three",
           "type": "namespace",
-          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+          "file": "src/components/3d/cable-trays/CableTrayInteraction_original.js"
         }
       ],
       "exports": [
         {
           "name": "CableTrayInteraction",
           "type": "named",
-          "file": "src/components/3d/cable-trays/CableTrayInteraction.js"
+          "file": "src/components/3d/cable-trays/CableTrayInteraction_original.js"
         }
       ],
-      "lineCount": 1080
+      "lineCount": 1086
     },
     "src/components/3d/cable-trays/CableTrayRenderer.js": {
       "functions": [
@@ -227,7 +486,7 @@
           "file": "src/components/3d/cable-trays/CableTrayRenderer.js"
         }
       ],
-      "lineCount": 336
+      "lineCount": 333
     },
     "src/components/3d/cable-trays/index.js": {
       "functions": [],
@@ -254,6 +513,43 @@
     "src/components/3d/conduits/ConduitEditorUI.js": {
       "functions": [
         "ConduitEditorUI",
+        "getInitialDimensions"
+      ],
+      "imports": [
+        {
+          "items": [
+            "BaseMepEditor"
+          ],
+          "source": "../base/BaseMepEditor.js",
+          "type": "named",
+          "file": "src/components/3d/conduits/ConduitEditorUI.js"
+        },
+        {
+          "items": [
+            "React"
+          ],
+          "source": "react",
+          "type": "default",
+          "file": "src/components/3d/conduits/ConduitEditorUI.js"
+        }
+      ],
+      "exports": [
+        {
+          "name": "ConduitEditorUI",
+          "type": "named",
+          "file": "src/components/3d/conduits/ConduitEditorUI.js"
+        },
+        {
+          "name": "ConduitEditorUI",
+          "type": "default",
+          "file": "src/components/3d/conduits/ConduitEditorUI.js"
+        }
+      ],
+      "lineCount": 78
+    },
+    "src/components/3d/conduits/ConduitEditorUI_original.js": {
+      "functions": [
+        "ConduitEditorUI",
         "getTierOptions",
         "updatePosition",
         "onCameraChange",
@@ -270,19 +566,19 @@
           ],
           "source": "three",
           "type": "namespace",
-          "file": "src/components/3d/conduits/ConduitEditorUI.js"
+          "file": "src/components/3d/conduits/ConduitEditorUI_original.js"
         }
       ],
       "exports": [
         {
           "name": "ConduitEditorUI",
           "type": "named",
-          "file": "src/components/3d/conduits/ConduitEditorUI.js"
+          "file": "src/components/3d/conduits/ConduitEditorUI_original.js"
         },
         {
           "name": "ConduitEditorUI",
           "type": "default",
-          "file": "src/components/3d/conduits/ConduitEditorUI.js"
+          "file": "src/components/3d/conduits/ConduitEditorUI_original.js"
         }
       ],
       "lineCount": 628
@@ -320,6 +616,68 @@
       "lineCount": 643
     },
     "src/components/3d/conduits/ConduitInteraction.js": {
+      "functions": [
+        "constructor",
+        "findSelectableObject",
+        "findGroupForObject",
+        "updateObjectAppearance",
+        "updateGroupAppearance",
+        "forEach",
+        "getObjectData",
+        "setObjectData",
+        "calculateObjectDimensions",
+        "calculateTierTolerance",
+        "needsGeometryUpdate",
+        "recreateObjectGeometry",
+        "createNewObject",
+        "saveNewObjectToStorage",
+        "saveObjectDataToStorage",
+        "selectedConduit",
+        "getSelectedConduit",
+        "selectConduit",
+        "deselectConduit",
+        "findConduitGroup",
+        "updateAllConduitTierInfo",
+        "updateConduitDimensions",
+        "duplicateSelectedConduit",
+        "copySelectedConduit",
+        "conduitGeometry",
+        "applyRealTimeSnapping",
+        "updateGroupAppearanceMethod"
+      ],
+      "imports": [
+        {
+          "items": [
+            "BaseMepInteraction"
+          ],
+          "source": "../base/BaseMepInteraction.js",
+          "type": "named",
+          "file": "src/components/3d/conduits/ConduitInteraction.js"
+        },
+        {
+          "items": [
+            "THREE"
+          ],
+          "source": "three",
+          "type": "namespace",
+          "file": "src/components/3d/conduits/ConduitInteraction.js"
+        }
+      ],
+      "exports": [
+        {
+          "name": "ConduitInteraction",
+          "type": "named",
+          "file": "src/components/3d/conduits/ConduitInteraction.js"
+        },
+        {
+          "name": "ConduitInteraction",
+          "type": "default",
+          "file": "src/components/3d/conduits/ConduitInteraction.js"
+        }
+      ],
+      "lineCount": 469
+    },
+    "src/components/3d/conduits/ConduitInteraction_original.js": {
       "functions": [
         "onTransformChange",
         "onDragEnd",
@@ -363,7 +721,7 @@
           ],
           "source": "../core/MepSelectionManager.js",
           "type": "named",
-          "file": "src/components/3d/conduits/ConduitInteraction.js"
+          "file": "src/components/3d/conduits/ConduitInteraction_original.js"
         },
         {
           "items": [
@@ -375,7 +733,7 @@
           ],
           "source": "../utils/common3dHelpers.js",
           "type": "named",
-          "file": "src/components/3d/conduits/ConduitInteraction.js"
+          "file": "src/components/3d/conduits/ConduitInteraction_original.js"
         },
         {
           "items": [
@@ -383,7 +741,7 @@
           ],
           "source": "../utils/mepEventHandler.js",
           "type": "named",
-          "file": "src/components/3d/conduits/ConduitInteraction.js"
+          "file": "src/components/3d/conduits/ConduitInteraction_original.js"
         },
         {
           "items": [
@@ -391,14 +749,14 @@
           ],
           "source": "three",
           "type": "namespace",
-          "file": "src/components/3d/conduits/ConduitInteraction.js"
+          "file": "src/components/3d/conduits/ConduitInteraction_original.js"
         }
       ],
       "exports": [
         {
           "name": "ConduitInteraction",
           "type": "named",
-          "file": "src/components/3d/conduits/ConduitInteraction.js"
+          "file": "src/components/3d/conduits/ConduitInteraction_original.js"
         }
       ],
       "lineCount": 1314
@@ -810,35 +1168,24 @@
     "src/components/3d/ductwork/DuctEditor.js": {
       "functions": [
         "DuctEditor",
-        "updatePosition",
-        "handleDimensionChange",
-        "handleTierChange",
-        "getTierOptions",
-        "handleSave",
-        "handleCancel",
-        "handleCopy"
+        "getInitialDimensions",
+        "getOffsetY"
       ],
       "imports": [
         {
           "items": [
-            "calculateScreenPosition",
-            "validateDimensionInput",
-            "getTierOptionsFromGeometry",
-            "findTierSpace",
-            "calculateTierYPosition",
-            "createAnimationLoop",
-            "createEditorKeyHandler"
+            "BaseMepEditor"
           ],
-          "source": "../utils/common3dHelpers",
+          "source": "../base/BaseMepEditor.js",
           "type": "named",
           "file": "src/components/3d/ductwork/DuctEditor.js"
         },
         {
           "items": [
-            "THREE"
+            "React"
           ],
-          "source": "three",
-          "type": "namespace",
+          "source": "react",
+          "type": "default",
           "file": "src/components/3d/ductwork/DuctEditor.js"
         }
       ],
@@ -847,9 +1194,14 @@
           "name": "DuctEditor",
           "type": "named",
           "file": "src/components/3d/ductwork/DuctEditor.js"
+        },
+        {
+          "name": "DuctEditor",
+          "type": "default",
+          "file": "src/components/3d/ductwork/DuctEditor.js"
         }
       ],
-      "lineCount": 436
+      "lineCount": 105
     },
     "src/components/3d/ductwork/DuctGeometry.js": {
       "functions": [
@@ -891,63 +1243,36 @@
     },
     "src/components/3d/ductwork/DuctInteraction.js": {
       "functions": [
-        "onTransformChange",
-        "onDragEnd",
-        "fallbackSetup",
         "constructor",
-        "setupTransformControls",
-        "setupCentralizedEventHandler",
-        "registerWithMepManager",
-        "handleClick",
-        "handleMouseMove",
-        "handleTransformKeys",
-        "applyRealTimeSnapping",
-        "selectDuct",
-        "deselectDuct",
-        "createDuctMeasurements",
-        "clearDuctMeasurements",
-        "updateDuctMeasurements",
-        "findDuctGroup",
-        "updateMousePosition",
-        "setDuctEditorCallbacks",
-        "calculateDuctTier",
+        "findSelectableObject",
+        "findGroupForObject",
+        "updateObjectAppearance",
+        "getObjectData",
+        "setObjectData",
+        "calculateObjectDimensions",
+        "calculateTierTolerance",
+        "needsGeometryUpdate",
+        "recreateObjectGeometry",
+        "createNewObject",
+        "saveNewObjectToStorage",
+        "saveObjectDataToStorage",
+        "selectedDuct",
+        "getSelectedDuct",
         "updateAllDuctTierInfo",
         "forEach",
-        "map",
-        "calculateDuctTierFromPosition",
-        "saveDuctPosition",
-        "getSelectedDuct",
         "updateDuctDimensions",
-        "deleteSelectedDuct",
         "duplicateSelectedDuct",
-        "dispose"
+        "deselectDuct",
+        "selectDuct",
+        "findDuctGroup",
+        "ductGeometry"
       ],
       "imports": [
         {
           "items": [
-            "getMepSelectionManager"
+            "BaseMepInteraction"
           ],
-          "source": "../core/MepSelectionManager.js",
-          "type": "named",
-          "file": "src/components/3d/ductwork/DuctInteraction.js"
-        },
-        {
-          "items": [
-            "setupTransformControls",
-            "setupRaycaster",
-            "updateMouseCoordinates",
-            "createMepKeyboardHandler",
-            "registerWithMepManager"
-          ],
-          "source": "../utils/common3dHelpers.js",
-          "type": "named",
-          "file": "src/components/3d/ductwork/DuctInteraction.js"
-        },
-        {
-          "items": [
-            "createMepEventHandler"
-          ],
-          "source": "../utils/mepEventHandler.js",
+          "source": "../base/BaseMepInteraction.js",
           "type": "named",
           "file": "src/components/3d/ductwork/DuctInteraction.js"
         },
@@ -965,9 +1290,14 @@
           "name": "DuctInteraction",
           "type": "named",
           "file": "src/components/3d/ductwork/DuctInteraction.js"
+        },
+        {
+          "name": "DuctInteraction",
+          "type": "default",
+          "file": "src/components/3d/ductwork/DuctInteraction.js"
         }
       ],
-      "lineCount": 964
+      "lineCount": 325
     },
     "src/components/3d/ductwork/DuctworkRenderer.js": {
       "functions": [
@@ -975,6 +1305,7 @@
         "setupInteractions",
         "updateRackParams",
         "recalculateTierInfo",
+        "forEach",
         "refreshDuctwork",
         "updateDuctwork",
         "createDuct",
@@ -984,16 +1315,24 @@
         "getColumnDepth",
         "getDuctworkGroup",
         "setVisible",
-        "dispose"
+        "dispose",
+        "selectedDuct"
       ],
       "imports": [
         {
           "items": [
             "RackSnapLineManager",
-            "DuctGeometry",
-            "DuctInteraction"
+            "DuctGeometry"
           ],
           "source": "../ductwork",
+          "type": "named",
+          "file": "src/components/3d/ductwork/DuctworkRenderer.js"
+        },
+        {
+          "items": [
+            "DuctInteraction"
+          ],
+          "source": "./DuctInteraction.js",
           "type": "named",
           "file": "src/components/3d/ductwork/DuctworkRenderer.js"
         },
@@ -1011,9 +1350,14 @@
           "name": "DuctworkRenderer",
           "type": "named",
           "file": "src/components/3d/ductwork/DuctworkRenderer.js"
+        },
+        {
+          "name": "DuctworkRenderer",
+          "type": "default",
+          "file": "src/components/3d/ductwork/DuctworkRenderer.js"
         }
       ],
-      "lineCount": 312
+      "lineCount": 306
     },
     "src/components/3d/ductwork/index.js": {
       "functions": [],
@@ -1045,7 +1389,7 @@
           "file": "src/components/3d/ductwork/index.js"
         }
       ],
-      "lineCount": 11
+      "lineCount": 14
     },
     "src/components/3d/index.js": {
       "functions": [],
@@ -1108,34 +1452,24 @@
     "src/components/3d/piping/PipeEditor.js": {
       "functions": [
         "PipeEditor",
-        "getTierOptions",
-        "updatePosition",
-        "onCameraChange",
-        "handleDimensionChange",
-        "handleStringChange",
-        "handleSave",
-        "handleCancel",
-        "handleCopy"
+        "getInitialDimensions",
+        "getOffsetY"
       ],
       "imports": [
         {
           "items": [
-            "validateDimensionInput",
-            "getTierOptionsFromGeometry",
-            "findTierSpace",
-            "calculateTierYPosition",
-            "createEditorKeyHandler"
+            "BaseMepEditor"
           ],
-          "source": "../utils/common3dHelpers",
+          "source": "../base/BaseMepEditor.js",
           "type": "named",
           "file": "src/components/3d/piping/PipeEditor.js"
         },
         {
           "items": [
-            "THREE"
+            "React"
           ],
-          "source": "three",
-          "type": "namespace",
+          "source": "react",
+          "type": "default",
           "file": "src/components/3d/piping/PipeEditor.js"
         }
       ],
@@ -1144,9 +1478,14 @@
           "name": "PipeEditor",
           "type": "named",
           "file": "src/components/3d/piping/PipeEditor.js"
+        },
+        {
+          "name": "PipeEditor",
+          "type": "default",
+          "file": "src/components/3d/piping/PipeEditor.js"
         }
       ],
-      "lineCount": 468
+      "lineCount": 111
     },
     "src/components/3d/piping/PipeGeometry.js": {
       "functions": [
@@ -1185,68 +1524,42 @@
           "file": "src/components/3d/piping/PipeGeometry.js"
         }
       ],
-      "lineCount": 468
+      "lineCount": 470
     },
     "src/components/3d/piping/PipeInteraction.js": {
       "functions": [
-        "onTransformChange",
-        "onDragEnd",
-        "fallbackSetup",
         "constructor",
-        "setupTransformControls",
-        "setupCentralizedEventHandler",
-        "registerWithMepManager",
-        "handleTransformKeys",
-        "handleClick",
-        "handleMouseMove",
-        "updateMousePosition",
-        "findPipeGroup",
+        "findSelectableObject",
+        "findGroupForObject",
+        "updateObjectAppearance",
+        "getObjectData",
+        "setObjectData",
+        "calculateObjectDimensions",
+        "calculateTierTolerance",
+        "needsGeometryUpdate",
+        "recreateObjectGeometry",
+        "createNewObject",
+        "saveNewObjectToStorage",
+        "saveObjectDataToStorage",
+        "selectedPipe",
+        "getSelectedPipe",
         "selectPipe",
         "deselectPipe",
-        "updateSnapGuides",
-        "applyRealTimeSnapping",
-        "updatePipeMeasurements",
-        "savePipePosition",
-        "updatePipeTierInfo",
-        "calculatePipeTier",
+        "findPipeGroup",
         "updateAllPipeTierInfo",
         "forEach",
-        "map",
         "updatePipeDimensions",
-        "createPipeMeasurements",
-        "clearPipeMeasurements",
-        "getSelectedPipe",
-        "deleteSelectedPipe",
-        "filter",
         "duplicateSelectedPipe",
-        "dispose"
+        "getRackLengthFromConfig",
+        "convertToFeet",
+        "pipeGeometry"
       ],
       "imports": [
         {
           "items": [
-            "getMepSelectionManager"
+            "BaseMepInteraction"
           ],
-          "source": "../core/MepSelectionManager.js",
-          "type": "named",
-          "file": "src/components/3d/piping/PipeInteraction.js"
-        },
-        {
-          "items": [
-            "setupTransformControls",
-            "setupRaycaster",
-            "updateMouseCoordinates",
-            "createMepKeyboardHandler",
-            "registerWithMepManager"
-          ],
-          "source": "../utils/common3dHelpers.js",
-          "type": "named",
-          "file": "src/components/3d/piping/PipeInteraction.js"
-        },
-        {
-          "items": [
-            "createMepEventHandler"
-          ],
-          "source": "../utils/mepEventHandler.js",
+          "source": "../base/BaseMepInteraction.js",
           "type": "named",
           "file": "src/components/3d/piping/PipeInteraction.js"
         },
@@ -1264,26 +1577,33 @@
           "name": "PipeInteraction",
           "type": "named",
           "file": "src/components/3d/piping/PipeInteraction.js"
+        },
+        {
+          "name": "PipeInteraction",
+          "type": "default",
+          "file": "src/components/3d/piping/PipeInteraction.js"
         }
       ],
-      "lineCount": 928
+      "lineCount": 356
     },
     "src/components/3d/piping/PipingRenderer.js": {
       "functions": [
         "constructor",
         "setupInteractions",
+        "updateRackParams",
+        "getRackLengthFromConfig",
+        "convertToFeet",
+        "recalculateTierInfo",
+        "forEach",
         "updatePiping",
         "createPipe",
-        "calculatePipePosition",
-        "calculateTierPosition",
-        "calculateRackLength",
-        "getRackWidth",
-        "getColumnDepth",
-        "updateRackParams",
+        "map",
+        "calculatePipeYPosition",
         "clearPiping",
         "getPipingGroup",
-        "recalculateTierInfo",
-        "dispose"
+        "setVisible",
+        "dispose",
+        "selectedPipe"
       ],
       "imports": [
         {
@@ -1324,9 +1644,14 @@
           "name": "PipingRenderer",
           "type": "named",
           "file": "src/components/3d/piping/PipingRenderer.js"
+        },
+        {
+          "name": "PipingRenderer",
+          "type": "default",
+          "file": "src/components/3d/piping/PipingRenderer.js"
         }
       ],
-      "lineCount": 392
+      "lineCount": 373
     },
     "src/components/3d/piping/index.js": {
       "functions": [],
@@ -1353,7 +1678,7 @@
           "file": "src/components/3d/piping/index.js"
         }
       ],
-      "lineCount": 10
+      "lineCount": 13
     },
     "src/components/3d/scene/ThreeScene.jsx": {
       "functions": [
@@ -1372,6 +1697,7 @@
         "handlePipeSelection",
         "handleConduitSelection",
         "handleCableTraySelection",
+        "handleTradeRackSelection",
         "handleDuctEditorSave",
         "handleDuctEditorCancel",
         "handlePipeEditorSave",
@@ -1387,6 +1713,7 @@
         "handleAxisToggle",
         "handleClearMeasurements",
         "map",
+        "forEach",
         "setAxisLock"
       ],
       "imports": [
@@ -1516,9 +1843,10 @@
         },
         {
           "items": [
-            "TradeRackInteraction"
+            "TradeRackInteraction",
+            "TradeRackEditor"
           ],
-          "source": "../trade-rack/TradeRackInteraction.js",
+          "source": "../trade-rack",
           "type": "named",
           "file": "src/components/3d/scene/ThreeScene.jsx"
         },
@@ -1544,9 +1872,125 @@
           "file": "src/components/3d/scene/ThreeScene.jsx"
         }
       ],
-      "lineCount": 1781
+      "lineCount": 1907
+    },
+    "src/components/3d/trade-rack/TradeRackEditor.js": {
+      "functions": [
+        "TradeRackEditor",
+        "getInitialDimensions",
+        "handleSave",
+        "getOffsetY"
+      ],
+      "imports": [
+        {
+          "items": [
+            "BaseMepEditor"
+          ],
+          "source": "../base/BaseMepEditor.js",
+          "type": "named",
+          "file": "src/components/3d/trade-rack/TradeRackEditor.js"
+        },
+        {
+          "items": [
+            "React"
+          ],
+          "source": "react",
+          "type": "default",
+          "file": "src/components/3d/trade-rack/TradeRackEditor.js"
+        },
+        {
+          "items": [
+            "THREE"
+          ],
+          "source": "three",
+          "type": "namespace",
+          "file": "src/components/3d/trade-rack/TradeRackEditor.js"
+        }
+      ],
+      "exports": [
+        {
+          "name": "TradeRackEditor",
+          "type": "named",
+          "file": "src/components/3d/trade-rack/TradeRackEditor.js"
+        },
+        {
+          "name": "TradeRackEditor",
+          "type": "default",
+          "file": "src/components/3d/trade-rack/TradeRackEditor.js"
+        }
+      ],
+      "lineCount": 109
     },
     "src/components/3d/trade-rack/TradeRackInteraction.js": {
+      "functions": [
+        "constructor",
+        "findSelectableObject",
+        "findGroupForObject",
+        "updateObjectAppearance",
+        "updateMeshAppearance",
+        "getObjectData",
+        "setObjectData",
+        "calculateObjectDimensions",
+        "forEach",
+        "calculateTierTolerance",
+        "needsGeometryUpdate",
+        "recreateObjectGeometry",
+        "createNewObject",
+        "saveNewObjectToStorage",
+        "saveObjectDataToStorage",
+        "applyRealTimeSnapping",
+        "calculateTier",
+        "getTransformControlsConfig",
+        "handleClick",
+        "testTradeRackClick",
+        "handleMouseMove",
+        "saveRackTemporaryState",
+        "loadRackTemporaryState",
+        "saveObjectPosition",
+        "updateTradeRackDimensions",
+        "getCurrentRackPosition",
+        "selectedRack",
+        "getSelectedRack",
+        "selectRack",
+        "deselectRack",
+        "findRackGroup",
+        "copySelectedRack",
+        "duplicateSelectedRack",
+        "updateRackDimensions"
+      ],
+      "imports": [
+        {
+          "items": [
+            "BaseMepInteraction"
+          ],
+          "source": "../base/BaseMepInteraction.js",
+          "type": "named",
+          "file": "src/components/3d/trade-rack/TradeRackInteraction.js"
+        },
+        {
+          "items": [
+            "THREE"
+          ],
+          "source": "three",
+          "type": "namespace",
+          "file": "src/components/3d/trade-rack/TradeRackInteraction.js"
+        }
+      ],
+      "exports": [
+        {
+          "name": "TradeRackInteraction",
+          "type": "named",
+          "file": "src/components/3d/trade-rack/TradeRackInteraction.js"
+        },
+        {
+          "name": "TradeRackInteraction",
+          "type": "default",
+          "file": "src/components/3d/trade-rack/TradeRackInteraction.js"
+        }
+      ],
+      "lineCount": 770
+    },
+    "src/components/3d/trade-rack/TradeRackInteraction_original.js": {
       "functions": [
         "constructor",
         "setupEventListeners",
@@ -1588,7 +2032,7 @@
           ],
           "source": "three/examples/jsm/controls/TransformControls.js",
           "type": "named",
-          "file": "src/components/3d/trade-rack/TradeRackInteraction.js"
+          "file": "src/components/3d/trade-rack/TradeRackInteraction_original.js"
         },
         {
           "items": [
@@ -1596,7 +2040,7 @@
           ],
           "source": "../core/MepSelectionManager.js",
           "type": "named",
-          "file": "src/components/3d/trade-rack/TradeRackInteraction.js"
+          "file": "src/components/3d/trade-rack/TradeRackInteraction_original.js"
         },
         {
           "items": [
@@ -1604,14 +2048,14 @@
           ],
           "source": "three",
           "type": "namespace",
-          "file": "src/components/3d/trade-rack/TradeRackInteraction.js"
+          "file": "src/components/3d/trade-rack/TradeRackInteraction_original.js"
         }
       ],
       "exports": [
         {
           "name": "TradeRackInteraction",
           "type": "named",
-          "file": "src/components/3d/trade-rack/TradeRackInteraction.js"
+          "file": "src/components/3d/trade-rack/TradeRackInteraction_original.js"
         }
       ],
       "lineCount": 582
@@ -1651,7 +2095,29 @@
           "file": "src/components/3d/trade-rack/buildRack.js"
         }
       ],
-      "lineCount": 132
+      "lineCount": 202
+    },
+    "src/components/3d/trade-rack/index.js": {
+      "functions": [],
+      "imports": [],
+      "exports": [
+        {
+          "name": "TradeRackInteraction",
+          "type": "named",
+          "file": "src/components/3d/trade-rack/index.js"
+        },
+        {
+          "name": "TradeRackEditor",
+          "type": "named",
+          "file": "src/components/3d/trade-rack/index.js"
+        },
+        {
+          "name": "buildRackScene",
+          "type": "named",
+          "file": "src/components/3d/trade-rack/index.js"
+        }
+      ],
+      "lineCount": 9
     },
     "src/components/3d/ui/chatInterface.js": {
       "functions": [
@@ -1795,7 +2261,7 @@
           "file": "src/components/3d/utils/common3dHelpers.js"
         }
       ],
-      "lineCount": 607
+      "lineCount": 620
     },
     "src/components/3d/utils/mepEventHandler.js": {
       "functions": [
@@ -1853,7 +2319,7 @@
           "file": "src/components/3d/utils/mepEventHandler.js"
         }
       ],
-      "lineCount": 490
+      "lineCount": 502
     },
     "src/components/forms/app-manual-building.js": {
       "functions": [
@@ -2364,7 +2830,7 @@
           "file": "src/components/mep/app-rack-properties.js"
         }
       ],
-      "lineCount": 516
+      "lineCount": 560
     },
     "src/components/mep/app-saved-configurations.js": {
       "functions": [
@@ -2377,6 +2843,7 @@
         "handleSaveRename",
         "handleDeleteConfig",
         "formatDimension",
+        "formatTopClearance",
         "formatDate",
         "getConfigColor"
       ],
@@ -2430,7 +2897,7 @@
           "file": "src/components/mep/app-saved-configurations.js"
         }
       ],
-      "lineCount": 650
+      "lineCount": 711
     },
     "src/components/mep/app-tier-mep.js": {
       "functions": [
@@ -3155,7 +3622,7 @@
           "file": "src/handlers/configurationHandlers.js"
         }
       ],
-      "lineCount": 189
+      "lineCount": 242
     },
     "src/handlers/mepHandlers.js": {
       "functions": [
@@ -3277,7 +3744,7 @@
           "file": "src/hooks/useAppState.js"
         }
       ],
-      "lineCount": 197
+      "lineCount": 210
     },
     "src/hooks/useBuildingRackSync.js": {
       "functions": [
@@ -3396,6 +3863,14 @@
           "source": "../components/3d/trade-rack/buildRack",
           "type": "named",
           "file": "src/hooks/useSceneRack.js"
+        },
+        {
+          "items": [
+            "TradeRackInteraction"
+          ],
+          "source": "../components/3d/trade-rack/TradeRackInteraction",
+          "type": "named",
+          "file": "src/hooks/useSceneRack.js"
         }
       ],
       "exports": [
@@ -3405,7 +3880,7 @@
           "file": "src/hooks/useSceneRack.js"
         }
       ],
-      "lineCount": 68
+      "lineCount": 140
     },
     "src/hooks/useSceneShell.js": {
       "functions": [
@@ -4063,7 +4538,7 @@
           "file": "src/types/tradeRack.js"
         }
       ],
-      "lineCount": 115
+      "lineCount": 118
     },
     "src/utils/fileOperations.js": {
       "functions": [
@@ -4255,9 +4730,560 @@
     }
   },
   "functions": {
+    "BaseMepEditor": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "named export",
+        "description": {
+          "summary": "Base MEP Editor Component",
+          "details": [
+            "Provides common editor functionality for all MEP types"
+          ],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "{\n  selectedObject",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "camera",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "renderer",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "onSave",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "onCancel",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "onCopy",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "visible",
+            "hasDefault": true,
+            "defaultValue": "true",
+            "type": "boolean"
+          },
+          {
+            "name": "mepType",
+            "hasDefault": true,
+            "defaultValue": "'mep'",
+            "type": "string"
+          },
+          {
+            "name": "fields",
+            "hasDefault": true,
+            "defaultValue": "[]",
+            "type": "array"
+          },
+          {
+            "name": "getInitialDimensions",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "getOffsetY",
+            "hasDefault": true,
+            "defaultValue": "(",
+            "type": "any"
+          }
+        ],
+        "lineNumber": 23,
+        "signature": "export const BaseMepEditor = ({\n  selectedObject,\n  camera,\n  renderer,\n  onSave,\n  onCancel,\n  onCo..."
+      }
+    ],
+    "updatePosition": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Updates ateposition",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 54,
+        "signature": "const updatePosition = () =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Updates ateposition",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 69,
+        "signature": "const updatePosition = () =>"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Updates ateposition",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 121,
+        "signature": "const updatePosition = () =>"
+      }
+    ],
+    "handleFieldChange": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles fieldchange events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "field",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "value",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "processor",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 78,
+        "signature": "const handleFieldChange = (field, value, processor) =>"
+      }
+    ],
+    "handleTierChange": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles tierchange events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "newTier",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 101,
+        "signature": "const handleTierChange = (newTier) =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles tierchange events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "newTier",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 123,
+        "signature": "const handleTierChange = (newTier) =>"
+      }
+    ],
+    "calculateObjectDimensions": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Helper to calculate object dimensions",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "objectData",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "type",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 144,
+        "signature": "const calculateObjectDimensions = (objectData, type) =>"
+      }
+    ],
+    "getTierOptions": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Retrieves tieroptions",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 171,
+        "signature": "const getTierOptions = () =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Generate tier options based on actual geometry from snap lines",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 172,
+        "signature": "const getTierOptions = () =>"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Get available tier options from scene geometry",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 38,
+        "signature": "const getTierOptions = () =>"
+      }
+    ],
+    "handleSave": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles save events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 176,
+        "signature": "const handleSave = () =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles save events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 177,
+        "signature": "const handleSave = () =>"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles save events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 209,
+        "signature": "const handleSave = () =>"
+      },
+      {
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Override the save behavior for trade rack format",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "dimensions",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 56,
+        "signature": "const handleSave = (dimensions) =>"
+      },
+      {
+        "file": "src/components/forms/app-manual-building.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles save events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 100,
+        "signature": "const handleSave = () =>"
+      }
+    ],
+    "handleCancel": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles cancel events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 182,
+        "signature": "const handleCancel = () =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles cancel events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 186,
+        "signature": "const handleCancel = () =>"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles cancel events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 216,
+        "signature": "const handleCancel = () =>"
+      }
+    ],
+    "handleCopyClick": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles copyclick events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 191,
+        "signature": "const handleCopyClick = () =>"
+      }
+    ],
+    "onTransformChange": [
+      {
+        "file": "src/components/3d/base/BaseMepInteraction.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles sformchange events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 63,
+        "signature": "const onTransformChange = () =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayInteraction_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles sformchange events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 54,
+        "signature": "const onTransformChange = () =>"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitInteraction_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles sformchange events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 63,
+        "signature": "const onTransformChange = () =>"
+      }
+    ],
+    "onDragEnd": [
+      {
+        "file": "src/components/3d/base/BaseMepInteraction.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles end events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 71,
+        "signature": "const onDragEnd = () =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayInteraction_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles end events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 67,
+        "signature": "const onDragEnd = () =>"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitInteraction_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Handles end events",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 72,
+        "signature": "const onDragEnd = () =>"
+      }
+    ],
+    "fallbackSetup": [
+      {
+        "file": "src/components/3d/base/BaseMepInteraction.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Function: fallbackSetup",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 138,
+        "signature": "const fallbackSetup = () =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayInteraction_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Function: fallbackSetup",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 120,
+        "signature": "const fallbackSetup = () =>"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitInteraction_original.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Function: fallbackSetup",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 128,
+        "signature": "const fallbackSetup = () =>"
+      }
+    ],
     "CableTrayEditor": [
       {
         "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "type": "named export",
+        "description": {
+          "summary": "CableTrayEditor - Cable tray-specific editor using base component",
+          "details": [
+            "Dramatically simplified from the original ~15k lines to ~50 lines"
+          ],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "{ selectedCableTray",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "...otherProps }",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 14,
+        "signature": "export const CableTrayEditor = ({ selectedCableTray, ...otherProps }) =>"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
         "type": "named export",
         "description": {
           "summary": "CableTrayEditor - Compact horizontal editor for cable tray dimensions",
@@ -4319,63 +5345,111 @@
         "signature": "export const CableTrayEditor = ({ \n  selectedCableTray, \n  camera, \n  renderer, \n  onSave, \n  onCanc..."
       }
     ],
-    "updatePosition": [
+    "getInitialDimensions": [
       {
         "file": "src/components/3d/cable-trays/CableTrayEditor.js",
         "type": "arrow function",
         "description": {
-          "summary": "Updates ateposition",
+          "summary": "Retrieves initialdimensions",
           "details": [],
           "parameters": [],
           "returns": ""
         },
-        "parameters": [],
-        "lineNumber": 69,
-        "signature": "const updatePosition = () =>"
+        "parameters": [
+          {
+            "name": "selectedCableTray",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 49,
+        "signature": "const getInitialDimensions = (selectedCableTray) =>"
       },
       {
         "file": "src/components/3d/conduits/ConduitEditorUI.js",
         "type": "arrow function",
         "description": {
-          "summary": "Updates ateposition",
+          "summary": "Retrieves initialdimensions",
           "details": [],
           "parameters": [],
           "returns": ""
         },
-        "parameters": [],
-        "lineNumber": 121,
-        "signature": "const updatePosition = () =>"
+        "parameters": [
+          {
+            "name": "conduitData",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 58,
+        "signature": "const getInitialDimensions = (conduitData) =>"
       },
       {
         "file": "src/components/3d/ductwork/DuctEditor.js",
         "type": "arrow function",
         "description": {
-          "summary": "Updates ateposition",
+          "summary": "Get initial dimensions from selected duct",
           "details": [],
           "parameters": [],
           "returns": ""
         },
-        "parameters": [],
-        "lineNumber": 60,
-        "signature": "const updatePosition = () =>"
+        "parameters": [
+          {
+            "name": "selectedDuct",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 56,
+        "signature": "const getInitialDimensions = (selectedDuct) =>"
       },
       {
         "file": "src/components/3d/piping/PipeEditor.js",
         "type": "arrow function",
         "description": {
-          "summary": "Updates ateposition",
+          "summary": "Get initial dimensions from selected pipe",
           "details": [],
           "parameters": [],
           "returns": ""
         },
-        "parameters": [],
-        "lineNumber": 76,
-        "signature": "const updatePosition = () =>"
+        "parameters": [
+          {
+            "name": "selectedPipe",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 60,
+        "signature": "const getInitialDimensions = (selectedPipe) =>"
+      },
+      {
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Retrieves initialdimensions",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "selectedTradeRack",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 27,
+        "signature": "const getInitialDimensions = (selectedTradeRack) =>"
       }
     ],
     "handleDimensionChange": [
       {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
         "type": "arrow function",
         "description": {
           "summary": "Handles dimensionchange events",
@@ -4399,63 +5473,11 @@
         ],
         "lineNumber": 100,
         "signature": "const handleDimensionChange = (field, value) =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles dimensionchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [
-          {
-            "name": "field",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "value",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          }
-        ],
-        "lineNumber": 95,
-        "signature": "const handleDimensionChange = (field, value) =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles dimensionchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [
-          {
-            "name": "field",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "value",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          }
-        ],
-        "lineNumber": 143,
-        "signature": "const handleDimensionChange = (field, value) =>"
       }
     ],
     "handleTrayTypeChange": [
       {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
         "type": "arrow function",
         "description": {
           "summary": "Handles traytypechange events",
@@ -4475,226 +5497,9 @@
         "signature": "const handleTrayTypeChange = (newTrayType) =>"
       }
     ],
-    "handleTierChange": [
-      {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles tierchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [
-          {
-            "name": "newTier",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          }
-        ],
-        "lineNumber": 123,
-        "signature": "const handleTierChange = (newTier) =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles tierchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [
-          {
-            "name": "newTier",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          }
-        ],
-        "lineNumber": 105,
-        "signature": "const handleTierChange = (newTier) =>"
-      }
-    ],
-    "getTierOptions": [
-      {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Generate tier options based on actual geometry from snap lines",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 172,
-        "signature": "const getTierOptions = () =>"
-      },
-      {
-        "file": "src/components/3d/conduits/ConduitEditorUI.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Get available tier options from scene geometry",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 38,
-        "signature": "const getTierOptions = () =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Generate tier options based on actual geometry from snap lines",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 170,
-        "signature": "const getTierOptions = () =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Get available tier options from scene geometry",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 44,
-        "signature": "const getTierOptions = () =>"
-      }
-    ],
-    "handleSave": [
-      {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles save events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 177,
-        "signature": "const handleSave = () =>"
-      },
-      {
-        "file": "src/components/3d/conduits/ConduitEditorUI.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles save events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 209,
-        "signature": "const handleSave = () =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles save events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 175,
-        "signature": "const handleSave = () =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles save events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 220,
-        "signature": "const handleSave = () =>"
-      },
-      {
-        "file": "src/components/forms/app-manual-building.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles save events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 100,
-        "signature": "const handleSave = () =>"
-      }
-    ],
-    "handleCancel": [
-      {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles cancel events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 186,
-        "signature": "const handleCancel = () =>"
-      },
-      {
-        "file": "src/components/3d/conduits/ConduitEditorUI.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles cancel events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 216,
-        "signature": "const handleCancel = () =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles cancel events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 183,
-        "signature": "const handleCancel = () =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles cancel events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 226,
-        "signature": "const handleCancel = () =>"
-      }
-    ],
     "handleCopy": [
       {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
         "type": "arrow function",
         "description": {
           "summary": "Handles copy events",
@@ -4707,7 +5512,7 @@
         "signature": "const handleCopy = () =>"
       },
       {
-        "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
         "type": "arrow function",
         "description": {
           "summary": "Handles copy events",
@@ -4718,199 +5523,39 @@
         "parameters": [],
         "lineNumber": 222,
         "signature": "const handleCopy = () =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles copy events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 199,
-        "signature": "const handleCopy = () =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles copy events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 232,
-        "signature": "const handleCopy = () =>"
-      }
-    ],
-    "onTransformChange": [
-      {
-        "file": "src/components/3d/cable-trays/CableTrayInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles sformchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 54,
-        "signature": "const onTransformChange = () =>"
-      },
-      {
-        "file": "src/components/3d/conduits/ConduitInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles sformchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 63,
-        "signature": "const onTransformChange = () =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles sformchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 50,
-        "signature": "const onTransformChange = () =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles sformchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 45,
-        "signature": "const onTransformChange = () =>"
-      }
-    ],
-    "onDragEnd": [
-      {
-        "file": "src/components/3d/cable-trays/CableTrayInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles end events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 67,
-        "signature": "const onDragEnd = () =>"
-      },
-      {
-        "file": "src/components/3d/conduits/ConduitInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles end events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 72,
-        "signature": "const onDragEnd = () =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles end events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 59,
-        "signature": "const onDragEnd = () =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles end events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 54,
-        "signature": "const onDragEnd = () =>"
-      }
-    ],
-    "fallbackSetup": [
-      {
-        "file": "src/components/3d/cable-trays/CableTrayInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Function: fallbackSetup",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 120,
-        "signature": "const fallbackSetup = () =>"
-      },
-      {
-        "file": "src/components/3d/conduits/ConduitInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Function: fallbackSetup",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 128,
-        "signature": "const fallbackSetup = () =>"
-      },
-      {
-        "file": "src/components/3d/ductwork/DuctInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Function: fallbackSetup",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 108,
-        "signature": "const fallbackSetup = () =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeInteraction.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Function: fallbackSetup",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 104,
-        "signature": "const fallbackSetup = () =>"
       }
     ],
     "ConduitEditorUI": [
       {
         "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "type": "named export",
+        "description": {
+          "summary": "ConduitEditorUI - Conduit-specific editor using base component",
+          "details": [
+            "Dramatically simplified from the original ~13k lines to ~50 lines"
+          ],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "{ selectedConduit",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "...otherProps }",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 14,
+        "signature": "export const ConduitEditorUI = ({ selectedConduit, ...otherProps }) =>"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
         "type": "named export",
         "description": {
           "summary": "ConduitEditorUI - Compact horizontal editor for conduit dimensions",
@@ -4974,7 +5619,7 @@
     ],
     "onCameraChange": [
       {
-        "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
         "type": "arrow function",
         "description": {
           "summary": "Update position when camera moves",
@@ -4985,24 +5630,11 @@
         "parameters": [],
         "lineNumber": 181,
         "signature": "const onCameraChange = () =>"
-      },
-      {
-        "file": "src/components/3d/piping/PipeEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Update position when camera moves",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [],
-        "lineNumber": 115,
-        "signature": "const onCameraChange = () =>"
       }
     ],
     "handleInputChange": [
       {
-        "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
         "type": "arrow function",
         "description": {
           "summary": "Handles inputchange events",
@@ -5056,7 +5688,7 @@
     ],
     "handleKeyDown": [
       {
-        "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
         "type": "arrow function",
         "description": {
           "summary": "Handles keydown events",
@@ -5133,7 +5765,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 1097,
+        "lineNumber": 1162,
         "signature": "function animate()"
       },
       {
@@ -5413,7 +6045,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 41,
+        "lineNumber": 46,
         "signature": "const convertToFeet = (feetInches) =>"
       },
       {
@@ -5453,7 +6085,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 41,
+        "lineNumber": 44,
         "signature": "export const convertToFeet = (feetInches) =>"
       }
     ],
@@ -5966,63 +6598,85 @@
         "file": "src/components/3d/ductwork/DuctEditor.js",
         "type": "named export",
         "description": {
-          "summary": "DuctEditor - Compact horizontal editor for duct dimensions",
+          "summary": "DuctEditor - Duct-specific implementation using base component",
+          "details": [
+            "This dramatically simplifies the duct editor code"
+          ],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "props",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "object"
+          }
+        ],
+        "lineNumber": 14,
+        "signature": "export const DuctEditor = (props) =>"
+      }
+    ],
+    "getOffsetY": [
+      {
+        "file": "src/components/3d/ductwork/DuctEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Calculate editor position offset based on duct size",
           "details": [],
           "parameters": [],
           "returns": ""
         },
         "parameters": [
           {
-            "name": "{ \n  selectedDuct",
+            "name": "selectedDuct",
             "hasDefault": false,
             "defaultValue": null,
             "type": "any"
-          },
-          {
-            "name": "camera",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "renderer",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "onSave",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "onCancel",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "onCopy",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "visible",
-            "hasDefault": true,
-            "defaultValue": "true",
-            "type": "boolean"
-          },
-          {
-            "name": "rackParams",
-            "hasDefault": true,
-            "defaultValue": "{}\n}",
-            "type": "object"
           }
         ],
-        "lineNumber": 22,
-        "signature": "export const DuctEditor = ({ \n  selectedDuct, \n  camera, \n  renderer, \n  onSave, \n  onCancel,\n  onCo..."
+        "lineNumber": 76,
+        "signature": "const getOffsetY = (selectedDuct) =>"
+      },
+      {
+        "file": "src/components/3d/piping/PipeEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Calculate editor position offset based on pipe size",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "selectedPipe",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 82,
+        "signature": "const getOffsetY = (selectedPipe) =>"
+      },
+      {
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Custom offset function to position editor just below the gizmo",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "rack",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 71,
+        "signature": "const getOffsetY = (rack) =>"
       }
     ],
     "createMaterials": [
@@ -6137,6 +6791,26 @@
         "signature": "forEach(material => {\n    if (material && typeof material.dispose === 'function') {"
       },
       {
+        "file": "src/components/3d/scene/ThreeScene.jsx",
+        "type": "arrow function",
+        "description": {
+          "summary": "Function: forEach",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "interaction",
+            "hasDefault": true,
+            "defaultValue": "> {\n          if (interaction.transformControls?.object && !interaction.transformControls.object.parent",
+            "type": "any"
+          }
+        ],
+        "lineNumber": 1177,
+        "signature": "forEach(interaction => {\n          if (interaction.transformControls?.object && !interaction.transfo..."
+      },
+      {
         "file": "src/components/3d/trade-rack/buildRack.js",
         "type": "arrow function",
         "description": {
@@ -6153,7 +6827,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 59,
+        "lineNumber": 66,
         "signature": "forEach(obj => {\n    if (obj.userData.isGenerated) {"
       },
       {
@@ -6182,91 +6856,23 @@
         "file": "src/components/3d/piping/PipeEditor.js",
         "type": "named export",
         "description": {
-          "summary": "PipeEditor - Compact horizontal editor for pipe dimensions",
-          "details": [],
+          "summary": "PipeEditor - Pipe-specific implementation using base component",
+          "details": [
+            "This dramatically simplifies the pipe editor code"
+          ],
           "parameters": [],
           "returns": ""
         },
         "parameters": [
           {
-            "name": "{ \n  selectedPipe",
+            "name": "props",
             "hasDefault": false,
             "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "camera",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "renderer",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "onSave",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "onCancel",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "onCopy",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "visible",
-            "hasDefault": true,
-            "defaultValue": "true",
-            "type": "boolean"
-          },
-          {
-            "name": "rackParams",
-            "hasDefault": true,
-            "defaultValue": "{}\n}",
             "type": "object"
           }
         ],
-        "lineNumber": 20,
-        "signature": "export const PipeEditor = ({ \n  selectedPipe, \n  camera, \n  renderer, \n  onSave, \n  onCancel,\n  onCo..."
-      }
-    ],
-    "handleStringChange": [
-      {
-        "file": "src/components/3d/piping/PipeEditor.js",
-        "type": "arrow function",
-        "description": {
-          "summary": "Handles stringchange events",
-          "details": [],
-          "parameters": [],
-          "returns": ""
-        },
-        "parameters": [
-          {
-            "name": "field",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          },
-          {
-            "name": "value",
-            "hasDefault": false,
-            "defaultValue": null,
-            "type": "any"
-          }
-        ],
-        "lineNumber": 213,
-        "signature": "const handleStringChange = (field, value) =>"
+        "lineNumber": 14,
+        "signature": "export const PipeEditor = (props) =>"
       }
     ],
     "ThreeScene": [
@@ -6393,7 +6999,7 @@
             "type": "number"
           }
         ],
-        "lineNumber": 126,
+        "lineNumber": 129,
         "signature": "function createBackgroundGrid(size = 1000, step = 10, color = 0x000000)"
       }
     ],
@@ -6421,7 +7027,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 141,
+        "lineNumber": 144,
         "signature": "function updateOrthoCamera(camera, viewHeight)"
       }
     ],
@@ -6436,7 +7042,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 172,
+        "lineNumber": 175,
         "signature": "const onControlsChange = () =>"
       }
     ],
@@ -6458,7 +7064,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 184,
+        "lineNumber": 187,
         "signature": "const onKeyDown = (evt) =>"
       }
     ],
@@ -6473,7 +7079,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 205,
+        "lineNumber": 208,
         "signature": "const logCamera = () =>"
       }
     ],
@@ -6495,7 +7101,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 207,
+        "lineNumber": 210,
         "signature": "const onLog = (e) =>"
       }
     ],
@@ -6510,7 +7116,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 301,
+        "lineNumber": 358,
         "signature": "const centerOrbitOnContent = () =>"
       }
     ],
@@ -6525,7 +7131,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 340,
+        "lineNumber": 397,
         "signature": "const saveCameraState = () =>"
       }
     ],
@@ -6540,7 +7146,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 356,
+        "lineNumber": 413,
         "signature": "const loadCameraState = () =>"
       }
     ],
@@ -6555,7 +7161,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 708,
+        "lineNumber": 765,
         "signature": "const handleDuctSelection = () =>"
       }
     ],
@@ -6570,7 +7176,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 715,
+        "lineNumber": 772,
         "signature": "const handlePipeSelection = () =>"
       }
     ],
@@ -6585,7 +7191,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 722,
+        "lineNumber": 779,
         "signature": "const handleConduitSelection = () =>"
       }
     ],
@@ -6600,8 +7206,23 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 729,
+        "lineNumber": 786,
         "signature": "const handleCableTraySelection = () =>"
+      }
+    ],
+    "handleTradeRackSelection": [
+      {
+        "file": "src/components/3d/scene/ThreeScene.jsx",
+        "type": "arrow function",
+        "description": {
+          "summary": "Setup trade rack editor callbacks",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [],
+        "lineNumber": 796,
+        "signature": "const handleTradeRackSelection = () =>"
       }
     ],
     "handleDuctEditorSave": [
@@ -6622,7 +7243,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 759,
+        "lineNumber": 829,
         "signature": "const handleDuctEditorSave = (newDimensions) =>"
       }
     ],
@@ -6637,7 +7258,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 794,
+        "lineNumber": 864,
         "signature": "const handleDuctEditorCancel = () =>"
       }
     ],
@@ -6659,7 +7280,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 799,
+        "lineNumber": 869,
         "signature": "const handlePipeEditorSave = (newDimensions) =>"
       }
     ],
@@ -6674,7 +7295,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 870,
+        "lineNumber": 940,
         "signature": "const handlePipeEditorCancel = () =>"
       }
     ],
@@ -6696,7 +7317,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 874,
+        "lineNumber": 944,
         "signature": "const handleConduitEditorSave = (newDimensions) =>"
       }
     ],
@@ -6711,7 +7332,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 937,
+        "lineNumber": 1007,
         "signature": "const handleConduitEditorCancel = () =>"
       }
     ],
@@ -6733,7 +7354,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 942,
+        "lineNumber": 1012,
         "signature": "const handleCableTrayEditorSave = (newDimensions) =>"
       }
     ],
@@ -6748,7 +7369,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 1011,
+        "lineNumber": 1081,
         "signature": "const handleCableTrayEditorCancel = () =>"
       }
     ],
@@ -6770,7 +7391,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 1069,
+        "lineNumber": 1134,
         "signature": "const onViewCubeClick = (event) =>"
       }
     ],
@@ -6785,7 +7406,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 1090,
+        "lineNumber": 1155,
         "signature": "const onResize = () =>"
       }
     ],
@@ -6807,7 +7428,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 1126,
+        "lineNumber": 1219,
         "signature": "const handleTradeRackSelected = (event) =>"
       }
     ],
@@ -6822,7 +7443,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 1131,
+        "lineNumber": 1224,
         "signature": "const handleTradeRackDeselected = () =>"
       }
     ],
@@ -6844,7 +7465,7 @@
             "type": "boolean"
           }
         ],
-        "lineNumber": 1251,
+        "lineNumber": 1345,
         "signature": "const handleAxisToggle = (axis) =>"
       }
     ],
@@ -6859,7 +7480,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 1268,
+        "lineNumber": 1362,
         "signature": "const handleClearMeasurements = () =>"
       },
       {
@@ -6894,7 +7515,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 772,
+        "lineNumber": 842,
         "signature": "map(item => {\n              if (item.id === selectedDuctData.id) {"
       }
     ],
@@ -6916,8 +7537,38 @@
             "type": "any"
           }
         ],
-        "lineNumber": 1252,
+        "lineNumber": 1346,
         "signature": "setAxisLock(prev => {\n      const currentlyLocked = prev[axis]\n      if (currentlyLocked) {"
+      }
+    ],
+    "TradeRackEditor": [
+      {
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
+        "type": "named export",
+        "description": {
+          "summary": "TradeRackEditor - Trade rack-specific editor using base component",
+          "details": [
+            "Simplified editor for basic trade rack configuration"
+          ],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "{ selectedTradeRack",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          },
+          {
+            "name": "...otherProps }",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 15,
+        "signature": "export const TradeRackEditor = ({ selectedTradeRack, ...otherProps }) =>"
       }
     ],
     "ensureArrays": [
@@ -7857,7 +8508,7 @@
             "type": "object"
           }
         ],
-        "lineNumber": 449,
+        "lineNumber": 461,
         "signature": "function createMepEventHandler(componentType, scene, camera, renderer, orbitControls, options = {})"
       }
     ],
@@ -7907,7 +8558,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 59,
+        "lineNumber": 64,
         "signature": "const validateForm = () =>"
       }
     ],
@@ -8101,7 +8752,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 77,
+        "lineNumber": 82,
         "signature": "const handleFeetInchesChange = (field, type, value) =>"
       }
     ],
@@ -8712,7 +9363,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 88,
+        "lineNumber": 93,
         "signature": "const handleMountTypeChange = (type) =>"
       }
     ],
@@ -8734,7 +9385,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 93,
+        "lineNumber": 98,
         "signature": "const handleTierCountChange = (event) =>"
       }
     ],
@@ -8768,7 +9419,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 111,
+        "lineNumber": 116,
         "signature": "const handleTierHeightChange = (tierIndex, type, value) =>"
       }
     ],
@@ -8796,7 +9447,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 126,
+        "lineNumber": 131,
         "signature": "const handleSelectChange = (field, value) =>"
       }
     ],
@@ -8811,7 +9462,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 130,
+        "lineNumber": 135,
         "signature": "const handleAddRack = () =>"
       },
       {
@@ -8872,7 +9523,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 142,
+        "lineNumber": 149,
         "signature": "const renderTierHeightInputs = () =>"
       }
     ],
@@ -8894,7 +9545,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 95,
+        "lineNumber": 100,
         "signature": "setFormData(prev => {\n      // Update tier heights array to match new count\n      const newTierHeigh..."
       }
     ],
@@ -8953,7 +9604,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 53,
+        "lineNumber": 54,
         "signature": "const handleSaveConfiguration = () =>"
       }
     ],
@@ -8981,7 +9632,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 124,
+        "lineNumber": 151,
         "signature": "const handleUpdateConfig = (configId, event) =>"
       }
     ],
@@ -9009,7 +9660,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 225,
+        "lineNumber": 268,
         "signature": "const handleStartRename = (config, event) =>"
       }
     ],
@@ -9024,7 +9675,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 231,
+        "lineNumber": 274,
         "signature": "const handleCancelRename = () =>"
       }
     ],
@@ -9046,7 +9697,7 @@
             "type": "object"
           }
         ],
-        "lineNumber": 236,
+        "lineNumber": 279,
         "signature": "const handleSaveRename = (configId) =>"
       }
     ],
@@ -9074,7 +9725,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 282,
+        "lineNumber": 325,
         "signature": "const handleDeleteConfig = (configId, event) =>"
       }
     ],
@@ -9096,8 +9747,30 @@
             "type": "any"
           }
         ],
-        "lineNumber": 298,
+        "lineNumber": 341,
         "signature": "const formatDimension = (dimension) =>"
+      }
+    ],
+    "formatTopClearance": [
+      {
+        "file": "src/components/mep/app-saved-configurations.js",
+        "type": "arrow function",
+        "description": {
+          "summary": "Formats topclearance",
+          "details": [],
+          "parameters": [],
+          "returns": ""
+        },
+        "parameters": [
+          {
+            "name": "topClearance",
+            "hasDefault": false,
+            "defaultValue": null,
+            "type": "any"
+          }
+        ],
+        "lineNumber": 347,
+        "signature": "const formatTopClearance = (topClearance) =>"
       }
     ],
     "formatDate": [
@@ -9118,7 +9791,7 @@
             "type": "any"
           }
         ],
-        "lineNumber": 304,
+        "lineNumber": 360,
         "signature": "const formatDate = (dateString) =>"
       }
     ],
@@ -9140,7 +9813,7 @@
             "type": "number"
           }
         ],
-        "lineNumber": 310,
+        "lineNumber": 366,
         "signature": "const getConfigColor = (index) =>"
       }
     ],
@@ -9753,7 +10426,7 @@
             "type": "object"
           }
         ],
-        "lineNumber": 120,
+        "lineNumber": 148,
         "signature": "const handleConfigurationSaved = (config) =>"
       }
     ],
@@ -9775,7 +10448,7 @@
             "type": "object"
           }
         ],
-        "lineNumber": 132,
+        "lineNumber": 160,
         "signature": "const handleRestoreConfiguration = (config) =>"
       }
     ],
@@ -10671,7 +11344,7 @@
           "returns": ""
         },
         "parameters": [],
-        "lineNumber": 10,
+        "lineNumber": 11,
         "signature": "function useSceneRack()"
       }
     ],
@@ -10877,7 +11550,7 @@
             "type": "object"
           }
         ],
-        "lineNumber": 47,
+        "lineNumber": 50,
         "signature": "export const calculateTotalHeight = (config) =>"
       }
     ],
@@ -10905,7 +11578,7 @@
             "type": "string"
           }
         ],
-        "lineNumber": 93,
+        "lineNumber": 96,
         "signature": "export const calculateBayConfiguration = (totalLength, standardBayWidth) =>"
       }
     ],
@@ -11564,7 +12237,7 @@
   "imports": {
     "../utils/common3dHelpers": [
       {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "file": "src/components/3d/base/BaseMepEditor.js",
         "items": [
           "calculateScreenPosition",
           "validateDimensionInput",
@@ -11577,7 +12250,7 @@
         "type": "named"
       },
       {
-        "file": "src/components/3d/ductwork/DuctEditor.js",
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
         "items": [
           "calculateScreenPosition",
           "validateDimensionInput",
@@ -11585,17 +12258,6 @@
           "findTierSpace",
           "calculateTierYPosition",
           "createAnimationLoop",
-          "createEditorKeyHandler"
-        ],
-        "type": "named"
-      },
-      {
-        "file": "src/components/3d/piping/PipeEditor.js",
-        "items": [
-          "validateDimensionInput",
-          "getTierOptionsFromGeometry",
-          "findTierSpace",
-          "calculateTierYPosition",
           "createEditorKeyHandler"
         ],
         "type": "named"
@@ -11603,14 +12265,21 @@
     ],
     "three": [
       {
-        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "file": "src/components/3d/base/BaseMepEditor.js",
         "items": [
           "THREE"
         ],
         "type": "namespace"
       },
       {
-        "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
+        "items": [
+          "THREE"
+        ],
+        "type": "namespace"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
         "items": [
           "THREE"
         ],
@@ -11631,13 +12300,6 @@
         "type": "namespace"
       },
       {
-        "file": "src/components/3d/ductwork/DuctEditor.js",
-        "items": [
-          "THREE"
-        ],
-        "type": "namespace"
-      },
-      {
         "file": "src/components/3d/materials/index.js",
         "items": [
           "THREE"
@@ -11645,14 +12307,14 @@
         "type": "namespace"
       },
       {
-        "file": "src/components/3d/piping/PipeEditor.js",
+        "file": "src/components/3d/scene/ThreeScene.jsx",
         "items": [
           "THREE"
         ],
         "type": "namespace"
       },
       {
-        "file": "src/components/3d/scene/ThreeScene.jsx",
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
         "items": [
           "THREE"
         ],
@@ -11671,6 +12333,154 @@
           "THREE"
         ],
         "type": "namespace"
+      }
+    ],
+    "../base/BaseMepEditor.js": [
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "items": [
+          "BaseMepEditor"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "items": [
+          "BaseMepEditor"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/ductwork/DuctEditor.js",
+        "items": [
+          "BaseMepEditor"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/piping/PipeEditor.js",
+        "items": [
+          "BaseMepEditor"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
+        "items": [
+          "BaseMepEditor"
+        ],
+        "type": "named"
+      }
+    ],
+    "react": [
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "items": [
+          "React"
+        ],
+        "type": "default"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "items": [
+          "React"
+        ],
+        "type": "default"
+      },
+      {
+        "file": "src/components/3d/ductwork/DuctEditor.js",
+        "items": [
+          "React"
+        ],
+        "type": "default"
+      },
+      {
+        "file": "src/components/3d/piping/PipeEditor.js",
+        "items": [
+          "React"
+        ],
+        "type": "default"
+      },
+      {
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
+        "items": [
+          "React"
+        ],
+        "type": "default"
+      },
+      {
+        "file": "src/components/mep/app-add-mep.js",
+        "items": [
+          "React"
+        ],
+        "type": "default"
+      },
+      {
+        "file": "src/components/mep/app-saved-configurations.js",
+        "items": [
+          "useState",
+          "useEffect"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/hooks/useAppState.js",
+        "items": [
+          "useState",
+          "useEffect"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/hooks/useBuildingRackSync.js",
+        "items": [
+          "useEffect"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/hooks/useEventListeners.js",
+        "items": [
+          "useEffect"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/hooks/useInitialization.js",
+        "items": [
+          "useEffect"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/hooks/useSceneRack.js",
+        "items": [
+          "useRef",
+          "useCallback"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/hooks/useSceneShell.js",
+        "items": [
+          "useRef",
+          "useCallback"
+        ],
+        "type": "named"
+      },
+      {
+        "file": "src/index.js",
+        "items": [
+          "React"
+        ],
+        "type": "default"
+      },
+      {
+        "file": "src/pages/not-found.js",
+        "items": [
+          "React"
+        ],
+        "type": "default"
       }
     ],
     "./extractGeometrySnapPoints.js": [
@@ -11836,11 +12646,12 @@
         "type": "named"
       }
     ],
-    "../trade-rack/TradeRackInteraction.js": [
+    "../trade-rack": [
       {
         "file": "src/components/3d/scene/ThreeScene.jsx",
         "items": [
-          "TradeRackInteraction"
+          "TradeRackInteraction",
+          "TradeRackEditor"
         ],
         "type": "named"
       }
@@ -12205,82 +13016,6 @@
         "type": "side-effect"
       }
     ],
-    "react": [
-      {
-        "file": "src/components/mep/app-add-mep.js",
-        "items": [
-          "React"
-        ],
-        "type": "default"
-      },
-      {
-        "file": "src/components/mep/app-saved-configurations.js",
-        "items": [
-          "useState",
-          "useEffect"
-        ],
-        "type": "named"
-      },
-      {
-        "file": "src/hooks/useAppState.js",
-        "items": [
-          "useState",
-          "useEffect"
-        ],
-        "type": "named"
-      },
-      {
-        "file": "src/hooks/useBuildingRackSync.js",
-        "items": [
-          "useEffect"
-        ],
-        "type": "named"
-      },
-      {
-        "file": "src/hooks/useEventListeners.js",
-        "items": [
-          "useEffect"
-        ],
-        "type": "named"
-      },
-      {
-        "file": "src/hooks/useInitialization.js",
-        "items": [
-          "useEffect"
-        ],
-        "type": "named"
-      },
-      {
-        "file": "src/hooks/useSceneRack.js",
-        "items": [
-          "useRef",
-          "useCallback"
-        ],
-        "type": "named"
-      },
-      {
-        "file": "src/hooks/useSceneShell.js",
-        "items": [
-          "useRef",
-          "useCallback"
-        ],
-        "type": "named"
-      },
-      {
-        "file": "src/index.js",
-        "items": [
-          "React"
-        ],
-        "type": "default"
-      },
-      {
-        "file": "src/pages/not-found.js",
-        "items": [
-          "React"
-        ],
-        "type": "default"
-      }
-    ],
     "./app-add-mep.css": [
       {
         "file": "src/components/mep/app-add-mep.js",
@@ -12581,6 +13316,15 @@
         "file": "src/hooks/useSceneRack.js",
         "items": [
           "buildRackScene"
+        ],
+        "type": "named"
+      }
+    ],
+    "../components/3d/trade-rack/TradeRackInteraction": [
+      {
+        "file": "src/hooks/useSceneRack.js",
+        "items": [
+          "TradeRackInteraction"
         ],
         "type": "named"
       }
@@ -12990,9 +13734,37 @@
     ]
   },
   "exports": {
+    "BaseMepEditor": [
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/base/BaseMepEditor.js",
+        "type": "default"
+      },
+      {
+        "file": "src/components/3d/base/index.js",
+        "type": "named"
+      }
+    ],
+    "BaseMepInteraction": [
+      {
+        "file": "src/components/3d/base/index.js",
+        "type": "named"
+      }
+    ],
     "CableTrayEditor": [
       {
         "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor.js",
+        "type": "default"
+      },
+      {
+        "file": "src/components/3d/cable-trays/CableTrayEditor_original.js",
         "type": "named"
       }
     ],
@@ -13021,6 +13793,14 @@
       },
       {
         "file": "src/components/3d/conduits/ConduitEditorUI.js",
+        "type": "default"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/conduits/ConduitEditorUI_original.js",
         "type": "default"
       },
       {
@@ -13142,6 +13922,10 @@
         "type": "named"
       },
       {
+        "file": "src/components/3d/ductwork/DuctEditor.js",
+        "type": "default"
+      },
+      {
         "file": "src/components/3d/ductwork/index.js",
         "type": "named"
       }
@@ -13212,6 +13996,10 @@
         "type": "named"
       },
       {
+        "file": "src/components/3d/piping/PipeEditor.js",
+        "type": "default"
+      },
+      {
         "file": "src/components/3d/piping/index.js",
         "type": "named"
       }
@@ -13240,9 +14028,33 @@
         "type": "default"
       }
     ],
+    "TradeRackEditor": [
+      {
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/trade-rack/TradeRackEditor.js",
+        "type": "default"
+      },
+      {
+        "file": "src/components/3d/trade-rack/index.js",
+        "type": "named"
+      }
+    ],
     "buildRackScene": [
       {
         "file": "src/components/3d/trade-rack/buildRack.js",
+        "type": "named"
+      },
+      {
+        "file": "src/components/3d/trade-rack/index.js",
+        "type": "named"
+      }
+    ],
+    "TradeRackInteraction": [
+      {
+        "file": "src/components/3d/trade-rack/index.js",
         "type": "named"
       }
     ],
@@ -14022,9 +14834,9 @@
     ]
   },
   "summary": {
-    "totalFiles": 76,
-    "totalFunctions": 278,
-    "totalImports": 180,
-    "totalExports": 174
+    "totalFiles": 82,
+    "totalFunctions": 287,
+    "totalImports": 190,
+    "totalExports": 189
   }
 }

@@ -53,14 +53,11 @@ export const createMEPHandlers = (mepItems, setMepItems) => {
 
   /**
    * Removes all MEP items from the system
-   * Clears state, localStorage, and project manifest
+   * Clears state and project manifest
    */
   const handleDeleteAllMepItems = () => {
     // Clear all MEP items from state
     setMepItems([])
-    
-    // Clear from localStorage
-    localStorage.setItem('configurMepItems', JSON.stringify([]))
     
     // Update manifest with empty array
     updateMEPItems([], 'all')
@@ -114,11 +111,8 @@ export const createMEPHandlers = (mepItems, setMepItems) => {
       updateCableTrayColor(itemId, newColor)
     }
     
-    // Update localStorage with new color
-    localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-    
-    // Update manifest
-    updateMEPItems(updatedItems, 'color_change')
+    // Update manifest with color change
+    updateMEPItems(updatedItems, 'all')
   }
 
   return {

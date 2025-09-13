@@ -7,6 +7,7 @@
 import * as THREE from 'three'
 import { CableTrayGeometry } from './CableTrayGeometry'
 import { getColumnSize } from '../core/utils'
+import { getProjectManifest } from '../../../utils/projectManifest'
 
 /**
  * CableTrayRenderer - Manages 3D rendering of cable trays in the scene
@@ -97,7 +98,9 @@ export class CableTrayRenderer {
       const rackLength = this.calculateRackLength()
       
       // Get column size using consistent utility function
-      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      const manifest = getProjectManifest()
+      // Check active rack configuration first, fallback to legacy localStorage
+      const rackParams = manifest.tradeRacks?.active || JSON.parse(localStorage.getItem('rackParameters') || '{}')
       const columnSize = getColumnSize(rackParams) // inches
       
       // Cable tray length equals rack length (converted to inches)
@@ -129,7 +132,8 @@ export class CableTrayRenderer {
     try {
       // Default position at origin
       // Get column size to calculate X offset (same as ducts and pipes)
-      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      const manifest = getProjectManifest()
+      const rackParams = manifest.tradeRacks?.active || JSON.parse(localStorage.getItem('rackParameters') || '{}')
       const columnSize = getColumnSize(rackParams) // inches
       const columnSizeM = columnSize * 0.0254 // convert to meters
       
@@ -193,8 +197,9 @@ export class CableTrayRenderer {
         }
       }
 
-      // Fallback to localStorage rack parameters
-      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      // Check manifest first, then fallback to localStorage rack parameters
+      const manifest = getProjectManifest()
+      const rackParams = manifest.tradeRacks?.active || JSON.parse(localStorage.getItem('rackParameters') || '{}')
       if (rackParams.length && isFinite(rackParams.length)) {
         return parseFloat(rackParams.length)
       }
@@ -305,7 +310,8 @@ export class CableTrayRenderer {
   getColumnDepth() {
     try {
       // Try to get column size from rack parameters or fallback
-      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      const manifest = getProjectManifest()
+      const rackParams = manifest.tradeRacks?.active || JSON.parse(localStorage.getItem('rackParameters') || '{}')
       const columnSize = getColumnSize(rackParams) // inches
       
       // Convert inches to meters

@@ -2,14 +2,44 @@
 
 ## Summary
 
-- **Total Files**: 76
-- **Total Functions**: 278
-- **Total Imports**: 180
-- **Total Exports**: 174
+- **Total Files**: 82
+- **Total Functions**: 287
+- **Total Imports**: 190
+- **Total Exports**: 189
 
 ## File Overview
 
+### src/components/3d/base/BaseMepEditor.js
+- **Functions**: 9
+- **Imports**: 2
+- **Exports**: 2
+- **Lines**: 414
+- **Function List**: BaseMepEditor, updatePosition, handleFieldChange, handleTierChange, calculateObjectDimensions, getTierOptions, handleSave, handleCancel, handleCopyClick
+- **Import Sources**: ../utils/common3dHelpers, three
+
+### src/components/3d/base/BaseMepInteraction.js
+- **Functions**: 42
+- **Imports**: 4
+- **Exports**: 2
+- **Lines**: 843
+- **Function List**: onTransformChange, onDragEnd, fallbackSetup, constructor, setupTransformControls, getTransformControlsConfig, setupEventHandler, registerWithMepManager, selectObject, deselectObject, setHover, clearHover, handleClick, handleMouseMove, handleTransformKeys, applyRealTimeSnapping, snapToHorizontalLines, snapToVerticalLines, calculateTier, findTierSpaces, saveObjectPosition, deleteSelectedObject, copySelectedObject, updateObjectDimensions, createMeasurements, clearMeasurements, updateMeasurements, triggerSelectionEvent, disposeObject, dispose, findSelectableObject, findGroupForObject, updateObjectAppearance, getObjectData, setObjectData, calculateObjectDimensions, calculateTierTolerance, needsGeometryUpdate, recreateObjectGeometry, createNewObject, saveNewObjectToStorage, saveObjectDataToStorage
+- **Import Sources**: ../core/MepSelectionManager.js, ../utils/common3dHelpers.js, ../utils/mepEventHandler.js, three
+
+### src/components/3d/base/index.js
+- **Functions**: 0
+- **Imports**: 0
+- **Exports**: 2
+- **Lines**: 8
+
 ### src/components/3d/cable-trays/CableTrayEditor.js
+- **Functions**: 2
+- **Imports**: 2
+- **Exports**: 2
+- **Lines**: 81
+- **Function List**: CableTrayEditor, getInitialDimensions
+- **Import Sources**: ../base/BaseMepEditor.js, react
+
+### src/components/3d/cable-trays/CableTrayEditor_original.js
 - **Functions**: 9
 - **Imports**: 2
 - **Exports**: 1
@@ -26,10 +56,18 @@
 - **Import Sources**: ../core/extractGeometrySnapPoints.js, three
 
 ### src/components/3d/cable-trays/CableTrayInteraction.js
+- **Functions**: 24
+- **Imports**: 2
+- **Exports**: 2
+- **Lines**: 321
+- **Function List**: constructor, findSelectableObject, findGroupForObject, updateObjectAppearance, getObjectData, setObjectData, calculateObjectDimensions, calculateTierTolerance, needsGeometryUpdate, recreateObjectGeometry, createNewObject, saveNewObjectToStorage, saveObjectDataToStorage, selectedCableTray, getSelectedCableTray, selectCableTray, deselectCableTray, findCableTrayGroup, updateAllCableTrayTierInfo, forEach, updateCableTrayDimensions, duplicateSelectedCableTray, copySelectedCableTray, cableTrayGeometry
+- **Import Sources**: ../base/BaseMepInteraction.js, three
+
+### src/components/3d/cable-trays/CableTrayInteraction_original.js
 - **Functions**: 35
 - **Imports**: 4
 - **Exports**: 1
-- **Lines**: 1080
+- **Lines**: 1086
 - **Function List**: onTransformChange, onDragEnd, fallbackSetup, constructor, setupTransformControls, setupCentralizedEventHandler, registerWithMepManager, handleClick, handleMouseMove, handleTransformKeys, selectCableTray, deselectCableTray, setHoverCableTray, clearHoverCableTray, updateCableTrayDimensions, getSelectedCableTray, getSelectedCableTrayGroup, triggerSelectionEvent, setSnapLineManager, setTransformControlsEnabled, setTransformMode, updateAllCableTrayTierInfo, forEach, map, calculateCableTrayTierFromPosition, updateCableTrayTierInfo, applyRealTimeSnapping, updateCableTrayPosition, saveCableTrayPosition, createCableTrayMeasurements, clearCableTrayMeasurements, updateCableTrayMeasurements, deleteSelectedCableTray, duplicateSelectedCableTray, dispose
 - **Import Sources**: ../core/MepSelectionManager.js, ../utils/common3dHelpers.js, ../utils/mepEventHandler.js, three
 
@@ -37,7 +75,7 @@
 - **Functions**: 15
 - **Imports**: 3
 - **Exports**: 1
-- **Lines**: 336
+- **Lines**: 333
 - **Function List**: constructor, getCableTraysGroup, setupInteractions, updateCableTrays, createCableTray, calculateCableTrayPosition, calculateRackLength, clearCableTrays, getCableTrayById, getAllCableTrays, updateCableTrayColor, setVisible, getStats, getColumnDepth, dispose
 - **Import Sources**: ./CableTrayGeometry, ../core/utils, three
 
@@ -48,6 +86,14 @@
 - **Lines**: 9
 
 ### src/components/3d/conduits/ConduitEditorUI.js
+- **Functions**: 2
+- **Imports**: 2
+- **Exports**: 2
+- **Lines**: 78
+- **Function List**: ConduitEditorUI, getInitialDimensions
+- **Import Sources**: ../base/BaseMepEditor.js, react
+
+### src/components/3d/conduits/ConduitEditorUI_original.js
 - **Functions**: 9
 - **Imports**: 1
 - **Exports**: 2
@@ -64,6 +110,14 @@
 - **Import Sources**: three
 
 ### src/components/3d/conduits/ConduitInteraction.js
+- **Functions**: 27
+- **Imports**: 2
+- **Exports**: 2
+- **Lines**: 469
+- **Function List**: constructor, findSelectableObject, findGroupForObject, updateObjectAppearance, updateGroupAppearance, forEach, getObjectData, setObjectData, calculateObjectDimensions, calculateTierTolerance, needsGeometryUpdate, recreateObjectGeometry, createNewObject, saveNewObjectToStorage, saveObjectDataToStorage, selectedConduit, getSelectedConduit, selectConduit, deselectConduit, findConduitGroup, updateAllConduitTierInfo, updateConduitDimensions, duplicateSelectedConduit, copySelectedConduit, conduitGeometry, applyRealTimeSnapping, updateGroupAppearanceMethod
+- **Import Sources**: ../base/BaseMepInteraction.js, three
+
+### src/components/3d/conduits/ConduitInteraction_original.js
 - **Functions**: 34
 - **Imports**: 4
 - **Exports**: 1
@@ -134,12 +188,12 @@
 - **Import Sources**: ./extractGeometrySnapPoints.js, three
 
 ### src/components/3d/ductwork/DuctEditor.js
-- **Functions**: 8
+- **Functions**: 3
 - **Imports**: 2
-- **Exports**: 1
-- **Lines**: 436
-- **Function List**: DuctEditor, updatePosition, handleDimensionChange, handleTierChange, getTierOptions, handleSave, handleCancel, handleCopy
-- **Import Sources**: ../utils/common3dHelpers, three
+- **Exports**: 2
+- **Lines**: 105
+- **Function List**: DuctEditor, getInitialDimensions, getOffsetY
+- **Import Sources**: ../base/BaseMepEditor.js, react
 
 ### src/components/3d/ductwork/DuctGeometry.js
 - **Functions**: 8
@@ -150,26 +204,26 @@
 - **Import Sources**: ../core/extractGeometrySnapPoints.js, three
 
 ### src/components/3d/ductwork/DuctInteraction.js
-- **Functions**: 30
-- **Imports**: 4
-- **Exports**: 1
-- **Lines**: 964
-- **Function List**: onTransformChange, onDragEnd, fallbackSetup, constructor, setupTransformControls, setupCentralizedEventHandler, registerWithMepManager, handleClick, handleMouseMove, handleTransformKeys, applyRealTimeSnapping, selectDuct, deselectDuct, createDuctMeasurements, clearDuctMeasurements, updateDuctMeasurements, findDuctGroup, updateMousePosition, setDuctEditorCallbacks, calculateDuctTier, updateAllDuctTierInfo, forEach, map, calculateDuctTierFromPosition, saveDuctPosition, getSelectedDuct, updateDuctDimensions, deleteSelectedDuct, duplicateSelectedDuct, dispose
-- **Import Sources**: ../core/MepSelectionManager.js, ../utils/common3dHelpers.js, ../utils/mepEventHandler.js, three
+- **Functions**: 23
+- **Imports**: 2
+- **Exports**: 2
+- **Lines**: 325
+- **Function List**: constructor, findSelectableObject, findGroupForObject, updateObjectAppearance, getObjectData, setObjectData, calculateObjectDimensions, calculateTierTolerance, needsGeometryUpdate, recreateObjectGeometry, createNewObject, saveNewObjectToStorage, saveObjectDataToStorage, selectedDuct, getSelectedDuct, updateAllDuctTierInfo, forEach, updateDuctDimensions, duplicateSelectedDuct, deselectDuct, selectDuct, findDuctGroup, ductGeometry
+- **Import Sources**: ../base/BaseMepInteraction.js, three
 
 ### src/components/3d/ductwork/DuctworkRenderer.js
-- **Functions**: 14
-- **Imports**: 2
-- **Exports**: 1
-- **Lines**: 312
-- **Function List**: constructor, setupInteractions, updateRackParams, recalculateTierInfo, refreshDuctwork, updateDuctwork, createDuct, map, calculateDuctYPosition, clearDuctwork, getColumnDepth, getDuctworkGroup, setVisible, dispose
-- **Import Sources**: ../ductwork, three
+- **Functions**: 16
+- **Imports**: 3
+- **Exports**: 2
+- **Lines**: 306
+- **Function List**: constructor, setupInteractions, updateRackParams, recalculateTierInfo, forEach, refreshDuctwork, updateDuctwork, createDuct, map, calculateDuctYPosition, clearDuctwork, getColumnDepth, getDuctworkGroup, setVisible, dispose, selectedDuct
+- **Import Sources**: ../ductwork, ./DuctInteraction.js, three
 
 ### src/components/3d/ductwork/index.js
 - **Functions**: 0
 - **Imports**: 0
 - **Exports**: 5
-- **Lines**: 11
+- **Lines**: 14
 
 ### src/components/3d/index.js
 - **Functions**: 0
@@ -186,52 +240,68 @@
 - **Import Sources**: three
 
 ### src/components/3d/piping/PipeEditor.js
-- **Functions**: 9
+- **Functions**: 3
 - **Imports**: 2
-- **Exports**: 1
-- **Lines**: 468
-- **Function List**: PipeEditor, getTierOptions, updatePosition, onCameraChange, handleDimensionChange, handleStringChange, handleSave, handleCancel, handleCopy
-- **Import Sources**: ../utils/common3dHelpers, three
+- **Exports**: 2
+- **Lines**: 111
+- **Function List**: PipeEditor, getInitialDimensions, getOffsetY
+- **Import Sources**: ../base/BaseMepEditor.js, react
 
 ### src/components/3d/piping/PipeGeometry.js
 - **Functions**: 9
 - **Imports**: 2
 - **Exports**: 1
-- **Lines**: 468
+- **Lines**: 470
 - **Function List**: constructor, setSnapPoints, in2m, createPipeGeometry, createPipeGroup, updatePipeMaterial, getMaterialType, updatePipeAppearance, createCustomMaterial
 - **Import Sources**: ../core/extractGeometrySnapPoints.js, three
 
 ### src/components/3d/piping/PipeInteraction.js
-- **Functions**: 31
-- **Imports**: 4
-- **Exports**: 1
-- **Lines**: 928
-- **Function List**: onTransformChange, onDragEnd, fallbackSetup, constructor, setupTransformControls, setupCentralizedEventHandler, registerWithMepManager, handleTransformKeys, handleClick, handleMouseMove, updateMousePosition, findPipeGroup, selectPipe, deselectPipe, updateSnapGuides, applyRealTimeSnapping, updatePipeMeasurements, savePipePosition, updatePipeTierInfo, calculatePipeTier, updateAllPipeTierInfo, forEach, map, updatePipeDimensions, createPipeMeasurements, clearPipeMeasurements, getSelectedPipe, deleteSelectedPipe, filter, duplicateSelectedPipe, dispose
-- **Import Sources**: ../core/MepSelectionManager.js, ../utils/common3dHelpers.js, ../utils/mepEventHandler.js, three
+- **Functions**: 25
+- **Imports**: 2
+- **Exports**: 2
+- **Lines**: 356
+- **Function List**: constructor, findSelectableObject, findGroupForObject, updateObjectAppearance, getObjectData, setObjectData, calculateObjectDimensions, calculateTierTolerance, needsGeometryUpdate, recreateObjectGeometry, createNewObject, saveNewObjectToStorage, saveObjectDataToStorage, selectedPipe, getSelectedPipe, selectPipe, deselectPipe, findPipeGroup, updateAllPipeTierInfo, forEach, updatePipeDimensions, duplicateSelectedPipe, getRackLengthFromConfig, convertToFeet, pipeGeometry
+- **Import Sources**: ../base/BaseMepInteraction.js, three
 
 ### src/components/3d/piping/PipingRenderer.js
-- **Functions**: 14
+- **Functions**: 16
 - **Imports**: 4
-- **Exports**: 1
-- **Lines**: 392
-- **Function List**: constructor, setupInteractions, updatePiping, createPipe, calculatePipePosition, calculateTierPosition, calculateRackLength, getRackWidth, getColumnDepth, updateRackParams, clearPiping, getPipingGroup, recalculateTierInfo, dispose
+- **Exports**: 2
+- **Lines**: 373
+- **Function List**: constructor, setupInteractions, updateRackParams, getRackLengthFromConfig, convertToFeet, recalculateTierInfo, forEach, updatePiping, createPipe, map, calculatePipeYPosition, clearPiping, getPipingGroup, setVisible, dispose, selectedPipe
 - **Import Sources**: ./PipeGeometry.js, ./PipeInteraction.js, ../core/utils, three
 
 ### src/components/3d/piping/index.js
 - **Functions**: 0
 - **Imports**: 0
 - **Exports**: 4
-- **Lines**: 10
+- **Lines**: 13
 
 ### src/components/3d/scene/ThreeScene.jsx
-- **Functions**: 31
+- **Functions**: 33
 - **Imports**: 18
 - **Exports**: 1
-- **Lines**: 1781
-- **Function List**: ThreeScene, createBackgroundGrid, updateOrthoCamera, animate, onControlsChange, onKeyDown, logCamera, onLog, centerOrbitOnContent, saveCameraState, loadCameraState, handleDuctSelection, handlePipeSelection, handleConduitSelection, handleCableTraySelection, handleDuctEditorSave, handleDuctEditorCancel, handlePipeEditorSave, handlePipeEditorCancel, handleConduitEditorSave, handleConduitEditorCancel, handleCableTrayEditorSave, handleCableTrayEditorCancel, onViewCubeClick, onResize, handleTradeRackSelected, handleTradeRackDeselected, handleAxisToggle, handleClearMeasurements, map, setAxisLock
-- **Import Sources**: three/addons/controls/OrbitControls.js, three/addons/environments/RoomEnvironment.js, ../core/utils.js, three/addons/controls/TransformControls.js, ../controls/ViewCube.js, ../trade-rack/buildRack.js, ../controls/MeasurementTool.js, ../ductwork, ../piping, ../piping, ../conduits, ../cable-trays, ../cable-trays/CableTrayEditor, ../materials, ../core/MepSelectionManager.js, ../trade-rack/TradeRackInteraction.js, three, ../styles/measurement-styles.css
+- **Lines**: 1907
+- **Function List**: ThreeScene, createBackgroundGrid, updateOrthoCamera, animate, onControlsChange, onKeyDown, logCamera, onLog, centerOrbitOnContent, saveCameraState, loadCameraState, handleDuctSelection, handlePipeSelection, handleConduitSelection, handleCableTraySelection, handleTradeRackSelection, handleDuctEditorSave, handleDuctEditorCancel, handlePipeEditorSave, handlePipeEditorCancel, handleConduitEditorSave, handleConduitEditorCancel, handleCableTrayEditorSave, handleCableTrayEditorCancel, onViewCubeClick, onResize, handleTradeRackSelected, handleTradeRackDeselected, handleAxisToggle, handleClearMeasurements, map, forEach, setAxisLock
+- **Import Sources**: three/addons/controls/OrbitControls.js, three/addons/environments/RoomEnvironment.js, ../core/utils.js, three/addons/controls/TransformControls.js, ../controls/ViewCube.js, ../trade-rack/buildRack.js, ../controls/MeasurementTool.js, ../ductwork, ../piping, ../piping, ../conduits, ../cable-trays, ../cable-trays/CableTrayEditor, ../materials, ../core/MepSelectionManager.js, ../trade-rack, three, ../styles/measurement-styles.css
+
+### src/components/3d/trade-rack/TradeRackEditor.js
+- **Functions**: 4
+- **Imports**: 3
+- **Exports**: 2
+- **Lines**: 109
+- **Function List**: TradeRackEditor, getInitialDimensions, handleSave, getOffsetY
+- **Import Sources**: ../base/BaseMepEditor.js, react, three
 
 ### src/components/3d/trade-rack/TradeRackInteraction.js
+- **Functions**: 34
+- **Imports**: 2
+- **Exports**: 2
+- **Lines**: 770
+- **Function List**: constructor, findSelectableObject, findGroupForObject, updateObjectAppearance, updateMeshAppearance, getObjectData, setObjectData, calculateObjectDimensions, forEach, calculateTierTolerance, needsGeometryUpdate, recreateObjectGeometry, createNewObject, saveNewObjectToStorage, saveObjectDataToStorage, applyRealTimeSnapping, calculateTier, getTransformControlsConfig, handleClick, testTradeRackClick, handleMouseMove, saveRackTemporaryState, loadRackTemporaryState, saveObjectPosition, updateTradeRackDimensions, getCurrentRackPosition, selectedRack, getSelectedRack, selectRack, deselectRack, findRackGroup, copySelectedRack, duplicateSelectedRack, updateRackDimensions
+- **Import Sources**: ../base/BaseMepInteraction.js, three
+
+### src/components/3d/trade-rack/TradeRackInteraction_original.js
 - **Functions**: 32
 - **Imports**: 3
 - **Exports**: 1
@@ -243,9 +313,15 @@
 - **Functions**: 4
 - **Imports**: 2
 - **Exports**: 1
-- **Lines**: 132
+- **Lines**: 202
 - **Function List**: ensureArrays, syncArrays, buildRackScene, forEach
 - **Import Sources**: ../core/utils.js, three
+
+### src/components/3d/trade-rack/index.js
+- **Functions**: 0
+- **Imports**: 0
+- **Exports**: 3
+- **Lines**: 9
 
 ### src/components/3d/ui/chatInterface.js
 - **Functions**: 2
@@ -258,7 +334,7 @@
 - **Functions**: 19
 - **Imports**: 2
 - **Exports**: 17
-- **Lines**: 607
+- **Lines**: 620
 - **Function List**: calculateScreenPosition, validateDimensionInput, getTierOptionsFromGeometry, findTierSpace, calculateTierYPosition, calculateTierPosition, disposeObject3D, createButtonHoverHandlers, convertToFeet, calculateRackLength, createAnimationLoop, createEditorKeyHandler, setupTransformControls, registerWithMepManager, setupRaycaster, updateMouseCoordinates, createMepKeyboardHandler, animate, tryRegister
 - **Import Sources**: three/addons/controls/TransformControls.js, three
 
@@ -266,7 +342,7 @@
 - **Functions**: 23
 - **Imports**: 2
 - **Exports**: 2
-- **Lines**: 490
+- **Lines**: 502
 - **Function List**: createMepEventHandler, constructor, setupEventListeners, removeEventListeners, isMeasurementToolActive, onMouseClick, onMouseMove, onKeyDown, findIntersectedObject, findParentObjectOfType, checkObjectType, selectObject, deselectObject, getSelectedObject, getHoveredObject, setCallbacks, setCallback, updateConfig, forceSelect, forceDeselect, isSelected, isHovered, dispose
 - **Import Sources**: ./common3dHelpers.js, three
 
@@ -388,16 +464,16 @@
 - **Functions**: 11
 - **Imports**: 3
 - **Exports**: 1
-- **Lines**: 516
+- **Lines**: 560
 - **Function List**: AppRackProperties, convertToFeet, validateForm, handleFeetInchesChange, handleMountTypeChange, handleTierCountChange, handleTierHeightChange, handleSelectChange, handleAddRack, renderTierHeightInputs, setFormData
 - **Import Sources**: ../../types/tradeRack, prop-types, ./app-rack-properties.css
 
 ### src/components/mep/app-saved-configurations.js
-- **Functions**: 11
+- **Functions**: 12
 - **Imports**: 5
 - **Exports**: 1
-- **Lines**: 650
-- **Function List**: AppSavedConfigurations, handleConfigClick, handleSaveConfiguration, handleUpdateConfig, handleStartRename, handleCancelRename, handleSaveRename, handleDeleteConfig, formatDimension, formatDate, getConfigColor
+- **Lines**: 711
+- **Function List**: AppSavedConfigurations, handleConfigClick, handleSaveConfiguration, handleUpdateConfig, handleStartRename, handleCancelRename, handleSaveRename, handleDeleteConfig, formatDimension, formatTopClearance, formatDate, getConfigColor
 - **Import Sources**: react, ../../utils/projectManifest, ../../types/tradeRack, prop-types, ./app-saved-configurations.css
 
 ### src/components/mep/app-tier-mep.js
@@ -556,7 +632,7 @@
 - **Functions**: 5
 - **Imports**: 1
 - **Exports**: 1
-- **Lines**: 189
+- **Lines**: 242
 - **Function List**: createConfigurationHandlers, handleBuildingSave, handleAddRack, handleConfigurationSaved, handleRestoreConfiguration
 - **Import Sources**: ../utils/projectManifest
 
@@ -580,7 +656,7 @@
 - **Functions**: 4
 - **Imports**: 4
 - **Exports**: 1
-- **Lines**: 197
+- **Lines**: 210
 - **Function List**: useAppState, getInitialUIState, handleProjectNameChange, handlePanelClick
 - **Import Sources**: react, ../types/buildingShell, ../types/tradeRack, ../utils/projectManifest
 
@@ -610,11 +686,11 @@
 
 ### src/hooks/useSceneRack.js
 - **Functions**: 1
-- **Imports**: 2
+- **Imports**: 3
 - **Exports**: 1
-- **Lines**: 68
+- **Lines**: 140
 - **Function List**: useSceneRack
-- **Import Sources**: react, ../components/3d/trade-rack/buildRack
+- **Import Sources**: react, ../components/3d/trade-rack/buildRack, ../components/3d/trade-rack/TradeRackInteraction
 
 ### src/hooks/useSceneShell.js
 - **Functions**: 1
@@ -705,7 +781,7 @@
 - **Functions**: 3
 - **Imports**: 0
 - **Exports**: 4
-- **Lines**: 115
+- **Lines**: 118
 - **Function List**: convertToFeet, calculateTotalHeight, calculateBayConfiguration
 
 ### src/utils/fileOperations.js

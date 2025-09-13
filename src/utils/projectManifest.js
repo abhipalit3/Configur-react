@@ -156,12 +156,24 @@ export const updateBuildingShell = (parameters) => {
 }
 
 /**
- * Update trade rack configuration in manifest
+ * Save configuration to list only (doesn't update active config)
  */
-export const updateTradeRackConfiguration = (configuration, isNewSave = false) => {
+export const saveConfigurationToList = (configuration) => {
   const manifest = getProjectManifest()
   
-  if (isNewSave) {
+  // Check if this configuration already exists in the saved list
+  const existingConfigIndex = manifest.tradeRacks.configurations.findIndex(
+    config => config.id === configuration.id
+  )
+  
+  if (existingConfigIndex >= 0) {
+    // Update existing configuration
+    manifest.tradeRacks.configurations[existingConfigIndex] = {
+      ...configuration,
+      savedAt: new Date().toISOString(),
+      version: (manifest.tradeRacks.configurations[existingConfigIndex].version || 0) + 1
+    }
+  } else {
     // Add new configuration to saved list
     const configWithMetadata = {
       ...configuration,
@@ -169,15 +181,57 @@ export const updateTradeRackConfiguration = (configuration, isNewSave = false) =
       savedAt: new Date().toISOString(),
       version: 1
     }
-    
-    manifest.tradeRacks.configurations.push(configWithMetadata)
+    manifest.tradeRacks.configurations.unshift(configWithMetadata)
     manifest.tradeRacks.totalCount = manifest.tradeRacks.configurations.length
-    manifest.statistics.configurationsSaved++
+  }
+  
+  manifest.tradeRacks.lastModified = new Date().toISOString()
+  saveProjectManifest(manifest)
+  return manifest
+}
+
+/**
+ * Update trade rack configuration in manifest
+ */
+export const updateTradeRackConfiguration = (configuration, isNewSave = false) => {
+  const manifest = getProjectManifest()
+  
+  if (isNewSave) {
+    // Check if this configuration already exists in the saved list
+    const existingConfigIndex = manifest.tradeRacks.configurations.findIndex(
+      config => config.id === configuration.id
+    )
     
-    addChangeToHistory(manifest, 'tradeRacks', 'configuration_saved', {
-      configurationId: configWithMetadata.id,
-      configurationName: configWithMetadata.name
-    })
+    if (existingConfigIndex >= 0) {
+      // Update existing configuration
+      manifest.tradeRacks.configurations[existingConfigIndex] = {
+        ...configuration,
+        savedAt: new Date().toISOString(),
+        version: (manifest.tradeRacks.configurations[existingConfigIndex].version || 0) + 1
+      }
+      
+      addChangeToHistory(manifest, 'tradeRacks', 'configuration_updated', {
+        configurationId: configuration.id,
+        configurationName: configuration.name
+      })
+    } else {
+      // Add new configuration to saved list
+      const configWithMetadata = {
+        ...configuration,
+        id: configuration.id || Date.now(),
+        savedAt: new Date().toISOString(),
+        version: 1
+      }
+      
+      manifest.tradeRacks.configurations.push(configWithMetadata)
+      manifest.tradeRacks.totalCount = manifest.tradeRacks.configurations.length
+      manifest.statistics.configurationsSaved++
+      
+      addChangeToHistory(manifest, 'tradeRacks', 'configuration_saved', {
+        configurationId: configWithMetadata.id,
+        configurationName: configWithMetadata.name
+      })
+    }
   }
   
   // Update active configuration

@@ -7,6 +7,7 @@
 import * as THREE from 'three'
 import { RackSnapLineManager, DuctGeometry } from '../ductwork'
 import { DuctInteraction } from './DuctInteraction.js'
+import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
 
 /**
  * DuctworkRenderer - Using the new base interaction class
@@ -96,8 +97,14 @@ export class DuctworkRenderer {
    */
   refreshDuctwork() {
     try {
-      const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-      const ductItems = storedMepItems.filter(item => item && item.type === 'duct')
+      const manifest = getProjectManifest()
+      const allMepItems = [
+        ...manifest.mepItems.ductwork,
+        ...manifest.mepItems.piping,
+        ...manifest.mepItems.conduits,
+        ...manifest.mepItems.cableTrays
+      ]
+      const ductItems = allMepItems.filter(item => item && item.type === 'duct')
       
       if (ductItems.length > 0) {
         this.updateDuctwork(ductItems)
@@ -172,19 +179,8 @@ export class DuctworkRenderer {
       ductData.tier = calculatedTierInfo.tier
       ductData.tierName = calculatedTierInfo.tierName
       
-      // Update in localStorage
-      try {
-        const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-        const updatedItems = storedMepItems.map(item => {
-          if (item.id === ductData.id) {
-            return { ...item, tier: calculatedTierInfo.tier, tierName: calculatedTierInfo.tierName }
-          }
-          return item
-        })
-        localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-      } catch (error) {
-        console.error('Error updating tier info:', error)
-      }
+      // Update in storage - this will be handled by the interaction class
+      // The duct interaction class will save the updated tier info via the base class
     }
     
     // Create duct group using modular geometry
@@ -201,10 +197,20 @@ export class DuctworkRenderer {
    * Calculate duct Y position within tier - unchanged logic
    */
   calculateDuctYPosition(ductData, tier = 1, position = 'bottom') {
-    const snapLines = this.snapLineManager.getSnapLinesFromRackGeometry()
+    let snapLines = null
+    try {
+      snapLines = this.snapLineManager?.getSnapLinesFromRackGeometry()
+    } catch (error) {
+      console.warn('⚠️ Error getting snap lines:', error)
+    }
+    
+    if (!snapLines || !snapLines.horizontal || !Array.isArray(snapLines.horizontal)) {
+      console.warn('⚠️ No snap lines found or invalid format, using fallback position')
+      return 2 - (tier - 1) * 2 // Fallback
+    }
     
     const beamTopSurfaces = snapLines.horizontal
-      .filter(line => line.type === 'beam_top')
+      .filter(line => line && line.type === 'beam_top' && typeof line.y === 'number')
       .sort((a, b) => b.y - a.y)
     
     if (beamTopSurfaces.length === 0) {

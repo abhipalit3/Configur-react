@@ -39,8 +39,10 @@ import { createMEPHandlers } from '../handlers/mepHandlers'
 import { createConfigurationHandlers } from '../handlers/configurationHandlers'
 import { createUIHandlers } from '../handlers/uiHandlers'
 
-// Import manifest debugging tools (available in browser console)
+// Import debugging and testing tools (available in browser console)
 import '../utils/manifestExporter'
+import { initializeStorageSystem, getStorageSystemStatus } from '../utils/initializeStorage'
+import { testStorageSystem } from '../utils/testStorage'
 import './app-page.css'
 
 const AppPage = (props) => {

@@ -6,6 +6,7 @@
 
 import { BaseMepInteraction } from '../base/BaseMepInteraction.js'
 import * as THREE from 'three'
+import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
 
 /**
  * PipeInteraction - Piping-specific implementation using base class
@@ -174,13 +175,19 @@ export class PipeInteraction extends BaseMepInteraction {
     }
     
     try {
-      const storedItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-      storedItems.push(mepItem)
-      localStorage.setItem('configurMepItems', JSON.stringify(storedItems))
+      // Get current MEP items from manifest
+      const manifest = getProjectManifest()
+      const currentItems = [
+        ...manifest.mepItems.ductwork,
+        ...manifest.mepItems.piping,
+        ...manifest.mepItems.conduits,
+        ...manifest.mepItems.cableTrays
+      ]
       
-      if (window.updateMEPItemsManifest) {
-        window.updateMEPItemsManifest(storedItems)
-      }
+      const updatedItems = [...currentItems, mepItem]
+      updateMEPItems(updatedItems, 'all')
+      
+      // Legacy support - also update localStorage for components that still use it
       
       if (window.refreshMepPanel) {
         window.refreshMepPanel()
@@ -197,10 +204,18 @@ export class PipeInteraction extends BaseMepInteraction {
    */
   saveObjectDataToStorage(pipeData) {
     try {
-      const storedItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+      // Get current MEP items from manifest
+      const manifest = getProjectManifest()
+      const currentItems = [
+        ...manifest.mepItems.ductwork,
+        ...manifest.mepItems.piping,
+        ...manifest.mepItems.conduits,
+        ...manifest.mepItems.cableTrays
+      ]
+      
       const baseId = pipeData.id.toString().split('_')[0]
       
-      const updatedItems = storedItems.map(item => {
+      const updatedItems = currentItems.map(item => {
         const itemBaseId = item.id.toString().split('_')[0]
         if (itemBaseId === baseId && item.type === 'pipe') {
           return { ...item, ...pipeData }
@@ -208,11 +223,9 @@ export class PipeInteraction extends BaseMepInteraction {
         return item
       })
       
-      localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+      updateMEPItems(updatedItems, 'all')
       
-      if (window.updateMEPItemsManifest) {
-        window.updateMEPItemsManifest(updatedItems)
-      }
+      // Legacy support - also update localStorage for components that still use it
       
       if (window.refreshMepPanel) {
         window.refreshMepPanel()
@@ -299,7 +312,7 @@ export class PipeInteraction extends BaseMepInteraction {
   getRackLengthFromConfig() {
     try {
       // Priority 1: Check projectManifest for active rack configuration
-      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+      const manifest = getProjectManifest()
       const activeConfig = manifest.tradeRacks?.active
       
       if (activeConfig?.rackLength) {
@@ -308,7 +321,7 @@ export class PipeInteraction extends BaseMepInteraction {
         return this.convertToFeet(activeConfig.totalLength)
       }
       
-      // Priority 2: Check rackParameters from localStorage
+      // Priority 2: Check rackParameters from localStorage - fallback for legacy support
       const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
       if (rackParams.rackLength) {
         return this.convertToFeet(rackParams.rackLength)

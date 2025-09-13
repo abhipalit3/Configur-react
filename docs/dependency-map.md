@@ -4,16 +4,34 @@
 
 ### three
 Used in:
-- src/components/3d/cable-trays/CableTrayEditor.js (THREE)
-- src/components/3d/conduits/ConduitEditorUI.js (THREE)
+- src/components/3d/base/BaseMepEditor.js (THREE)
+- src/components/3d/cable-trays/CableTrayEditor_original.js (THREE)
+- src/components/3d/conduits/ConduitEditorUI_original.js (THREE)
 - src/components/3d/core/extractGeometrySnapPoints.js (THREE)
 - src/components/3d/core/utils.js (THREE)
-- src/components/3d/ductwork/DuctEditor.js (THREE)
 - src/components/3d/materials/index.js (THREE)
-- src/components/3d/piping/PipeEditor.js (THREE)
 - src/components/3d/scene/ThreeScene.jsx (THREE)
+- src/components/3d/trade-rack/TradeRackEditor.js (THREE)
 - src/components/3d/trade-rack/buildRack.js (THREE)
 - src/components/3d/utils/common3dHelpers.js (THREE)
+
+### react
+Used in:
+- src/components/3d/cable-trays/CableTrayEditor.js (React)
+- src/components/3d/conduits/ConduitEditorUI.js (React)
+- src/components/3d/ductwork/DuctEditor.js (React)
+- src/components/3d/piping/PipeEditor.js (React)
+- src/components/3d/trade-rack/TradeRackEditor.js (React)
+- src/components/mep/app-add-mep.js (React)
+- src/components/mep/app-saved-configurations.js (useState, useEffect)
+- src/hooks/useAppState.js (useState, useEffect)
+- src/hooks/useBuildingRackSync.js (useEffect)
+- src/hooks/useEventListeners.js (useEffect)
+- src/hooks/useInitialization.js (useEffect)
+- src/hooks/useSceneRack.js (useRef, useCallback)
+- src/hooks/useSceneShell.js (useRef, useCallback)
+- src/index.js (React)
+- src/pages/not-found.js (React)
 
 ### three/addons/controls/OrbitControls.js
 Used in:
@@ -75,19 +93,6 @@ Used in:
 - src/pages/project-dashboard.js (Link)
 - src/pages/projects.js (Link)
 
-### react
-Used in:
-- src/components/mep/app-add-mep.js (React)
-- src/components/mep/app-saved-configurations.js (useState, useEffect)
-- src/hooks/useAppState.js (useState, useEffect)
-- src/hooks/useBuildingRackSync.js (useEffect)
-- src/hooks/useEventListeners.js (useEffect)
-- src/hooks/useInitialization.js (useEffect)
-- src/hooks/useSceneRack.js (useRef, useCallback)
-- src/hooks/useSceneShell.js (useRef, useCallback)
-- src/index.js (React)
-- src/pages/not-found.js (React)
-
 ### react-dom
 Used in:
 - src/index.js (ReactDOM)
@@ -106,9 +111,16 @@ Used in:
 
 ### ../utils/common3dHelpers
 Used in:
-- src/components/3d/cable-trays/CableTrayEditor.js (calculateScreenPosition, validateDimensionInput, getTierOptionsFromGeometry, findTierSpace, calculateTierYPosition, createAnimationLoop, createEditorKeyHandler)
-- src/components/3d/ductwork/DuctEditor.js (calculateScreenPosition, validateDimensionInput, getTierOptionsFromGeometry, findTierSpace, calculateTierYPosition, createAnimationLoop, createEditorKeyHandler)
-- src/components/3d/piping/PipeEditor.js (validateDimensionInput, getTierOptionsFromGeometry, findTierSpace, calculateTierYPosition, createEditorKeyHandler)
+- src/components/3d/base/BaseMepEditor.js (calculateScreenPosition, validateDimensionInput, getTierOptionsFromGeometry, findTierSpace, calculateTierYPosition, createAnimationLoop, createEditorKeyHandler)
+- src/components/3d/cable-trays/CableTrayEditor_original.js (calculateScreenPosition, validateDimensionInput, getTierOptionsFromGeometry, findTierSpace, calculateTierYPosition, createAnimationLoop, createEditorKeyHandler)
+
+### ../base/BaseMepEditor.js
+Used in:
+- src/components/3d/cable-trays/CableTrayEditor.js (BaseMepEditor)
+- src/components/3d/conduits/ConduitEditorUI.js (BaseMepEditor)
+- src/components/3d/ductwork/DuctEditor.js (BaseMepEditor)
+- src/components/3d/piping/PipeEditor.js (BaseMepEditor)
+- src/components/3d/trade-rack/TradeRackEditor.js (BaseMepEditor)
 
 ### ./extractGeometrySnapPoints.js
 Used in:
@@ -160,9 +172,9 @@ Used in:
 Used in:
 - src/components/3d/scene/ThreeScene.jsx (initializeMepSelectionManager)
 
-### ../trade-rack/TradeRackInteraction.js
+### ../trade-rack
 Used in:
-- src/components/3d/scene/ThreeScene.jsx (TradeRackInteraction)
+- src/components/3d/scene/ThreeScene.jsx (TradeRackInteraction, TradeRackEditor)
 
 ### ../styles/measurement-styles.css
 Used in:
@@ -328,6 +340,10 @@ Used in:
 ### ../components/3d/trade-rack/buildRack
 Used in:
 - src/hooks/useSceneRack.js (buildRackScene)
+
+### ../components/3d/trade-rack/TradeRackInteraction
+Used in:
+- src/hooks/useSceneRack.js (TradeRackInteraction)
 
 ### ../components/3d/core/utils
 Used in:

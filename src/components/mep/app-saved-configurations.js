@@ -6,7 +6,8 @@
 
 import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { syncManifestWithLocalStorage, getProjectManifest, setActiveConfiguration } from '../../utils/projectManifest'
+import { getProjectManifest, setActiveConfiguration, updateTradeRackConfiguration, deleteTradeRackConfiguration, saveConfigurationToList } from '../../utils/projectManifest'
+import { getRackTemporaryState } from '../../utils/temporaryState'
 import { calculateTotalHeight } from '../../types/tradeRack'
 import './app-saved-configurations.css'
 
@@ -17,26 +18,22 @@ const AppSavedConfigurations = (props) => {
   const [editingConfigId, setEditingConfigId] = useState(null)
   const [editingName, setEditingName] = useState('')
 
-  // Load saved configurations from localStorage on mount and when refreshTrigger changes
+  // Load saved configurations from manifest on mount and when refreshTrigger changes
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('tradeRackConfigurations')
-      if (saved) {
-        const configs = JSON.parse(saved)
-        // Sort by updatedAt (if exists) or savedAt date, newest first
-        const sortedConfigs = configs.sort((a, b) => {
-          const dateA = new Date(a.updatedAt || a.savedAt)
-          const dateB = new Date(b.updatedAt || b.savedAt)
-          return dateB - dateA
-        })
-        setSavedConfigs(sortedConfigs)
-      } else {
-        setSavedConfigs([])
-      }
+      const manifest = getProjectManifest()
+      const configs = manifest.tradeRacks?.configurations || []
+      
+      // Sort by updatedAt (if exists) or savedAt date, newest first
+      const sortedConfigs = configs.sort((a, b) => {
+        const dateA = new Date(a.updatedAt || a.savedAt)
+        const dateB = new Date(b.updatedAt || b.savedAt)
+        return dateB - dateA
+      })
+      setSavedConfigs(sortedConfigs)
       
       // Get active configuration ID from manifest
-      const manifest = getProjectManifest()
-      setActiveConfigId(manifest.tradeRacks.activeConfigurationId)
+      setActiveConfigId(manifest.tradeRacks?.activeConfigurationId)
     } catch (error) {
       console.error('Error loading saved configurations:', error)
       setSavedConfigs([])
@@ -57,26 +54,24 @@ const AppSavedConfigurations = (props) => {
       return
     }
     
-    // Get the current rack configuration from localStorage (the actual scene state)
-    const currentRackParams = localStorage.getItem('rackParameters')
-    if (!currentRackParams) {
+    // Get the current rack configuration from manifest
+    const manifest = getProjectManifest()
+    if (!manifest.tradeRacks?.active) {
       alert('No rack configuration to save. Please add a rack first.')
       return
     }
     
-    let rackConfig = JSON.parse(currentRackParams)
+    let rackConfig = { ...manifest.tradeRacks.active }
+    delete rackConfig.lastApplied // Remove metadata
     
     // Get current effective top clearance from temporary state if available
     try {
-      const tempStateStr = localStorage.getItem('rackTemporaryState')
-      if (tempStateStr) {
-        const tempState = JSON.parse(tempStateStr)
-        if (tempState.topClearance !== undefined) {
-          // Update rackConfig with current effective top clearance
-          rackConfig.topClearance = tempState.topClearance
-          rackConfig.topClearanceInches = tempState.topClearanceInches
-          console.log('🔧 Saving with current top clearance:', tempState.topClearance)
-        }
+      const tempState = getRackTemporaryState()
+      if (tempState.topClearance !== undefined) {
+        // Update rackConfig with current effective top clearance
+        rackConfig.topClearance = tempState.topClearance
+        rackConfig.topClearanceInches = tempState.topClearanceInches
+        console.log('🔧 Saving with current top clearance:', tempState.topClearance)
       }
     } catch (error) {
       console.warn('Could not retrieve current top clearance from temporary state:', error)
@@ -92,29 +87,25 @@ const AppSavedConfigurations = (props) => {
         console.log('🔧 SAVE CONFIG: Got position from interaction:', currentPosition)
       }
       
-      // Fallback: check for existing position in stored racks
-      if (!currentPosition) {
-        const storedRacks = JSON.parse(localStorage.getItem('configurTradeRacks') || '[]')
-        if (storedRacks.length > 0) {
-          // Get the most recent rack position
-          const latestRack = storedRacks[storedRacks.length - 1]
-          if (latestRack.position) {
-            currentPosition = latestRack.position
-          }
-        }
+      // Fallback: check for existing position in manifest active config
+      if (!currentPosition && rackConfig.position) {
+        currentPosition = rackConfig.position
       }
     } catch (error) {
       console.warn('Could not retrieve current rack position:', error)
     }
     
+    // Clean up the config and use only one position field
+    const { currentPosition: oldPosition, ...cleanRackConfig } = rackConfig
+    
     const newConfig = {
-      ...rackConfig,
+      ...cleanRackConfig,
       id: Date.now(),
       name: configurationName.trim(),
       savedAt: new Date().toISOString(),
       totalHeight: calculateTotalHeight(rackConfig),
-      // Include position if available
-      ...(currentPosition && { position: currentPosition })
+      // Use current position from scene, fallback to old position
+      position: currentPosition || oldPosition || { x: 0, y: 0, z: 0 }
     }
     
     console.log('🔧 SAVE CONFIG DEBUG:')
@@ -129,12 +120,12 @@ const AppSavedConfigurations = (props) => {
     setSavedConfigs(updatedConfigs)
     
     try {
-      // Update localStorage
-      localStorage.setItem('tradeRackConfigurations', JSON.stringify(updatedConfigs))
-      console.log('🔧 SAVE CONFIG: Stored to localStorage:', JSON.stringify(newConfig, null, 2))
+      console.log('🔧 SAVE CONFIG: Saving to manifest:', JSON.stringify(newConfig, null, 2))
       
-      // Update manifest by syncing with localStorage (this ensures consistency)
-      syncManifestWithLocalStorage()
+      // Save to configurations list only (no active config update)
+      saveConfigurationToList(newConfig)
+      console.log('🔧 SAVE CONFIG: Configuration saved to list only')
+      
       // Clear the name input after saving
       setConfigurationName('')
       
@@ -249,11 +240,8 @@ const AppSavedConfigurations = (props) => {
     setSavedConfigs(sortedConfigs)
     
     try {
-      // Update localStorage
-      localStorage.setItem('tradeRackConfigurations', JSON.stringify(sortedConfigs))
-      
-      // Update manifest by syncing with localStorage
-      syncManifestWithLocalStorage()
+      // Update manifest with updated configuration
+      updateTradeRackConfiguration(updatedConfig, false)
       
       // If this was the active configuration, update it
       if (activeConfigId === configId) {
@@ -307,15 +295,27 @@ const AppSavedConfigurations = (props) => {
     setSavedConfigs(sortedConfigs)
 
     try {
-      // Update localStorage
-      localStorage.setItem('tradeRackConfigurations', JSON.stringify(sortedConfigs))
-      
-      // Update manifest by syncing with localStorage
-      syncManifestWithLocalStorage()
-      
-      // Clear editing state
-      setEditingConfigId(null)
-      setEditingName('')
+      const manifest = getProjectManifest()
+      const configIndex = manifest.tradeRacks.configurations.findIndex(config => config.id === configId)
+      if (configIndex !== -1) {
+        manifest.tradeRacks.configurations[configIndex].name = editingName.trim()
+        manifest.tradeRacks.configurations[configIndex].updatedAt = new Date().toISOString()
+        
+        // Save updated manifest
+        require('../../utils/projectManifest').saveProjectManifest(manifest)
+        
+        // Update local state
+        const sortedConfigs = [...manifest.tradeRacks.configurations].sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.savedAt)
+          const dateB = new Date(b.updatedAt || b.savedAt)
+          return dateB - dateA
+        })
+        setSavedConfigs(sortedConfigs)
+        
+        // Clear editing state
+        setEditingConfigId(null)
+        setEditingName('')
+      }
     } catch (error) {
       console.error('Error renaming configuration:', error)
       alert('Failed to rename configuration. Please try again.')
@@ -328,13 +328,10 @@ const AppSavedConfigurations = (props) => {
     setSavedConfigs(updatedConfigs)
     
     try {
-      // Update localStorage
-      localStorage.setItem('tradeRackConfigurations', JSON.stringify(updatedConfigs))
-      
-      // Update manifest by syncing with localStorage (this ensures consistency)
-      syncManifestWithLocalStorage()
+      // Delete configuration from manifest
+      deleteTradeRackConfiguration(configId)
     } catch (error) {
-      console.error('Error saving configurations:', error)
+      console.error('Error deleting configuration:', error)
     }
   }
 

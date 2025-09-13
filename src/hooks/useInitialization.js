@@ -37,10 +37,9 @@ export const useInitialization = (
     }
   }, [])
 
-  // Save to localStorage and update manifest whenever mepItems changes
+  // Update manifest whenever mepItems changes
   useEffect(() => {
     try {
-      localStorage.setItem('configurMepItems', JSON.stringify(mepItems))
       // Update manifest with current MEP items
       updateMEPItems(mepItems, 'all')
     } catch (error) {

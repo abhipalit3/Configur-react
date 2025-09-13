@@ -23,6 +23,8 @@ import { createMaterials, loadTextures, disposeMaterials } from '../materials'
 import { initializeMepSelectionManager } from '../core/MepSelectionManager.js'
 import { TradeRackInteraction, TradeRackEditor } from '../trade-rack'
 import '../styles/measurement-styles.css'
+import { getTemporaryState, updateCameraState, getRackTemporaryState } from '../../../utils/temporaryState'
+import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
 
 
 /**
@@ -235,11 +237,12 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     let tempState = null
     if (!initialRackParams?.isNewRack) {
       try {
-        const tempStateStr = localStorage.getItem('rackTemporaryState')
-        if (tempStateStr) {
-          tempState = JSON.parse(tempStateStr)
+        tempState = getRackTemporaryState()
+        if (tempState?.position) {
           console.log('🔧 Loading temporary state BEFORE building rack:', tempState)
           console.log('🔧 Temporary state position:', tempState.position)
+          // Already in correct format
+          tempState = { position: tempState.position }
         }
       } catch (error) {
         console.error('Error loading temporary state:', error)
@@ -288,8 +291,14 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     ductHeights  : [16, 16], // in  (parallel array #3)
     ductOffsets  : [ 0,  0], // in  (parallel array #4)
     
-    // Add position: temporary state for existing racks, saved position for restored configs, undefined for new racks
-    position: initialRackParams?.isNewRack ? undefined : (tempState?.position || initialRackParams?.position)
+    // Position handling: distinguish between page refresh vs new rack
+    // If tempState exists, it's likely a page refresh, so use temporary state
+    // If no tempState and isNewRack, it's a fresh new rack
+    position: tempState?.position || initialRackParams?.position,
+    
+    // Pass basic flags
+    isNewRack: initialRackParams?.isNewRack || false,
+    isUsingPreservedPosition: !!initialRackParams?.isUsingPreservedPosition
     };
     
     console.log('🔧 Final params position before buildRack:', params.position)
@@ -403,7 +412,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         viewMode: currentViewMode
       }
       try {
-        localStorage.setItem('cameraState', JSON.stringify(cameraState))
+        updateCameraState(cameraState)
         // console.log('💾 Camera state saved:', cameraState)
       } catch (error) {
         console.warn('⚠️ Failed to save camera state:', error)
@@ -412,9 +421,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     
     const loadCameraState = () => {
       try {
-        const saved = localStorage.getItem('cameraState')
-        if (saved) {
-          const cameraState = JSON.parse(saved)
+        const tempState = getTemporaryState()
+        const cameraState = tempState.camera
+        if (cameraState && cameraState.position) {
           // console.log('📷 Loading saved camera state:', cameraState)
           return cameraState
         }
@@ -430,6 +439,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       rotation: camera.rotation.clone(),
       zoom: camera.zoom,
       target: controls.target.clone()
+    }
+    
+    // Initialize a stub for sceneViewModeHandler to prevent early call errors
+    window.sceneViewModeHandler = () => {
+      console.warn('sceneViewModeHandler called before full initialization')
     }
     
     // Load and apply saved camera state if available
@@ -832,9 +846,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         // Update the 3D duct using base class method
         ductworkRenderer.ductInteraction.updateObjectDimensions(newDimensions)
         
-        // Update localStorage (MEP panel data)
+        // Update manifest (MEP panel data)
         try {
-          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+          const manifest = getProjectManifest()
+          const storedMepItems = [
+            ...(manifest.mepItems?.ductwork || []),
+            ...(manifest.mepItems?.piping || []),
+            ...(manifest.mepItems?.conduits || []),
+            ...(manifest.mepItems?.cableTrays || [])
+          ]
           const selectedDuctData = selectedDuct?.userData?.ductData
           
           if (selectedDuctData) {
@@ -846,7 +866,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               return item
             })
             
-            localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+            updateMEPItems(updatedItems, 'all')
             
             // Trigger refresh of MEP panel if callback exists
             if (window.refreshMepPanel) {
@@ -872,9 +892,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         // Update the 3D pipe
         pipingRenderer.pipeInteraction.updateObjectDimensions(newDimensions)
         
-        // Update localStorage (MEP panel data)
+        // Update manifest (MEP panel data)
         try {
-          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+          const manifest = getProjectManifest()
+          const storedMepItems = [
+            ...(manifest.mepItems?.ductwork || []),
+            ...(manifest.mepItems?.piping || []),
+            ...(manifest.mepItems?.conduits || []),
+            ...(manifest.mepItems?.cableTrays || [])
+          ]
           const selectedPipeData = selectedPipe?.userData?.pipeData
           
           if (selectedPipeData) {
@@ -903,7 +929,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               return item
             })
             
-            localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+            updateMEPItems(updatedItems, 'all')
             
             // IMPORTANT: Also update the manifest to ensure consistency
             if (window.updateMEPItemsManifest) {
@@ -924,8 +950,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
             
             // Force re-render by dispatching storage event
             window.dispatchEvent(new StorageEvent('storage', {
-              key: 'configurMepItems',
-              newValue: JSON.stringify(updatedItems),
+              key: 'projectManifest',
+              newValue: JSON.stringify(getProjectManifest()),
               storageArea: localStorage
             }))
           }
@@ -947,9 +973,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         // Update the 3D conduit with new dimensions
         conduitRenderer.conduitInteraction.updateConduitDimensions(newDimensions)
         
-        // Update MEP items in localStorage similar to pipes and ducts
+        // Update MEP items in manifest similar to pipes and ducts
         try {
-          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+          const manifest = getProjectManifest()
+          const storedMepItems = [
+            ...(manifest.mepItems?.ductwork || []),
+            ...(manifest.mepItems?.piping || []),
+            ...(manifest.mepItems?.conduits || []),
+            ...(manifest.mepItems?.cableTrays || [])
+          ]
           const selectedConduitData = selectedConduit?.userData?.conduitData
           
           if (selectedConduitData && storedMepItems.length > 0) {
@@ -976,7 +1008,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               return item
             })
             
-            localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+            updateMEPItems(updatedItems, 'all')
             
             if (window.updateMEPItemsManifest) {
               window.updateMEPItemsManifest(updatedItems)
@@ -991,8 +1023,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
             }
             
             window.dispatchEvent(new StorageEvent('storage', {
-              key: 'configurMepItems',
-              newValue: JSON.stringify(updatedItems),
+              key: 'projectManifest',
+              newValue: JSON.stringify(getProjectManifest()),
               storageArea: localStorage
             }))
           }
@@ -1027,9 +1059,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         // Update the 3D cable tray with new dimensions
         cableTrayRendererRef.current.cableTrayInteraction.updateCableTrayDimensions(newDimensions)
         
-        // Update MEP items in localStorage similar to other MEP systems
+        // Update MEP items in manifest similar to other MEP systems
         try {
-          const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+          const manifest = getProjectManifest()
+          const storedMepItems = [
+            ...(manifest.mepItems?.ductwork || []),
+            ...(manifest.mepItems?.piping || []),
+            ...(manifest.mepItems?.conduits || []),
+            ...(manifest.mepItems?.cableTrays || [])
+          ]
           const selectedCableTrayData = selectedCableTray?.userData?.cableTrayData
           
           if (selectedCableTrayData && storedMepItems.length > 0) {
@@ -1039,7 +1077,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               const itemBaseId = item.id.toString().split('_')[0]
               
               if (itemBaseId === baseId && item.type === 'cableTray') {
-                // console.log(`🔌 Found matching cable tray in localStorage to update:`, item)
+                // console.log(`🔌 Found matching cable tray in manifest to update:`, item)
                 const currentPosition = {
                   x: selectedCableTray.position.x,
                   y: selectedCableTray.position.y, 
@@ -1061,13 +1099,13 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               return item
             })
             
-            localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-            // console.log(`🔌 Updated cable tray ${selectedCableTrayData.id} in localStorage`)
+            updateMEPItems(updatedItems, 'all')
+            // console.log(`🔌 Updated cable tray ${selectedCableTrayData.id} in manifest`)
             
             // Dispatch storage event to update other components
             window.dispatchEvent(new Event('storage'))
           } else {
-            console.warn('⚠️ Could not find cable tray data for localStorage update')
+            console.warn('⚠️ Could not find cable tray data for manifest update')
           }
         } catch (error) {
           console.error('Error updating MEP cable tray items:', error)
@@ -1471,9 +1509,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               // Update the 3D duct using base class method
               ductworkRendererRef.current.ductInteraction.updateObjectDimensions(dimensions)
               
-              // Update localStorage (MEP panel data)
+              // Update manifest (MEP panel data)
               try {
-                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+                const manifest = getProjectManifest()
+                const storedMepItems = [
+                  ...(manifest.mepItems?.ductwork || []),
+                  ...(manifest.mepItems?.piping || []),
+                  ...(manifest.mepItems?.conduits || []),
+                  ...(manifest.mepItems?.cableTrays || [])
+                ]
                 const selectedDuctData = selectedDuct?.userData?.ductData
                 
                 if (selectedDuctData) {
@@ -1503,7 +1547,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                     return item
                   })
                   
-                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+                  updateMEPItems(updatedItems, 'all')
                   
                   // IMPORTANT: Also update the manifest to ensure consistency
                   if (window.updateMEPItemsManifest) {
@@ -1524,8 +1568,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                   
                   // Force re-render by dispatching storage event
                   window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'configurMepItems',
-                    newValue: JSON.stringify(updatedItems),
+                    key: 'projectManifest',
+                    newValue: JSON.stringify(getProjectManifest()),
                     storageArea: localStorage
                   }))
                 }
@@ -1572,9 +1616,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               // Update the 3D pipe
               pipingRendererRef.current.pipeInteraction.updateObjectDimensions(dimensions)
               
-              // Update localStorage (MEP panel data)
+              // Update manifest (MEP panel data)
               try {
-                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+                const manifest = getProjectManifest()
+                const storedMepItems = [
+                  ...(manifest.mepItems?.ductwork || []),
+                  ...(manifest.mepItems?.piping || []),
+                  ...(manifest.mepItems?.conduits || []),
+                  ...(manifest.mepItems?.cableTrays || [])
+                ]
                 const selectedPipeData = selectedPipe?.userData?.pipeData
                 
                 if (selectedPipeData) {
@@ -1604,7 +1654,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                     return item
                   })
                   
-                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+                  updateMEPItems(updatedItems, 'all')
                   
                   // IMPORTANT: Also update the manifest to ensure consistency
                   if (window.updateMEPItemsManifest) {
@@ -1625,8 +1675,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                   
                   // Force re-render by dispatching storage event
                   window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'configurMepItems',
-                    newValue: JSON.stringify(updatedItems),
+                    key: 'projectManifest',
+                    newValue: JSON.stringify(getProjectManifest()),
                     storageArea: localStorage
                   }))
                 }
@@ -1674,9 +1724,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               // Update the 3D conduit
               conduitRendererRef.current.conduitInteraction.updateConduitDimensions(dimensions)
               
-              // Update localStorage (MEP panel data)
+              // Update manifest (MEP panel data)
               try {
-                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+                const manifest = getProjectManifest()
+                const storedMepItems = [
+                  ...(manifest.mepItems?.ductwork || []),
+                  ...(manifest.mepItems?.piping || []),
+                  ...(manifest.mepItems?.conduits || []),
+                  ...(manifest.mepItems?.cableTrays || [])
+                ]
                 const selectedConduitData = selectedConduit?.userData?.conduitData
                 
                 if (selectedConduitData) {
@@ -1707,7 +1763,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                     return item
                   })
                   
-                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
+                  updateMEPItems(updatedItems, 'all')
                   
                   // IMPORTANT: Also update the manifest to ensure consistency
                   if (window.updateMEPItemsManifest) {
@@ -1728,8 +1784,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                   
                   // Force re-render by dispatching storage event
                   window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'configurMepItems',
-                    newValue: JSON.stringify(updatedItems),
+                    key: 'projectManifest',
+                    newValue: JSON.stringify(getProjectManifest()),
                     storageArea: localStorage
                   }))
                 }
@@ -1778,9 +1834,15 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               // Update the 3D cable tray
               cableTrayRendererRef.current.cableTrayInteraction.updateCableTrayDimensions(dimensions)
               
-              // Update localStorage (MEP panel data)
+              // Update manifest (MEP panel data)
               try {
-                const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
+                const manifest = getProjectManifest()
+                const storedMepItems = [
+                  ...(manifest.mepItems?.ductwork || []),
+                  ...(manifest.mepItems?.piping || []),
+                  ...(manifest.mepItems?.conduits || []),
+                  ...(manifest.mepItems?.cableTrays || [])
+                ]
                 const selectedCableTrayData = selectedCableTray?.userData?.cableTrayData
                 
                 if (selectedCableTrayData) {
@@ -1790,7 +1852,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                     const itemBaseId = item.id.toString().split('_')[0]
                     
                     if (itemBaseId === baseId && item.type === 'cableTray') {
-                      // console.log(`🔌 Found matching cable tray in localStorage:`, item)
+                      // console.log(`🔌 Found matching cable tray in manifest:`, item)
                       const currentPosition = {
                         x: selectedCableTray.position.x,
                         y: selectedCableTray.position.y,
@@ -1825,8 +1887,8 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                     return item
                   })
                   
-                  localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-                  // console.log(`🔌 Saved cable tray ${selectedCableTrayData.id} to localStorage`)
+                  updateMEPItems(updatedItems, 'all')
+                  // console.log(`🔌 Saved cable tray ${selectedCableTrayData.id} to manifest`)
                   
                   // IMPORTANT: Also update the manifest to ensure consistency
                   if (window.updateMEPItemsManifest) {
@@ -1848,7 +1910,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
                   // Dispatch storage event to update other components
                   window.dispatchEvent(new Event('storage'))
                 } else {
-                  console.warn('⚠️ Could not find cable tray data for localStorage update')
+                  console.warn('⚠️ Could not find cable tray data for manifest update')
                 }
               } catch (error) {
                 console.error('Error updating MEP cable tray items:', error)

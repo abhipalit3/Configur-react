@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import { PipeGeometry } from './PipeGeometry.js'
 import { PipeInteraction } from './PipeInteraction.js'
 import { getColumnSize } from '../core/utils'
+import { getProjectManifest } from '../../../utils/projectManifest'
 
 /**
  * PipingRenderer - Using the new base interaction class
@@ -74,7 +75,7 @@ export class PipingRenderer {
   getRackLengthFromConfig() {
     try {
       // Priority 1: Check projectManifest for active rack configuration
-      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+      const manifest = getProjectManifest()
       const activeConfig = manifest.tradeRacks?.active
       
       console.log('🔧 PipingRenderer getRackLengthFromConfig:', {
@@ -95,9 +96,9 @@ export class PipingRenderer {
         return length
       }
       
-      // Priority 2: Check rackParameters from localStorage
+      // Priority 2: Check rackParameters from localStorage - fallback for legacy support
       const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
-      console.log('🔧 rackParameters from localStorage:', rackParams)
+      console.log('🔧 rackParameters from localStorage (legacy fallback):', rackParams)
       
       if (rackParams.rackLength) {
         const length = this.convertToFeet(rackParams.rackLength)
@@ -243,19 +244,8 @@ export class PipingRenderer {
       pipeData.tier = calculatedTierInfo.tier
       pipeData.tierName = calculatedTierInfo.tierName
       
-      // Update in localStorage
-      try {
-        const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-        const updatedItems = storedMepItems.map(item => {
-          if (item.id === pipeData.id) {
-            return { ...item, tier: calculatedTierInfo.tier, tierName: calculatedTierInfo.tierName }
-          }
-          return item
-        })
-        localStorage.setItem('configurMepItems', JSON.stringify(updatedItems))
-      } catch (error) {
-        console.error('Error updating tier info:', error)
-      }
+      // Update in storage - this will be handled by the interaction class
+      // The pipe interaction class will save the updated tier info via the base class
     }
     
     // Create pipe group using geometry
@@ -272,15 +262,21 @@ export class PipingRenderer {
    * Calculate pipe Y position within tier
    */
   calculatePipeYPosition(pipeData, tier = 1, position = 'bottom') {
-    const snapLines = this.snapLineManager?.getSnapLinesFromRackGeometry()
+    // Get snap lines with better error handling
+    let snapLines = null
+    try {
+      snapLines = this.snapLineManager?.getSnapLinesFromRackGeometry()
+    } catch (error) {
+      console.warn('⚠️ Error getting snap lines:', error)
+    }
     
-    if (!snapLines?.horizontal) {
-      console.warn('⚠️ No snap lines found, using fallback position')
+    if (!snapLines || !snapLines.horizontal || !Array.isArray(snapLines.horizontal)) {
+      console.warn('⚠️ No snap lines found or invalid format, using fallback position')
       return 2 - (tier - 1) * 2 // Fallback
     }
 
     const beamTopSurfaces = snapLines.horizontal
-      .filter(line => line.type === 'beam_top')
+      .filter(line => line && line.type === 'beam_top' && typeof line.y === 'number')
       .sort((a, b) => b.y - a.y)
     
     if (beamTopSurfaces.length === 0) {

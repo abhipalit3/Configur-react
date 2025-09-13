@@ -1,8 +1,297 @@
 # Function Index
 
+## BaseMepEditor
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:23`
+- **Type**: named export
+- **Description**: Base MEP Editor Component
+- **Details**: Provides common editor functionality for all MEP types
+- **Parameters**:
+  - `{
+  selectedObject` (any)
+  - `camera` (any)
+  - `renderer` (any)
+  - `onSave` (any)
+  - `onCancel` (any)
+  - `onCopy` (any)
+  - `visible = true` (boolean)
+  - `mepType = 'mep'` (string)
+  - `fields = []` (array)
+  - `getInitialDimensions` (any)
+  - `getOffsetY = (` (any)
+- **Signature**: `export const BaseMepEditor = ({
+  selectedObject,
+  camera,
+  renderer,
+  onSave,
+  onCancel,
+  onCo...`
+
+---
+
+## updatePosition
+
+### Location 1
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:54`
+- **Type**: arrow function
+- **Description**: Updates ateposition
+- **Signature**: `const updatePosition = () =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:69`
+- **Type**: arrow function
+- **Description**: Updates ateposition
+- **Signature**: `const updatePosition = () =>`
+
+### Location 3
+
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:121`
+- **Type**: arrow function
+- **Description**: Updates ateposition
+- **Signature**: `const updatePosition = () =>`
+
+---
+
+## handleFieldChange
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:78`
+- **Type**: arrow function
+- **Description**: Handles fieldchange events
+- **Parameters**:
+  - `field` (any)
+  - `value` (any)
+  - `processor` (any)
+- **Signature**: `const handleFieldChange = (field, value, processor) =>`
+
+---
+
+## handleTierChange
+
+### Location 1
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:101`
+- **Type**: arrow function
+- **Description**: Handles tierchange events
+- **Parameters**:
+  - `newTier` (any)
+- **Signature**: `const handleTierChange = (newTier) =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:123`
+- **Type**: arrow function
+- **Description**: Handles tierchange events
+- **Parameters**:
+  - `newTier` (any)
+- **Signature**: `const handleTierChange = (newTier) =>`
+
+---
+
+## calculateObjectDimensions
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:144`
+- **Type**: arrow function
+- **Description**: Helper to calculate object dimensions
+- **Parameters**:
+  - `objectData` (any)
+  - `type` (any)
+- **Signature**: `const calculateObjectDimensions = (objectData, type) =>`
+
+---
+
+## getTierOptions
+
+### Location 1
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:171`
+- **Type**: arrow function
+- **Description**: Retrieves tieroptions
+- **Signature**: `const getTierOptions = () =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:172`
+- **Type**: arrow function
+- **Description**: Generate tier options based on actual geometry from snap lines
+- **Signature**: `const getTierOptions = () =>`
+
+### Location 3
+
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:38`
+- **Type**: arrow function
+- **Description**: Get available tier options from scene geometry
+- **Signature**: `const getTierOptions = () =>`
+
+---
+
+## handleSave
+
+### Location 1
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:176`
+- **Type**: arrow function
+- **Description**: Handles save events
+- **Signature**: `const handleSave = () =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:177`
+- **Type**: arrow function
+- **Description**: Handles save events
+- **Signature**: `const handleSave = () =>`
+
+### Location 3
+
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:209`
+- **Type**: arrow function
+- **Description**: Handles save events
+- **Signature**: `const handleSave = () =>`
+
+### Location 4
+
+- **File**: `src/components/3d/trade-rack/TradeRackEditor.js:56`
+- **Type**: arrow function
+- **Description**: Override the save behavior for trade rack format
+- **Parameters**:
+  - `dimensions` (any)
+- **Signature**: `const handleSave = (dimensions) =>`
+
+### Location 5
+
+- **File**: `src/components/forms/app-manual-building.js:100`
+- **Type**: arrow function
+- **Description**: Handles save events
+- **Signature**: `const handleSave = () =>`
+
+---
+
+## handleCancel
+
+### Location 1
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:182`
+- **Type**: arrow function
+- **Description**: Handles cancel events
+- **Signature**: `const handleCancel = () =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:186`
+- **Type**: arrow function
+- **Description**: Handles cancel events
+- **Signature**: `const handleCancel = () =>`
+
+### Location 3
+
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:216`
+- **Type**: arrow function
+- **Description**: Handles cancel events
+- **Signature**: `const handleCancel = () =>`
+
+---
+
+## handleCopyClick
+
+- **File**: `src/components/3d/base/BaseMepEditor.js:191`
+- **Type**: arrow function
+- **Description**: Handles copyclick events
+- **Signature**: `const handleCopyClick = () =>`
+
+---
+
+## onTransformChange
+
+### Location 1
+
+- **File**: `src/components/3d/base/BaseMepInteraction.js:63`
+- **Type**: arrow function
+- **Description**: Handles sformchange events
+- **Signature**: `const onTransformChange = () =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayInteraction_original.js:54`
+- **Type**: arrow function
+- **Description**: Handles sformchange events
+- **Signature**: `const onTransformChange = () =>`
+
+### Location 3
+
+- **File**: `src/components/3d/conduits/ConduitInteraction_original.js:63`
+- **Type**: arrow function
+- **Description**: Handles sformchange events
+- **Signature**: `const onTransformChange = () =>`
+
+---
+
+## onDragEnd
+
+### Location 1
+
+- **File**: `src/components/3d/base/BaseMepInteraction.js:71`
+- **Type**: arrow function
+- **Description**: Handles end events
+- **Signature**: `const onDragEnd = () =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayInteraction_original.js:67`
+- **Type**: arrow function
+- **Description**: Handles end events
+- **Signature**: `const onDragEnd = () =>`
+
+### Location 3
+
+- **File**: `src/components/3d/conduits/ConduitInteraction_original.js:72`
+- **Type**: arrow function
+- **Description**: Handles end events
+- **Signature**: `const onDragEnd = () =>`
+
+---
+
+## fallbackSetup
+
+### Location 1
+
+- **File**: `src/components/3d/base/BaseMepInteraction.js:138`
+- **Type**: arrow function
+- **Description**: Function: fallbackSetup
+- **Signature**: `const fallbackSetup = () =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayInteraction_original.js:120`
+- **Type**: arrow function
+- **Description**: Function: fallbackSetup
+- **Signature**: `const fallbackSetup = () =>`
+
+### Location 3
+
+- **File**: `src/components/3d/conduits/ConduitInteraction_original.js:128`
+- **Type**: arrow function
+- **Description**: Function: fallbackSetup
+- **Signature**: `const fallbackSetup = () =>`
+
+---
+
 ## CableTrayEditor
 
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:22`
+### Location 1
+
+- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:14`
+- **Type**: named export
+- **Description**: CableTrayEditor - Cable tray-specific editor using base component
+- **Details**: Dramatically simplified from the original ~15k lines to ~50 lines
+- **Parameters**:
+  - `{ selectedCableTray` (any)
+  - `...otherProps }` (any)
+- **Signature**: `export const CableTrayEditor = ({ selectedCableTray, ...otherProps }) =>`
+
+### Location 2
+
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:22`
 - **Type**: named export
 - **Description**: CableTrayEditor - Compact horizontal editor for cable tray dimensions
 - **Parameters**:
@@ -25,63 +314,58 @@
 
 ---
 
-## updatePosition
+## getInitialDimensions
 
 ### Location 1
 
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:69`
+- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:49`
 - **Type**: arrow function
-- **Description**: Updates ateposition
-- **Signature**: `const updatePosition = () =>`
+- **Description**: Retrieves initialdimensions
+- **Parameters**:
+  - `selectedCableTray` (any)
+- **Signature**: `const getInitialDimensions = (selectedCableTray) =>`
 
 ### Location 2
 
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:121`
+- **File**: `src/components/3d/conduits/ConduitEditorUI.js:58`
 - **Type**: arrow function
-- **Description**: Updates ateposition
-- **Signature**: `const updatePosition = () =>`
+- **Description**: Retrieves initialdimensions
+- **Parameters**:
+  - `conduitData` (any)
+- **Signature**: `const getInitialDimensions = (conduitData) =>`
 
 ### Location 3
 
-- **File**: `src/components/3d/ductwork/DuctEditor.js:60`
+- **File**: `src/components/3d/ductwork/DuctEditor.js:56`
 - **Type**: arrow function
-- **Description**: Updates ateposition
-- **Signature**: `const updatePosition = () =>`
+- **Description**: Get initial dimensions from selected duct
+- **Parameters**:
+  - `selectedDuct` (any)
+- **Signature**: `const getInitialDimensions = (selectedDuct) =>`
 
 ### Location 4
 
-- **File**: `src/components/3d/piping/PipeEditor.js:76`
+- **File**: `src/components/3d/piping/PipeEditor.js:60`
 - **Type**: arrow function
-- **Description**: Updates ateposition
-- **Signature**: `const updatePosition = () =>`
+- **Description**: Get initial dimensions from selected pipe
+- **Parameters**:
+  - `selectedPipe` (any)
+- **Signature**: `const getInitialDimensions = (selectedPipe) =>`
+
+### Location 5
+
+- **File**: `src/components/3d/trade-rack/TradeRackEditor.js:27`
+- **Type**: arrow function
+- **Description**: Retrieves initialdimensions
+- **Parameters**:
+  - `selectedTradeRack` (any)
+- **Signature**: `const getInitialDimensions = (selectedTradeRack) =>`
 
 ---
 
 ## handleDimensionChange
 
-### Location 1
-
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:100`
-- **Type**: arrow function
-- **Description**: Handles dimensionchange events
-- **Parameters**:
-  - `field` (any)
-  - `value` (any)
-- **Signature**: `const handleDimensionChange = (field, value) =>`
-
-### Location 2
-
-- **File**: `src/components/3d/ductwork/DuctEditor.js:95`
-- **Type**: arrow function
-- **Description**: Handles dimensionchange events
-- **Parameters**:
-  - `field` (any)
-  - `value` (any)
-- **Signature**: `const handleDimensionChange = (field, value) =>`
-
-### Location 3
-
-- **File**: `src/components/3d/piping/PipeEditor.js:143`
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:100`
 - **Type**: arrow function
 - **Description**: Handles dimensionchange events
 - **Parameters**:
@@ -93,7 +377,7 @@
 
 ## handleTrayTypeChange
 
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:110`
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:110`
 - **Type**: arrow function
 - **Description**: Handles traytypechange events
 - **Parameters**:
@@ -102,262 +386,40 @@
 
 ---
 
-## handleTierChange
-
-### Location 1
-
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:123`
-- **Type**: arrow function
-- **Description**: Handles tierchange events
-- **Parameters**:
-  - `newTier` (any)
-- **Signature**: `const handleTierChange = (newTier) =>`
-
-### Location 2
-
-- **File**: `src/components/3d/ductwork/DuctEditor.js:105`
-- **Type**: arrow function
-- **Description**: Handles tierchange events
-- **Parameters**:
-  - `newTier` (any)
-- **Signature**: `const handleTierChange = (newTier) =>`
-
----
-
-## getTierOptions
-
-### Location 1
-
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:172`
-- **Type**: arrow function
-- **Description**: Generate tier options based on actual geometry from snap lines
-- **Signature**: `const getTierOptions = () =>`
-
-### Location 2
-
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:38`
-- **Type**: arrow function
-- **Description**: Get available tier options from scene geometry
-- **Signature**: `const getTierOptions = () =>`
-
-### Location 3
-
-- **File**: `src/components/3d/ductwork/DuctEditor.js:170`
-- **Type**: arrow function
-- **Description**: Generate tier options based on actual geometry from snap lines
-- **Signature**: `const getTierOptions = () =>`
-
-### Location 4
-
-- **File**: `src/components/3d/piping/PipeEditor.js:44`
-- **Type**: arrow function
-- **Description**: Get available tier options from scene geometry
-- **Signature**: `const getTierOptions = () =>`
-
----
-
-## handleSave
-
-### Location 1
-
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:177`
-- **Type**: arrow function
-- **Description**: Handles save events
-- **Signature**: `const handleSave = () =>`
-
-### Location 2
-
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:209`
-- **Type**: arrow function
-- **Description**: Handles save events
-- **Signature**: `const handleSave = () =>`
-
-### Location 3
-
-- **File**: `src/components/3d/ductwork/DuctEditor.js:175`
-- **Type**: arrow function
-- **Description**: Handles save events
-- **Signature**: `const handleSave = () =>`
-
-### Location 4
-
-- **File**: `src/components/3d/piping/PipeEditor.js:220`
-- **Type**: arrow function
-- **Description**: Handles save events
-- **Signature**: `const handleSave = () =>`
-
-### Location 5
-
-- **File**: `src/components/forms/app-manual-building.js:100`
-- **Type**: arrow function
-- **Description**: Handles save events
-- **Signature**: `const handleSave = () =>`
-
----
-
-## handleCancel
-
-### Location 1
-
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:186`
-- **Type**: arrow function
-- **Description**: Handles cancel events
-- **Signature**: `const handleCancel = () =>`
-
-### Location 2
-
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:216`
-- **Type**: arrow function
-- **Description**: Handles cancel events
-- **Signature**: `const handleCancel = () =>`
-
-### Location 3
-
-- **File**: `src/components/3d/ductwork/DuctEditor.js:183`
-- **Type**: arrow function
-- **Description**: Handles cancel events
-- **Signature**: `const handleCancel = () =>`
-
-### Location 4
-
-- **File**: `src/components/3d/piping/PipeEditor.js:226`
-- **Type**: arrow function
-- **Description**: Handles cancel events
-- **Signature**: `const handleCancel = () =>`
-
----
-
 ## handleCopy
 
 ### Location 1
 
-- **File**: `src/components/3d/cable-trays/CableTrayEditor.js:202`
+- **File**: `src/components/3d/cable-trays/CableTrayEditor_original.js:202`
 - **Type**: arrow function
 - **Description**: Handles copy events
 - **Signature**: `const handleCopy = () =>`
 
 ### Location 2
 
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:222`
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:222`
 - **Type**: arrow function
 - **Description**: Handles copy events
 - **Signature**: `const handleCopy = () =>`
-
-### Location 3
-
-- **File**: `src/components/3d/ductwork/DuctEditor.js:199`
-- **Type**: arrow function
-- **Description**: Handles copy events
-- **Signature**: `const handleCopy = () =>`
-
-### Location 4
-
-- **File**: `src/components/3d/piping/PipeEditor.js:232`
-- **Type**: arrow function
-- **Description**: Handles copy events
-- **Signature**: `const handleCopy = () =>`
-
----
-
-## onTransformChange
-
-### Location 1
-
-- **File**: `src/components/3d/cable-trays/CableTrayInteraction.js:54`
-- **Type**: arrow function
-- **Description**: Handles sformchange events
-- **Signature**: `const onTransformChange = () =>`
-
-### Location 2
-
-- **File**: `src/components/3d/conduits/ConduitInteraction.js:63`
-- **Type**: arrow function
-- **Description**: Handles sformchange events
-- **Signature**: `const onTransformChange = () =>`
-
-### Location 3
-
-- **File**: `src/components/3d/ductwork/DuctInteraction.js:50`
-- **Type**: arrow function
-- **Description**: Handles sformchange events
-- **Signature**: `const onTransformChange = () =>`
-
-### Location 4
-
-- **File**: `src/components/3d/piping/PipeInteraction.js:45`
-- **Type**: arrow function
-- **Description**: Handles sformchange events
-- **Signature**: `const onTransformChange = () =>`
-
----
-
-## onDragEnd
-
-### Location 1
-
-- **File**: `src/components/3d/cable-trays/CableTrayInteraction.js:67`
-- **Type**: arrow function
-- **Description**: Handles end events
-- **Signature**: `const onDragEnd = () =>`
-
-### Location 2
-
-- **File**: `src/components/3d/conduits/ConduitInteraction.js:72`
-- **Type**: arrow function
-- **Description**: Handles end events
-- **Signature**: `const onDragEnd = () =>`
-
-### Location 3
-
-- **File**: `src/components/3d/ductwork/DuctInteraction.js:59`
-- **Type**: arrow function
-- **Description**: Handles end events
-- **Signature**: `const onDragEnd = () =>`
-
-### Location 4
-
-- **File**: `src/components/3d/piping/PipeInteraction.js:54`
-- **Type**: arrow function
-- **Description**: Handles end events
-- **Signature**: `const onDragEnd = () =>`
-
----
-
-## fallbackSetup
-
-### Location 1
-
-- **File**: `src/components/3d/cable-trays/CableTrayInteraction.js:120`
-- **Type**: arrow function
-- **Description**: Function: fallbackSetup
-- **Signature**: `const fallbackSetup = () =>`
-
-### Location 2
-
-- **File**: `src/components/3d/conduits/ConduitInteraction.js:128`
-- **Type**: arrow function
-- **Description**: Function: fallbackSetup
-- **Signature**: `const fallbackSetup = () =>`
-
-### Location 3
-
-- **File**: `src/components/3d/ductwork/DuctInteraction.js:108`
-- **Type**: arrow function
-- **Description**: Function: fallbackSetup
-- **Signature**: `const fallbackSetup = () =>`
-
-### Location 4
-
-- **File**: `src/components/3d/piping/PipeInteraction.js:104`
-- **Type**: arrow function
-- **Description**: Function: fallbackSetup
-- **Signature**: `const fallbackSetup = () =>`
 
 ---
 
 ## ConduitEditorUI
 
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:13`
+### Location 1
+
+- **File**: `src/components/3d/conduits/ConduitEditorUI.js:14`
+- **Type**: named export
+- **Description**: ConduitEditorUI - Conduit-specific editor using base component
+- **Details**: Dramatically simplified from the original ~13k lines to ~50 lines
+- **Parameters**:
+  - `{ selectedConduit` (any)
+  - `...otherProps }` (any)
+- **Signature**: `export const ConduitEditorUI = ({ selectedConduit, ...otherProps }) =>`
+
+### Location 2
+
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:13`
 - **Type**: named export
 - **Description**: ConduitEditorUI - Compact horizontal editor for conduit dimensions
 - **Parameters**:
@@ -382,16 +444,7 @@
 
 ## onCameraChange
 
-### Location 1
-
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:181`
-- **Type**: arrow function
-- **Description**: Update position when camera moves
-- **Signature**: `const onCameraChange = () =>`
-
-### Location 2
-
-- **File**: `src/components/3d/piping/PipeEditor.js:115`
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:181`
 - **Type**: arrow function
 - **Description**: Update position when camera moves
 - **Signature**: `const onCameraChange = () =>`
@@ -402,7 +455,7 @@
 
 ### Location 1
 
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:228`
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:228`
 - **Type**: arrow function
 - **Description**: Handles inputchange events
 - **Parameters**:
@@ -426,7 +479,7 @@
 
 ### Location 1
 
-- **File**: `src/components/3d/conduits/ConduitEditorUI.js:352`
+- **File**: `src/components/3d/conduits/ConduitEditorUI_original.js:352`
 - **Type**: arrow function
 - **Description**: Handles keydown events
 - **Parameters**:
@@ -462,7 +515,7 @@
 
 ### Location 3
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1097`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1162`
 - **Type**: function declaration
 - **Description**: Function: animate
 - **Signature**: `function animate()`
@@ -592,7 +645,7 @@
 
 ### Location 4
 
-- **File**: `src/components/mep/app-rack-properties.js:41`
+- **File**: `src/components/mep/app-rack-properties.js:46`
 - **Type**: arrow function
 - **Description**: Helper function for conversion
 - **Parameters**:
@@ -610,7 +663,7 @@
 
 ### Location 6
 
-- **File**: `src/types/tradeRack.js:41`
+- **File**: `src/types/tradeRack.js:44`
 - **Type**: named export
 - **Description**: Utility to convert feet+inches to total feet for calculations
 - **Parameters**:
@@ -783,27 +836,44 @@
 
 ## DuctEditor
 
-- **File**: `src/components/3d/ductwork/DuctEditor.js:22`
+- **File**: `src/components/3d/ductwork/DuctEditor.js:14`
 - **Type**: named export
-- **Description**: DuctEditor - Compact horizontal editor for duct dimensions
+- **Description**: DuctEditor - Duct-specific implementation using base component
+- **Details**: This dramatically simplifies the duct editor code
 - **Parameters**:
-  - `{ 
-  selectedDuct` (any)
-  - `camera` (any)
-  - `renderer` (any)
-  - `onSave` (any)
-  - `onCancel` (any)
-  - `onCopy` (any)
-  - `visible = true` (boolean)
-  - `rackParams = {}
-}` (object)
-- **Signature**: `export const DuctEditor = ({ 
-  selectedDuct, 
-  camera, 
-  renderer, 
-  onSave, 
-  onCancel,
-  onCo...`
+  - `props` (object)
+- **Signature**: `export const DuctEditor = (props) =>`
+
+---
+
+## getOffsetY
+
+### Location 1
+
+- **File**: `src/components/3d/ductwork/DuctEditor.js:76`
+- **Type**: arrow function
+- **Description**: Calculate editor position offset based on duct size
+- **Parameters**:
+  - `selectedDuct` (any)
+- **Signature**: `const getOffsetY = (selectedDuct) =>`
+
+### Location 2
+
+- **File**: `src/components/3d/piping/PipeEditor.js:82`
+- **Type**: arrow function
+- **Description**: Calculate editor position offset based on pipe size
+- **Parameters**:
+  - `selectedPipe` (any)
+- **Signature**: `const getOffsetY = (selectedPipe) =>`
+
+### Location 3
+
+- **File**: `src/components/3d/trade-rack/TradeRackEditor.js:71`
+- **Type**: arrow function
+- **Description**: Custom offset function to position editor just below the gizmo
+- **Parameters**:
+  - `rack` (any)
+- **Signature**: `const getOffsetY = (rack) =>`
 
 ---
 
@@ -863,7 +933,18 @@
 
 ### Location 2
 
-- **File**: `src/components/3d/trade-rack/buildRack.js:59`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1177`
+- **Type**: arrow function
+- **Description**: Function: forEach
+- **Parameters**:
+  - `interaction = > {
+          if (interaction.transformControls?.object && !interaction.transformControls.object.parent` (any)
+- **Signature**: `forEach(interaction => {
+          if (interaction.transformControls?.object && !interaction.transfo...`
+
+### Location 3
+
+- **File**: `src/components/3d/trade-rack/buildRack.js:66`
 - **Type**: arrow function
 - **Description**: remove previously generated meshes
 - **Parameters**:
@@ -872,7 +953,7 @@
 - **Signature**: `forEach(obj => {
     if (obj.userData.isGenerated) {`
 
-### Location 3
+### Location 4
 
 - **File**: `src/handlers/mepHandlers.js:150`
 - **Type**: arrow function
@@ -888,39 +969,13 @@
 
 ## PipeEditor
 
-- **File**: `src/components/3d/piping/PipeEditor.js:20`
+- **File**: `src/components/3d/piping/PipeEditor.js:14`
 - **Type**: named export
-- **Description**: PipeEditor - Compact horizontal editor for pipe dimensions
+- **Description**: PipeEditor - Pipe-specific implementation using base component
+- **Details**: This dramatically simplifies the pipe editor code
 - **Parameters**:
-  - `{ 
-  selectedPipe` (any)
-  - `camera` (any)
-  - `renderer` (any)
-  - `onSave` (any)
-  - `onCancel` (any)
-  - `onCopy` (any)
-  - `visible = true` (boolean)
-  - `rackParams = {}
-}` (object)
-- **Signature**: `export const PipeEditor = ({ 
-  selectedPipe, 
-  camera, 
-  renderer, 
-  onSave, 
-  onCancel,
-  onCo...`
-
----
-
-## handleStringChange
-
-- **File**: `src/components/3d/piping/PipeEditor.js:213`
-- **Type**: arrow function
-- **Description**: Handles stringchange events
-- **Parameters**:
-  - `field` (any)
-  - `value` (any)
-- **Signature**: `const handleStringChange = (field, value) =>`
+  - `props` (object)
+- **Signature**: `export const PipeEditor = (props) =>`
 
 ---
 
@@ -952,7 +1007,7 @@
 
 ## createBackgroundGrid
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:126`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:129`
 - **Type**: function declaration
 - **Description**: Creates backgroundgrid
 - **Parameters**:
@@ -965,7 +1020,7 @@
 
 ## updateOrthoCamera
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:141`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:144`
 - **Type**: function declaration
 - **Description**: Updates ateorthocamera
 - **Parameters**:
@@ -977,7 +1032,7 @@
 
 ## onControlsChange
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:172`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:175`
 - **Type**: arrow function
 - **Description**: Handles rolschange events
 - **Signature**: `const onControlsChange = () =>`
@@ -986,7 +1041,7 @@
 
 ## onKeyDown
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:184`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:187`
 - **Type**: arrow function
 - **Description**: Handles own events
 - **Parameters**:
@@ -997,7 +1052,7 @@
 
 ## logCamera
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:205`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:208`
 - **Type**: arrow function
 - **Description**: Camera Logger
 - **Signature**: `const logCamera = () =>`
@@ -1006,7 +1061,7 @@
 
 ## onLog
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:207`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:210`
 - **Type**: arrow function
 - **Description**: Handles  events
 - **Parameters**:
@@ -1017,7 +1072,7 @@
 
 ## centerOrbitOnContent
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:301`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:358`
 - **Type**: arrow function
 - **Description**: Center the orbit controls on the generated content
 - **Signature**: `const centerOrbitOnContent = () =>`
@@ -1026,7 +1081,7 @@
 
 ## saveCameraState
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:340`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:397`
 - **Type**: arrow function
 - **Description**: Camera state persistence functions
 - **Signature**: `const saveCameraState = () =>`
@@ -1035,7 +1090,7 @@
 
 ## loadCameraState
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:356`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:413`
 - **Type**: arrow function
 - **Description**: Function: loadCameraState
 - **Signature**: `const loadCameraState = () =>`
@@ -1044,7 +1099,7 @@
 
 ## handleDuctSelection
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:708`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:765`
 - **Type**: arrow function
 - **Description**: Setup duct editor callbacks
 - **Signature**: `const handleDuctSelection = () =>`
@@ -1053,7 +1108,7 @@
 
 ## handlePipeSelection
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:715`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:772`
 - **Type**: arrow function
 - **Description**: Setup pipe editor callbacks
 - **Signature**: `const handlePipeSelection = () =>`
@@ -1062,7 +1117,7 @@
 
 ## handleConduitSelection
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:722`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:779`
 - **Type**: arrow function
 - **Description**: Setup conduit editor callbacks
 - **Signature**: `const handleConduitSelection = () =>`
@@ -1071,16 +1126,25 @@
 
 ## handleCableTraySelection
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:729`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:786`
 - **Type**: arrow function
 - **Description**: Setup cable tray editor callbacks
 - **Signature**: `const handleCableTraySelection = () =>`
 
 ---
 
+## handleTradeRackSelection
+
+- **File**: `src/components/3d/scene/ThreeScene.jsx:796`
+- **Type**: arrow function
+- **Description**: Setup trade rack editor callbacks
+- **Signature**: `const handleTradeRackSelection = () =>`
+
+---
+
 ## handleDuctEditorSave
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:759`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:829`
 - **Type**: arrow function
 - **Description**: Handles ducteditorsave events
 - **Parameters**:
@@ -1091,7 +1155,7 @@
 
 ## handleDuctEditorCancel
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:794`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:864`
 - **Type**: arrow function
 - **Description**: Handles ducteditorcancel events
 - **Signature**: `const handleDuctEditorCancel = () =>`
@@ -1100,7 +1164,7 @@
 
 ## handlePipeEditorSave
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:799`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:869`
 - **Type**: arrow function
 - **Description**: Pipe editor handlers
 - **Parameters**:
@@ -1111,7 +1175,7 @@
 
 ## handlePipeEditorCancel
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:870`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:940`
 - **Type**: arrow function
 - **Description**: Handles pipeeditorcancel events
 - **Signature**: `const handlePipeEditorCancel = () =>`
@@ -1120,7 +1184,7 @@
 
 ## handleConduitEditorSave
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:874`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:944`
 - **Type**: arrow function
 - **Description**: Handles conduiteditorsave events
 - **Parameters**:
@@ -1131,7 +1195,7 @@
 
 ## handleConduitEditorCancel
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:937`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1007`
 - **Type**: arrow function
 - **Description**: Handles conduiteditorcancel events
 - **Signature**: `const handleConduitEditorCancel = () =>`
@@ -1140,7 +1204,7 @@
 
 ## handleCableTrayEditorSave
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:942`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1012`
 - **Type**: arrow function
 - **Description**: Cable tray editor handlers
 - **Parameters**:
@@ -1151,7 +1215,7 @@
 
 ## handleCableTrayEditorCancel
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1011`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1081`
 - **Type**: arrow function
 - **Description**: Handles cabletrayeditorcancel events
 - **Signature**: `const handleCableTrayEditorCancel = () =>`
@@ -1160,7 +1224,7 @@
 
 ## onViewCubeClick
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1069`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1134`
 - **Type**: arrow function
 - **Description**: ViewCube click handler
 - **Parameters**:
@@ -1171,7 +1235,7 @@
 
 ## onResize
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1090`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1155`
 - **Type**: arrow function
 - **Description**: Resize & Animate
 - **Signature**: `const onResize = () =>`
@@ -1180,7 +1244,7 @@
 
 ## handleTradeRackSelected
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1126`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1219`
 - **Type**: arrow function
 - **Description**: Add event listeners for trade rack selection
 - **Parameters**:
@@ -1191,7 +1255,7 @@
 
 ## handleTradeRackDeselected
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1131`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1224`
 - **Type**: arrow function
 - **Description**: Handles traderackdeselected events
 - **Signature**: `const handleTradeRackDeselected = () =>`
@@ -1200,7 +1264,7 @@
 
 ## handleAxisToggle
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1251`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1345`
 - **Type**: arrow function
 - **Description**: Handles axistoggle events
 - **Parameters**:
@@ -1213,7 +1277,7 @@
 
 ### Location 1
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1268`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1362`
 - **Type**: arrow function
 - **Description**: Handles clearmeasurements events
 - **Signature**: `const handleClearMeasurements = () =>`
@@ -1229,7 +1293,7 @@
 
 ## map
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:772`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:842`
 - **Type**: arrow function
 - **Description**: Find and update the matching item
 - **Parameters**:
@@ -1242,7 +1306,7 @@
 
 ## setAxisLock
 
-- **File**: `src/components/3d/scene/ThreeScene.jsx:1252`
+- **File**: `src/components/3d/scene/ThreeScene.jsx:1346`
 - **Type**: arrow function
 - **Description**: Updates axislock
 - **Parameters**:
@@ -1251,6 +1315,19 @@
 - **Signature**: `setAxisLock(prev => {
       const currentlyLocked = prev[axis]
       if (currentlyLocked) {`
+
+---
+
+## TradeRackEditor
+
+- **File**: `src/components/3d/trade-rack/TradeRackEditor.js:15`
+- **Type**: named export
+- **Description**: TradeRackEditor - Trade rack-specific editor using base component
+- **Details**: Simplified editor for basic trade rack configuration
+- **Parameters**:
+  - `{ selectedTradeRack` (any)
+  - `...otherProps }` (any)
+- **Signature**: `export const TradeRackEditor = ({ selectedTradeRack, ...otherProps }) =>`
 
 ---
 
@@ -1592,7 +1669,7 @@
 
 ## createMepEventHandler
 
-- **File**: `src/components/3d/utils/mepEventHandler.js:449`
+- **File**: `src/components/3d/utils/mepEventHandler.js:461`
 - **Type**: function declaration
 - **Description**: Factory function to create MEP-specific event handlers
 - **Parameters**:
@@ -1628,7 +1705,7 @@
 
 ### Location 2
 
-- **File**: `src/components/mep/app-rack-properties.js:59`
+- **File**: `src/components/mep/app-rack-properties.js:64`
 - **Type**: arrow function
 - **Description**: Validates form
 - **Signature**: `const validateForm = () =>`
@@ -1694,7 +1771,7 @@
 
 ### Location 6
 
-- **File**: `src/components/mep/app-rack-properties.js:77`
+- **File**: `src/components/mep/app-rack-properties.js:82`
 - **Type**: arrow function
 - **Description**: Handler for feet+inches input changes
 - **Parameters**:
@@ -2015,7 +2092,7 @@
 
 ## handleMountTypeChange
 
-- **File**: `src/components/mep/app-rack-properties.js:88`
+- **File**: `src/components/mep/app-rack-properties.js:93`
 - **Type**: arrow function
 - **Description**: Handles mounttypechange events
 - **Parameters**:
@@ -2026,7 +2103,7 @@
 
 ## handleTierCountChange
 
-- **File**: `src/components/mep/app-rack-properties.js:93`
+- **File**: `src/components/mep/app-rack-properties.js:98`
 - **Type**: arrow function
 - **Description**: Handles tiercountchange events
 - **Parameters**:
@@ -2037,7 +2114,7 @@
 
 ## handleTierHeightChange
 
-- **File**: `src/components/mep/app-rack-properties.js:111`
+- **File**: `src/components/mep/app-rack-properties.js:116`
 - **Type**: arrow function
 - **Description**: Handles tierheightchange events
 - **Parameters**:
@@ -2050,7 +2127,7 @@
 
 ## handleSelectChange
 
-- **File**: `src/components/mep/app-rack-properties.js:126`
+- **File**: `src/components/mep/app-rack-properties.js:131`
 - **Type**: arrow function
 - **Description**: Handles selectchange events
 - **Parameters**:
@@ -2064,7 +2141,7 @@
 
 ### Location 1
 
-- **File**: `src/components/mep/app-rack-properties.js:130`
+- **File**: `src/components/mep/app-rack-properties.js:135`
 - **Type**: arrow function
 - **Description**: Handles addrack events
 - **Signature**: `const handleAddRack = () =>`
@@ -2092,7 +2169,7 @@
 
 ## renderTierHeightInputs
 
-- **File**: `src/components/mep/app-rack-properties.js:142`
+- **File**: `src/components/mep/app-rack-properties.js:149`
 - **Type**: arrow function
 - **Description**: Generate tier height inputs based on tier count
 - **Signature**: `const renderTierHeightInputs = () =>`
@@ -2101,7 +2178,7 @@
 
 ## setFormData
 
-- **File**: `src/components/mep/app-rack-properties.js:95`
+- **File**: `src/components/mep/app-rack-properties.js:100`
 - **Type**: arrow function
 - **Description**: Updates formdata
 - **Parameters**:
@@ -2138,7 +2215,7 @@
 
 ## handleSaveConfiguration
 
-- **File**: `src/components/mep/app-saved-configurations.js:53`
+- **File**: `src/components/mep/app-saved-configurations.js:54`
 - **Type**: arrow function
 - **Description**: Handles saveconfiguration events
 - **Signature**: `const handleSaveConfiguration = () =>`
@@ -2147,7 +2224,7 @@
 
 ## handleUpdateConfig
 
-- **File**: `src/components/mep/app-saved-configurations.js:124`
+- **File**: `src/components/mep/app-saved-configurations.js:151`
 - **Type**: arrow function
 - **Description**: Handles updateconfig events
 - **Parameters**:
@@ -2159,7 +2236,7 @@
 
 ## handleStartRename
 
-- **File**: `src/components/mep/app-saved-configurations.js:225`
+- **File**: `src/components/mep/app-saved-configurations.js:268`
 - **Type**: arrow function
 - **Description**: Handles startrename events
 - **Parameters**:
@@ -2171,7 +2248,7 @@
 
 ## handleCancelRename
 
-- **File**: `src/components/mep/app-saved-configurations.js:231`
+- **File**: `src/components/mep/app-saved-configurations.js:274`
 - **Type**: arrow function
 - **Description**: Handles cancelrename events
 - **Signature**: `const handleCancelRename = () =>`
@@ -2180,7 +2257,7 @@
 
 ## handleSaveRename
 
-- **File**: `src/components/mep/app-saved-configurations.js:236`
+- **File**: `src/components/mep/app-saved-configurations.js:279`
 - **Type**: arrow function
 - **Description**: Handles saverename events
 - **Parameters**:
@@ -2191,7 +2268,7 @@
 
 ## handleDeleteConfig
 
-- **File**: `src/components/mep/app-saved-configurations.js:282`
+- **File**: `src/components/mep/app-saved-configurations.js:325`
 - **Type**: arrow function
 - **Description**: Handles deleteconfig events
 - **Parameters**:
@@ -2203,7 +2280,7 @@
 
 ## formatDimension
 
-- **File**: `src/components/mep/app-saved-configurations.js:298`
+- **File**: `src/components/mep/app-saved-configurations.js:341`
 - **Type**: arrow function
 - **Description**: Formats dimension
 - **Parameters**:
@@ -2212,9 +2289,20 @@
 
 ---
 
+## formatTopClearance
+
+- **File**: `src/components/mep/app-saved-configurations.js:347`
+- **Type**: arrow function
+- **Description**: Formats topclearance
+- **Parameters**:
+  - `topClearance` (any)
+- **Signature**: `const formatTopClearance = (topClearance) =>`
+
+---
+
 ## formatDate
 
-- **File**: `src/components/mep/app-saved-configurations.js:304`
+- **File**: `src/components/mep/app-saved-configurations.js:360`
 - **Type**: arrow function
 - **Description**: Formats date
 - **Parameters**:
@@ -2225,7 +2313,7 @@
 
 ## getConfigColor
 
-- **File**: `src/components/mep/app-saved-configurations.js:310`
+- **File**: `src/components/mep/app-saved-configurations.js:366`
 - **Type**: arrow function
 - **Description**: Generate a color for each configuration based on its index
 - **Parameters**:
@@ -2527,7 +2615,7 @@
 
 ## handleConfigurationSaved
 
-- **File**: `src/handlers/configurationHandlers.js:120`
+- **File**: `src/handlers/configurationHandlers.js:148`
 - **Type**: arrow function
 - **Description**: Handler for when configuration is saved
 - **Parameters**:
@@ -2538,7 +2626,7 @@
 
 ## handleRestoreConfiguration
 
-- **File**: `src/handlers/configurationHandlers.js:132`
+- **File**: `src/handlers/configurationHandlers.js:160`
 - **Type**: arrow function
 - **Description**: Handler for restoring saved rack configuration
 - **Parameters**:
@@ -2951,7 +3039,7 @@
 
 ## useSceneRack
 
-- **File**: `src/hooks/useSceneRack.js:10`
+- **File**: `src/hooks/useSceneRack.js:11`
 - **Type**: function declaration
 - **Description**: Custom hook for scenerack
 - **Signature**: `function useSceneRack()`
@@ -3055,7 +3143,7 @@
 
 ## calculateTotalHeight
 
-- **File**: `src/types/tradeRack.js:47`
+- **File**: `src/types/tradeRack.js:50`
 - **Type**: named export
 - **Description**: Calculate total rack height from tier configuration and beam sizes
 - **Parameters**:
@@ -3066,7 +3154,7 @@
 
 ## calculateBayConfiguration
 
-- **File**: `src/types/tradeRack.js:93`
+- **File**: `src/types/tradeRack.js:96`
 - **Type**: named export
 - **Description**: Calculate number of bays and last bay width from total length and standard bay width
 - **Parameters**:
