@@ -81,6 +81,39 @@ export function buildRackScene(scene, params, mats) {
   // Store the baseline Y position (where rack was built by buildRack logic)
   const baselineY = rack.position.y
   
+  // Check for preserved state values first (for both saved position and new rack scenarios)
+  let preservedZPosition = 0
+  let preservedClearance = null
+  
+  // Look for existing rack in scene to preserve Z position during rebuilds
+  scene.traverse((child) => {
+    if (child.userData?.type === 'tradeRack' && child !== rack) {
+      preservedZPosition = child.position.z
+      console.log('🔧 Preserving Z position from existing rack:', preservedZPosition)
+    }
+  })
+  
+  // Also check temporary state for Z position and clearance
+  try {
+    const tempStateStr = localStorage.getItem('rackTemporaryState')
+    if (tempStateStr) {
+      const tempState = JSON.parse(tempStateStr)
+      if (tempState.position && tempState.position.z !== undefined) {
+        preservedZPosition = tempState.position.z
+        console.log('🔧 Preserving Z position from temporary state:', preservedZPosition)
+      }
+      if (tempState.topClearance !== undefined) {
+        preservedClearance = tempState.topClearance * 12 // Convert feet to inches
+        console.log('🔧 Preserving top clearance from temporary state:', preservedClearance, 'inches')
+      }
+    }
+  } catch (error) {
+    console.warn('Error reading temporary state for position and clearance:', error)
+  }
+  
+  // Calculate the clearance to use (preserved state takes precedence over params)
+  const clearanceInches = preservedClearance !== null ? preservedClearance : (params.topClearanceInches || 0)
+  
   // Handle positioning: saved position takes precedence over clearance calculations
   if (params.position) {
     // If this is a restored configuration, use the exact saved position
@@ -92,20 +125,20 @@ export function buildRackScene(scene, params, mats) {
     console.log('🔧 Applied saved position:', params.position)
   } else {
     // For new racks without saved position, set default position and apply clearance
-    // Default position: X=0, Y=baseline (adjusted by clearance), Z=0
+    // Default position: X=0, Y=baseline (adjusted by clearance), Z=preserved or 0
     rack.position.x = 0
-    rack.position.z = 0 // Force Z position to 0 for new racks
+    rack.position.z = preservedZPosition // Preserve Z position during rebuilds
     
-    if (params.topClearanceInches && params.topClearanceInches > 0) {
+    if (clearanceInches > 0) {
       // Apply clearance to Y position
       const IN2M = 0.0254
-      const clearanceMeters = params.topClearanceInches * IN2M
+      const clearanceMeters = clearanceInches * IN2M
       rack.position.y = baselineY - clearanceMeters
-      console.log('🔧 Applied user clearance:', params.topClearanceInches, 'inches, moved rack from', baselineY, 'to', rack.position.y)
+      console.log('🔧 Applied clearance:', clearanceInches, 'inches (preserved:', preservedClearance !== null, '), moved rack from', baselineY, 'to', rack.position.y)
     } else {
       // No clearance specified, keep at baseline position
       rack.position.y = baselineY
-      console.log('🔧 New rack positioned at baseline Y:', baselineY, 'with default Z=0')
+      console.log('🔧 New rack positioned at baseline Y:', baselineY, 'with preserved Z=', preservedZPosition)
     }
   }
 
@@ -113,8 +146,10 @@ export function buildRackScene(scene, params, mats) {
     ...params,
     // Store the baseline Y position - this is where the rack was built with 0 clearance
     baselineY: baselineY,
-    // Store the user's clearance in inches (or 0 if not specified)
-    topClearance: (params.topClearanceInches || 0) / 12 // Convert to feet for storage consistency
+    // Store the clearance being used (preserved or from params) in feet for storage consistency
+    topClearance: clearanceInches / 12,
+    // Also store in inches for internal calculations
+    topClearanceInches: clearanceInches
   } // Store configuration for access
   
   scene.add(rack)
