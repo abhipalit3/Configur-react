@@ -147,7 +147,9 @@ export class PipeGeometry {
 
     const diameterM = this.in2m(diameter)
     const insulationM = this.in2m(insulation)
-    const lengthM = this.in2m(pipeLength)
+    const lengthM = pipeLength // pipeLength is already in meters from PipingRenderer
+    
+    console.log(`🔧 PipeGeometry: pipeLength=${pipeLength}m, diameter=${diameter}in, insulation=${insulation}in`)
     
     const pipeGroup = new THREE.Group()
     pipeGroup.name = `Pipe_${id}`

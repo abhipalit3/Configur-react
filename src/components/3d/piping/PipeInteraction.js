@@ -112,8 +112,8 @@ export class PipeInteraction extends BaseMepInteraction {
    * Recreate pipe geometry
    */
   recreateObjectGeometry(pipe, updatedData) {
-    const pipeLength = this.snapLineManager.ft2m(this.snapLineManager.getRackLength()) + 
-                       this.snapLineManager.in2m(12)
+    const rackLength = this.getRackLengthFromConfig()
+    const pipeLength = rackLength * 0.3048 // Convert feet to meters
     
     // Clear current children
     while (pipe.children.length > 0) {
@@ -147,10 +147,8 @@ export class PipeInteraction extends BaseMepInteraction {
    * Create a new pipe object
    */
   createNewObject(pipeData) {
-    const rackLength = this.snapLineManager ? this.snapLineManager.getRackLength() : 12
-    const pipeLength = this.snapLineManager ? 
-      this.snapLineManager.ft2m(rackLength) + this.snapLineManager.in2m(12) : 
-      rackLength * 0.3048 + 0.3048
+    const rackLength = this.getRackLengthFromConfig()
+    const pipeLength = rackLength * 0.3048 // Convert feet to meters
     
     return this.geometryManager.createPipeGroup(
       pipeData,
@@ -293,6 +291,58 @@ export class PipeInteraction extends BaseMepInteraction {
   duplicateSelectedPipe() {
     console.warn('duplicateSelectedPipe is deprecated, use copySelectedObject instead')
     return this.copySelectedObject()
+  }
+
+  /**
+   * Get rack length from the correct sources in priority order
+   */
+  getRackLengthFromConfig() {
+    try {
+      // Priority 1: Check projectManifest for active rack configuration
+      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+      const activeConfig = manifest.tradeRacks?.active
+      
+      if (activeConfig?.rackLength) {
+        return this.convertToFeet(activeConfig.rackLength)
+      } else if (activeConfig?.totalLength) {
+        return this.convertToFeet(activeConfig.totalLength)
+      }
+      
+      // Priority 2: Check rackParameters from localStorage
+      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      if (rackParams.rackLength) {
+        return this.convertToFeet(rackParams.rackLength)
+      } else if (rackParams.totalLength) {
+        return this.convertToFeet(rackParams.totalLength)
+      }
+      
+      // Priority 3: Calculate from bay dimensions
+      const bayCount = rackParams.bayCount || 4
+      const bayWidth = rackParams.bayWidth || 3
+      const calculatedLength = bayCount * this.convertToFeet(bayWidth)
+      
+      console.log(`🔧 Pipe length calculated from bay dimensions: ${calculatedLength}ft (${bayCount} bays × ${this.convertToFeet(bayWidth)}ft)`)
+      return calculatedLength
+      
+    } catch (error) {
+      console.error('Error getting rack length for pipes:', error)
+      return 12 // Default fallback
+    }
+  }
+
+  /**
+   * Convert various length formats to feet
+   */
+  convertToFeet(value) {
+    if (typeof value === 'number') {
+      return isFinite(value) ? value : 12
+    }
+    if (typeof value === 'object' && value !== null) {
+      const feet = value.feet || 0
+      const inches = value.inches || 0
+      return feet + (inches / 12)
+    }
+    return 12 // Default
   }
 
   /**

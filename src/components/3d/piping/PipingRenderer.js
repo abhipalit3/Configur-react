@@ -69,6 +69,87 @@ export class PipingRenderer {
   }
 
   /**
+   * Get rack length from the correct sources in priority order
+   */
+  getRackLengthFromConfig() {
+    try {
+      // Priority 1: Check projectManifest for active rack configuration
+      const manifest = JSON.parse(localStorage.getItem('projectManifest') || '{}')
+      const activeConfig = manifest.tradeRacks?.active
+      
+      console.log('🔧 PipingRenderer getRackLengthFromConfig:', {
+        manifest: !!manifest,
+        tradeRacks: !!manifest.tradeRacks,
+        activeConfig: activeConfig,
+        rackLength: activeConfig?.rackLength,
+        totalLength: activeConfig?.totalLength
+      })
+      
+      if (activeConfig?.rackLength) {
+        const length = this.convertToFeet(activeConfig.rackLength)
+        console.log(`🔧 Using rack length from manifest: ${length}ft`)
+        return length
+      } else if (activeConfig?.totalLength) {
+        const length = this.convertToFeet(activeConfig.totalLength)
+        console.log(`🔧 Using total length from manifest: ${length}ft`)
+        return length
+      }
+      
+      // Priority 2: Check rackParameters from localStorage
+      const rackParams = JSON.parse(localStorage.getItem('rackParameters') || '{}')
+      console.log('🔧 rackParameters from localStorage:', rackParams)
+      
+      if (rackParams.rackLength) {
+        const length = this.convertToFeet(rackParams.rackLength)
+        console.log(`🔧 Using rack length from rackParameters: ${length}ft`)
+        return length
+      } else if (rackParams.totalLength) {
+        const length = this.convertToFeet(rackParams.totalLength)
+        console.log(`🔧 Using total length from rackParameters: ${length}ft`)
+        return length
+      }
+      
+      // Priority 3: Check current rackParams object
+      if (this.rackParams?.rackLength) {
+        const length = this.convertToFeet(this.rackParams.rackLength)
+        console.log(`🔧 Using rack length from instance rackParams: ${length}ft`)
+        return length
+      } else if (this.rackParams?.totalLength) {
+        const length = this.convertToFeet(this.rackParams.totalLength)
+        console.log(`🔧 Using total length from instance rackParams: ${length}ft`)
+        return length
+      }
+      
+      // Priority 4: Calculate from bay dimensions
+      const bayCount = rackParams.bayCount || this.rackParams?.bayCount || 4
+      const bayWidth = rackParams.bayWidth || this.rackParams?.bayWidth || 3
+      const calculatedLength = bayCount * this.convertToFeet(bayWidth)
+      
+      console.log(`🔧 Pipe length calculated from bay dimensions: ${calculatedLength}ft (${bayCount} bays × ${this.convertToFeet(bayWidth)}ft)`)
+      return calculatedLength
+      
+    } catch (error) {
+      console.error('Error getting rack length for pipes:', error)
+      return 12 // Default fallback
+    }
+  }
+
+  /**
+   * Convert various length formats to feet
+   */
+  convertToFeet(value) {
+    if (typeof value === 'number') {
+      return isFinite(value) ? value : 12
+    }
+    if (typeof value === 'object' && value !== null) {
+      const feet = value.feet || 0
+      const inches = value.inches || 0
+      return feet + (inches / 12)
+    }
+    return 12 // Default
+  }
+
+  /**
    * Recalculate tier information for all pipes - now uses base class method
    */
   recalculateTierInfo() {
@@ -96,11 +177,15 @@ export class PipingRenderer {
   updatePiping(mepItems) {
     if (!Array.isArray(mepItems)) return
     
+    console.log(`🔧 updatePiping called with ${mepItems.length} MEP items`)
+    
     this.clearPiping()
     
     const pipeItems = mepItems.filter(item => item && item.type === 'pipe')
+    console.log(`🔧 Found ${pipeItems.length} pipe items to create`)
     
     pipeItems.forEach(pipe => {
+      console.log(`🔧 Creating pipe from storage:`, pipe)
       this.createPipe(pipe)
     })
   }
@@ -116,10 +201,11 @@ export class PipingRenderer {
       position = 'bottom'
     } = pipeData
 
-    // Get pipe length from snapLineManager
-    const pipeLength = this.snapLineManager?.getAvailableDuctLength() || 
-                      this.snapLineManager?.ft2m(this.snapLineManager?.getRackLength() || 12) || 
-                      12 * 0.3048
+    // Get pipe length directly from rack parameters/localStorage (should match rack length exactly)
+    const rackLength = this.getRackLengthFromConfig()
+    const pipeLength = rackLength * 0.3048 // Convert feet to meters
+    
+    console.log(`🔧 Creating pipe: rackLength=${rackLength}ft, pipeLength=${pipeLength}m`)
 
     let pipePosition
     let calculatedTierInfo = null
