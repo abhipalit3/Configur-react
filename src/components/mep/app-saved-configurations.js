@@ -64,7 +64,23 @@ const AppSavedConfigurations = (props) => {
       return
     }
     
-    const rackConfig = JSON.parse(currentRackParams)
+    let rackConfig = JSON.parse(currentRackParams)
+    
+    // Get current effective top clearance from temporary state if available
+    try {
+      const tempStateStr = localStorage.getItem('rackTemporaryState')
+      if (tempStateStr) {
+        const tempState = JSON.parse(tempStateStr)
+        if (tempState.topClearance !== undefined) {
+          // Update rackConfig with current effective top clearance
+          rackConfig.topClearance = tempState.topClearance
+          rackConfig.topClearanceInches = tempState.topClearanceInches
+          console.log('🔧 Saving with current top clearance:', tempState.topClearance)
+        }
+      }
+    } catch (error) {
+      console.warn('Could not retrieve current top clearance from temporary state:', error)
+    }
     
     // Get current rack position from the scene if available
     let currentPosition = null
@@ -142,7 +158,23 @@ const AppSavedConfigurations = (props) => {
       return
     }
     
-    const rackConfig = JSON.parse(currentRackParams)
+    let rackConfig = JSON.parse(currentRackParams)
+    
+    // Get current effective top clearance from temporary state if available
+    try {
+      const tempStateStr = localStorage.getItem('rackTemporaryState')
+      if (tempStateStr) {
+        const tempState = JSON.parse(tempStateStr)
+        if (tempState.topClearance !== undefined) {
+          // Update rackConfig with current effective top clearance
+          rackConfig.topClearance = tempState.topClearance
+          rackConfig.topClearanceInches = tempState.topClearanceInches
+          console.log('🔧 Updated rackConfig with current top clearance:', tempState.topClearance)
+        }
+      }
+    } catch (error) {
+      console.warn('Could not retrieve current top clearance from temporary state:', error)
+    }
     
     // Find the existing configuration
     const configIndex = savedConfigs.findIndex(config => config.id === configId)
@@ -310,6 +342,19 @@ const AppSavedConfigurations = (props) => {
     if (!dimension) return "0'"
     if (typeof dimension === 'number') return `${dimension}'`
     return `${dimension.feet}'${dimension.inches}"`
+  }
+
+  const formatTopClearance = (topClearance) => {
+    if (!topClearance) return "0'"
+    if (typeof topClearance === 'number') {
+      const feet = Math.floor(topClearance)
+      const inches = Math.round((topClearance - feet) * 12)
+      if (inches === 0) return `${feet}'`
+      if (inches === 12) return `${feet + 1}'`
+      return `${feet}'${inches}"`
+    }
+    if (topClearance.feet === 0 && topClearance.inches === 0) return "0'"
+    return `${topClearance.feet}'${topClearance.inches || 0}"`
   }
 
   const formatDate = (dateString) => {
@@ -576,6 +621,11 @@ const AppSavedConfigurations = (props) => {
                   <div className="app-saved-configurations-detail-row">
                     <span className="app-saved-configurations-detail-label">
                       Total height: {config.totalHeight || calculateTotalHeight(config)}
+                    </span>
+                  </div>
+                  <div className="app-saved-configurations-detail-row">
+                    <span className="app-saved-configurations-detail-label">
+                      Top clearance: {formatTopClearance(config.topClearance)}
                     </span>
                   </div>
                 </div>

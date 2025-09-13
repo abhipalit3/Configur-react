@@ -85,9 +85,14 @@ export const createConfigurationHandlers = (
       ...params,
       // Add flag to indicate this is a fresh rack, not a restoration
       isNewRack: true,
-      // Explicitly remove any position to force fresh positioning
-      position: undefined
+      // Add flag to indicate we're using preserved position (not restoring config)
+      isUsingPreservedPosition: !!params.preservedPosition,
+      // Use preserved position if available, otherwise reset to center (z=0)
+      position: params.preservedPosition || { x: 0, y: 0, z: 0 }
     }
+    
+    // Clean up the preservedPosition from params to avoid storing it
+    delete processedParams.preservedPosition
     if (params.topClearance && typeof params.topClearance === 'object') {
       const totalInches = (params.topClearance.feet || 0) * 12 + (params.topClearance.inches || 0)
       processedParams.topClearanceInches = totalInches

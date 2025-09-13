@@ -48,7 +48,8 @@ export function useSceneRack() {
       // If params has no position but tempState exists, we might be using temp state
       // If neither exist, we're creating a fresh rack
       const isNewRack = !!params.isNewRack
-      const isRestoringConfig = !!params.position
+      const isUsingPreservedPosition = !!params.isUsingPreservedPosition
+      const isRestoringConfig = !!params.position && !isNewRack && !isUsingPreservedPosition
       const shouldUseTempState = tempState && !isRestoringConfig && !isNewRack
       
       const updatedParams = {
@@ -58,7 +59,7 @@ export function useSceneRack() {
         position: isRestoringConfig ? params.position : (shouldUseTempState ? tempState?.position : undefined)
       }
       
-      console.log('🔧 useSceneRack: isNewRack:', isNewRack, 'isRestoringConfig:', isRestoringConfig, 'shouldUseTempState:', shouldUseTempState)
+      console.log('🔧 useSceneRack: isNewRack:', isNewRack, 'isUsingPreservedPosition:', isUsingPreservedPosition, 'isRestoringConfig:', isRestoringConfig, 'shouldUseTempState:', shouldUseTempState)
       console.log('🔧 useSceneRack: Updated params position:', updatedParams.position)
 
       // Clear existing rack-specific snap points

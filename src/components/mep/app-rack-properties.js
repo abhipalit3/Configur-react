@@ -21,9 +21,14 @@ const AppRackProperties = (props) => {
 
   // Update form when initial props change
   useEffect(() => {
+    // Preserve current position when opening properties panel
+    const preservedPosition = props.initial?.currentPosition
+    
     setFormData({
       ...tradeRackDefaults,
-      ...props.initial
+      ...props.initial,
+      // Ensure we don't lose the current position when opening properties
+      currentPosition: preservedPosition
     })
   }, [props.initial])
 
@@ -132,7 +137,9 @@ const AppRackProperties = (props) => {
       // Add calculated bay info to form data
       const rackData = {
         ...formData,
-        calculatedBays: bayInfo
+        calculatedBays: bayInfo,
+        // Pass along the preserved position if it exists
+        preservedPosition: formData.currentPosition
       }
       props.onAddRack(rackData)
     }

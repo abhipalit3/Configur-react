@@ -559,13 +559,22 @@ export class TradeRackInteraction extends BaseMepInteraction {
     }
     
     const rack = this.selectedObject
+    
+    // Calculate current effective top clearance based on position
+    const config = rack.userData.configuration || {}
+    const baselineY = config.baselineY !== undefined ? config.baselineY : rack.position.y
+    const currentClearanceMeters = Math.max(0, baselineY - rack.position.y)
+    const currentClearanceInches = currentClearanceMeters / 0.0254 // Convert meters to inches
+    const currentClearanceFeet = currentClearanceInches / 12 // Convert to feet
+    
     const temporaryState = {
       position: {
         x: rack.position.x,
         y: rack.position.y,
         z: rack.position.z
       },
-      topClearance: rack.userData.configuration?.topClearance || 0,
+      topClearance: currentClearanceFeet, // Use calculated clearance
+      topClearanceInches: currentClearanceInches, // Also store in inches
       timestamp: Date.now()
     }
     

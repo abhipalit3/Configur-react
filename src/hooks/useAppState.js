@@ -147,6 +147,19 @@ export const useAppState = () => {
   const handlePanelClick = (panelName) => {
     if (panelName === 'tradeRack') {
       const newRackPropertiesState = !isRackPropertiesVisible
+      
+      // When opening trade rack properties, preserve current rack position
+      if (newRackPropertiesState && window.tradeRackInteractionInstance) {
+        const currentPosition = window.tradeRackInteractionInstance.getCurrentRackPosition()
+        if (currentPosition) {
+          console.log('🔧 Preserving current rack position when opening properties:', currentPosition)
+          setRackParams(prevParams => ({
+            ...prevParams,
+            currentPosition: currentPosition
+          }))
+        }
+      }
+      
       setIsRackPropertiesVisible(newRackPropertiesState)
       if (newRackPropertiesState) {
         setActivePanel(null)
