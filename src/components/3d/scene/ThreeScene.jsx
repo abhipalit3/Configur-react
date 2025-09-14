@@ -4,12 +4,11 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { dispose } from '../core/utils.js'
-import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { ViewCube } from '../controls/ViewCube.js'
 import {buildRackScene} from '../trade-rack/buildRack.js'
 import { MeasurementTool } from '../controls/MeasurementTool.js'
@@ -59,41 +58,149 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     z: false
   })
 
-  // State for duct editor
-  const [selectedDuct, setSelectedDuct] = useState(null)
-  const [showDuctEditor, setShowDuctEditor] = useState(false)
-  const [skipDuctRecreation, setSkipDuctRecreation] = useState(false)
-  
-  // State for pipe editor
-  const [selectedPipe, setSelectedPipe] = useState(null)
-  const [showPipeEditor, setShowPipeEditor] = useState(false)
-  const [skipPipeRecreation, setSkipPipeRecreation] = useState(false)
-  
-  // State for conduit editor
-  const [selectedConduit, setSelectedConduit] = useState(null)
-  const [showConduitEditor, setShowConduitEditor] = useState(false)
-  const [skipConduitRecreation, setSkipConduitRecreation] = useState(false)
-  
-  // State for cable tray editor
-  const [selectedCableTray, setSelectedCableTray] = useState(null)
-  const [showCableTrayEditor, setShowCableTrayEditor] = useState(false)
-  const [skipCableTrayRecreation, setSkipCableTrayRecreation] = useState(false)
-  
-  // State for trade rack selection
-  const [selectedTradeRack, setSelectedTradeRack] = useState(null)
-  const [showTradeRackEditor, setShowTradeRackEditor] = useState(false)
-  const [skipTradeRackRecreation, setSkipTradeRackRecreation] = useState(false)
+  // Consolidated MEP editor state
+  const [mepEditorState, setMepEditorState] = useState({
+    duct: { selected: null, showEditor: false, skipRecreation: false },
+    pipe: { selected: null, showEditor: false, skipRecreation: false },
+    conduit: { selected: null, showEditor: false, skipRecreation: false },
+    cableTray: { selected: null, showEditor: false, skipRecreation: false },
+    tradeRack: { selected: null, showEditor: false, skipRecreation: false }
+  })
   
   // State for rack parameters (to access in render)
   const [rackParams, setRackParams] = useState({
     tierCount: 2,
     tierHeights: [2, 2],
+    topClearance: 0,
     bayCount: 4,
     bayWidth: 3,
     depth: 4,
     beamSize: 2,
     postSize: 2
   })
+  
+  // Utility function for MEP editor save operations
+  const handleMepEditorSave = useCallback((type, selectedObject, newDimensions, renderer, interactionKey, updateMethod) => {
+    setMepEditorState(prev => ({
+      ...prev,
+      [type]: { ...prev[type], skipRecreation: true }
+    }))
+    
+    if (renderer?.[interactionKey]) {
+      // Update selected object userData
+      const dataKey = `${type}Data`
+      if (selectedObject?.userData?.[dataKey]) {
+        selectedObject.userData[dataKey] = {
+          ...selectedObject.userData[dataKey],
+          ...newDimensions
+        }
+      }
+      
+      // Update 3D object
+      renderer[interactionKey][updateMethod](newDimensions)
+      
+      // Update manifest
+      try {
+        const manifest = getProjectManifest()
+        const storedMepItems = [
+          ...(manifest.mepItems?.ductwork || []),
+          ...(manifest.mepItems?.piping || []),
+          ...(manifest.mepItems?.conduits || []),
+          ...(manifest.mepItems?.cableTrays || [])
+        ]
+        const selectedData = selectedObject?.userData?.[dataKey]
+        
+        if (selectedData) {
+          const baseId = selectedData.id.toString().split('_')[0]
+          const updatedItems = storedMepItems.map(item => {
+            const itemBaseId = item.id.toString().split('_')[0]
+            
+            if (itemBaseId === baseId && (type === 'duct' || item.type === type)) {
+              const currentPosition = {
+                x: selectedObject.position.x,
+                y: selectedObject.position.y,
+                z: selectedObject.position.z
+              }
+              
+              return {
+                ...item,
+                ...newDimensions,
+                position: currentPosition
+              }
+            }
+            return item
+          })
+          
+          updateMEPItems(updatedItems, 'all')
+          
+          if (window.updateMEPItemsManifest) {
+            window.updateMEPItemsManifest(updatedItems)
+          }
+          
+          window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+            detail: { updatedItems, [`updated${type.charAt(0).toUpperCase() + type.slice(1)}Id`]: selectedData.id }
+          }))
+          
+          if (window.refreshMepPanel) {
+            window.refreshMepPanel()
+          }
+          
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'projectManifest',
+            newValue: JSON.stringify(getProjectManifest()),
+            storageArea: localStorage
+          }))
+        }
+      } catch (error) {
+        console.error(`Error updating MEP ${type} items:`, error)
+      }
+    }
+    
+    // Reset skip flag after delay
+    setTimeout(() => {
+      setMepEditorState(prev => ({
+        ...prev,
+        [type]: { ...prev[type], skipRecreation: false }
+      }))
+    }, 100)
+  }, [])
+  
+  // MEP editor handler functions
+  const handleDuctEditorSave = useCallback((newDimensions) => {
+    handleMepEditorSave('duct', mepEditorState.duct.selected, newDimensions, ductworkRendererRef.current, 'ductInteraction', 'updateObjectDimensions')
+    setMepEditorState(prev => ({ ...prev, duct: { ...prev.duct, showEditor: false } }))
+  }, [handleMepEditorSave, mepEditorState.duct.selected])
+  
+  const handleDuctEditorCancel = useCallback(() => {
+    setMepEditorState(prev => ({ ...prev, duct: { ...prev.duct, showEditor: false } }))
+  }, [])
+  
+  const handlePipeEditorSave = useCallback((newDimensions) => {
+    handleMepEditorSave('pipe', mepEditorState.pipe.selected, newDimensions, pipingRendererRef.current, 'pipeInteraction', 'updateObjectDimensions')
+    setMepEditorState(prev => ({ ...prev, pipe: { ...prev.pipe, showEditor: false } }))
+  }, [handleMepEditorSave, mepEditorState.pipe.selected])
+  
+  const handlePipeEditorCancel = useCallback(() => {
+    setMepEditorState(prev => ({ ...prev, pipe: { ...prev.pipe, showEditor: false } }))
+  }, [])
+  
+  const handleConduitEditorSave = useCallback((newDimensions) => {
+    handleMepEditorSave('conduit', mepEditorState.conduit.selected, newDimensions, conduitRendererRef.current, 'conduitInteraction', 'updateConduitDimensions')
+    setMepEditorState(prev => ({ ...prev, conduit: { ...prev.conduit, showEditor: false } }))
+  }, [handleMepEditorSave, mepEditorState.conduit.selected])
+  
+  const handleConduitEditorCancel = useCallback(() => {
+    setMepEditorState(prev => ({ ...prev, conduit: { ...prev.conduit, showEditor: false } }))
+  }, [])
+  
+  const handleCableTrayEditorSave = useCallback((newDimensions) => {
+    handleMepEditorSave('cableTray', mepEditorState.cableTray.selected, newDimensions, cableTrayRendererRef.current, 'cableTrayInteraction', 'updateCableTrayDimensions')
+    setMepEditorState(prev => ({ ...prev, cableTray: { ...prev.cableTray, showEditor: false } }))
+  }, [handleMepEditorSave, mepEditorState.cableTray.selected])
+  
+  const handleCableTrayEditorCancel = useCallback(() => {
+    setMepEditorState(prev => ({ ...prev, cableTray: { ...prev.cableTray, showEditor: false } }))
+  }, [])
 
   // One-time scene setup (renderer, camera, controls)
   useEffect(() => {
@@ -128,20 +235,18 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     gridHelper.renderOrder = -1
     scene.add(gridHelper)
 
-    function createBackgroundGrid(size = 1000, step = 10, color = 0x000000) {
-      const lines = []
-      for (let i = -size; i <= size; i += step) {
-        lines.push(-size, 0, i, size, 0, i)
-        lines.push(i, 0, -size, i, 0, size)
-      }
-      const geometry = new THREE.BufferGeometry()
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(lines.flat(), 3))
-      const material = new THREE.LineBasicMaterial({ color, opacity: 0.3, transparent: true, depthWrite: false })
-      const lineSegments = new THREE.LineSegments(geometry, material)
-      lineSegments.renderOrder = -2
-      scene.add(lineSegments)
+    // Background grid
+    const lines = []
+    const gridSize = 1000, gridStep = 10
+    for (let i = -gridSize; i <= gridSize; i += gridStep) {
+      lines.push(-gridSize, 0, i, gridSize, 0, i, i, 0, -gridSize, i, 0, gridSize)
     }
-    createBackgroundGrid()
+    const gridGeometry = new THREE.BufferGeometry()
+    gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(lines, 3))
+    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x000000, opacity: 0.3, transparent: true, depthWrite: false })
+    const backgroundGrid = new THREE.LineSegments(gridGeometry, gridMaterial)
+    backgroundGrid.renderOrder = -2
+    scene.add(backgroundGrid)
 
     function updateOrthoCamera(camera, viewHeight) {
       const aspect = window.innerWidth / window.innerHeight
@@ -185,16 +290,24 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     }
     controls.addEventListener('change', onControlsChange)
 
-    let currentMode = 'default'
     const onKeyDown = (evt) => {
       switch (evt.key.toLowerCase()) {
         case 'p':
-          controls.mouseButtons.LEFT = THREE.MOUSE.PAN; currentMode = 'pan'; break
+          controls.mouseButtons.LEFT = THREE.MOUSE.PAN; break
         case 'o':
-          controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE; currentMode = 'orbit'; break
+          controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE; break
         case 'escape':
           controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }
-          currentMode = 'default'; break
+          break
+        case 'e': // Press 'E' to edit selected MEP item (backup method)
+          const tradeRackSelected = tradeRackInteractionRef.current?.selectedObject
+          if (tradeRackSelected) {
+            setMepEditorState(prev => ({
+              ...prev,
+              tradeRack: { ...prev.tradeRack, selected: tradeRackSelected, showEditor: true }
+            }))
+          }
+          break
       }
       controls.update()
     }
@@ -207,10 +320,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     pmremGenerator.dispose() // Clean up to avoid memory leaks
 
     // Camera Logger
-    const logCamera = () => {
-    }
-    const onLog = (e) => { if (e.code === 'KeyL') logCamera() }
-    window.addEventListener('keydown', onLog)
 
     // Materials
     const textures = loadTextures()
@@ -486,7 +595,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         // Switch to 2D view (side view orthographic - looking from right)
         // Find the rack group specifically
         let rackGroup = null
-        let rackBounds = null
         
         scene.traverse((object) => {
           if (object.name === 'TradeRackGroup' || object.name === 'RackGroup' || 
@@ -522,16 +630,14 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
           bbox.max.set(2, 3, 2)
         }
         
-        const center = bbox.getCenter(new THREE.Vector3())
         const size = bbox.getSize(new THREE.Vector3())
         
-        // console.log('🔧 2D View - Bounding box center:', center.x, center.y, center.z)
         // console.log('🔧 2D View - Bounding box size:', size.x, size.y, size.z)
         
         // Position camera to look from the right side (positive X direction)
         // This gives us a side elevation view
-        const distance = 10 // Fixed reasonable distance
-        camera.position.set(center.x + distance, center.y, center.z)
+        const center = bbox.getCenter(new THREE.Vector3())
+        camera.position.set(center.x + 10, center.y, center.z)
         camera.up.set(0, 1, 0) // Y-up
         
         // Set target to center of rack
@@ -667,458 +773,119 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       }
     }, 100) // Small delay to ensure scene is fully initialized
 
-    // Initialize ductwork renderer with the same rack parameters used by buildRack
-    const ductworkRenderer = new DuctworkRenderer(scene, {
+    // Create standardized rack parameters for all MEP systems
+    const rackParams = {
       bayCount: params.bayCount,
       bayWidth: params.bayWidth,
       depth: params.depth,
-      rackWidth: params.depth, // Map depth to rackWidth for clarity
+      rackWidth: params.depth,
       tierCount: params.tierCount,
-      tierHeights: params.tierHeights, // These are already numbers in feet
+      tierHeights: params.tierHeights,
       topClearance: params.topClearance,
       beamSize: params.beamSize,
       postSize: params.postSize,
-      columnSize: params.postSize, // Also map postSize to columnSize for consistency
-      columnType: 'standard' // Default column type
-    })
-    ductworkRendererRef.current = ductworkRenderer
+      columnSize: params.postSize,
+      columnType: 'standard'
+    }
     
-    // Make ductwork renderer globally accessible
+    // Initialize ductwork renderer
+    const ductworkRenderer = new DuctworkRenderer(scene, rackParams)
+    ductworkRendererRef.current = ductworkRenderer
     window.ductworkRendererInstance = ductworkRenderer
     
-    // Initialize piping renderer with the same parameters
+    // Initialize piping renderer
     const pipingRenderer = new PipingRenderer(
-      scene,
-      camera, 
-      renderer,
-      controls,
-      ductworkRenderer.snapLineManager // Share snap line manager with ductwork
+      scene, camera, renderer, controls,
+      ductworkRenderer.snapLineManager
     )
     pipingRendererRef.current = pipingRenderer
-    
-    // Make piping renderer globally accessible
     window.pipingRendererInstance = pipingRenderer
-    
-    // Update piping renderer with rack parameters
-    pipingRenderer.updateRackParams({
-      bayCount: params.bayCount,
-      bayWidth: params.bayWidth,
-      depth: params.depth,
-      rackWidth: params.depth,
-      tierCount: params.tierCount,
-      tierHeights: params.tierHeights,
-      topClearance: params.topClearance,
-      beamSize: params.beamSize,
-      postSize: params.postSize
-    })
+    pipingRenderer.updateRackParams(rackParams)
 
-    // Initialize conduit renderer with the same parameters
+    // Initialize conduit renderer
     const conduitRenderer = new ConduitRenderer(
-      scene,
-      camera, 
-      renderer,
-      controls,
-      ductworkRenderer.snapLineManager // Share snap line manager with ductwork and piping
+      scene, camera, renderer, controls,
+      ductworkRenderer.snapLineManager
     )
     conduitRendererRef.current = conduitRenderer
-    
-    // Make conduit renderer globally accessible
     window.conduitRendererInstance = conduitRenderer
-    
-    // Update conduit renderer with rack parameters
-    conduitRenderer.updateRackParams({
-      bayCount: params.bayCount,
-      bayWidth: params.bayWidth,
-      depth: params.depth,
-      rackWidth: params.depth,
-      tierCount: params.tierCount,
-      tierHeights: params.tierHeights,
-      topClearance: params.topClearance,
-      beamSize: params.beamSize,
-      postSize: params.postSize
-    })
+    conduitRenderer.updateRackParams(rackParams)
 
-    // Initialize cable tray renderer with the same parameters
+    // Initialize cable tray renderer
     const cableTrayRenderer = new CableTrayRenderer(
-      scene,
-      ductworkRenderer.snapLineManager // Share snap line manager with other MEP systems
+      scene, ductworkRenderer.snapLineManager
     )
     cableTrayRendererRef.current = cableTrayRenderer
-    
-    // Make cable tray renderer globally accessible
     window.cableTrayRendererInstance = cableTrayRenderer
     
-    // Setup ductwork interactions
-    ductworkRenderer.setupInteractions(camera, renderer, controls)
-    
-    // Setup piping interactions
-    pipingRenderer.setupInteractions(camera, renderer, controls)
-
-    // Setup conduit interactions
-    conduitRenderer.setupInteractions(camera, renderer, controls)
-
-    // Setup cable tray interactions
-    cableTrayRenderer.setupInteractions(camera, renderer, controls)
+    // Setup MEP system interactions
+    const interactionParams = [camera, renderer, controls]
+    ductworkRenderer.setupInteractions(...interactionParams)
+    pipingRenderer.setupInteractions(...interactionParams)
+    conduitRenderer.setupInteractions(...interactionParams)
+    cableTrayRenderer.setupInteractions(...interactionParams)
 
     // Provide access to snap points for measurement tool
-    if (ductworkRenderer.ductGeometry) {
-      ductworkRenderer.ductGeometry.setSnapPoints(snapPoints)
-    }
-    if (pipingRenderer.pipeGeometry) {
-      pipingRenderer.pipeGeometry.setSnapPoints(snapPoints)
-    }
-    if (conduitRenderer.conduitGeometry) {
-      conduitRenderer.conduitGeometry.setSnapPoints(snapPoints)
-    }
-    if (cableTrayRenderer.cableTrayGeometry) {
-      cableTrayRenderer.cableTrayGeometry.setSnapPoints(snapPoints)
-    }
+    const geometryKeys = ['ductGeometry', 'pipeGeometry', 'conduitGeometry', 'cableTrayGeometry']
+    const renderers = [ductworkRenderer, pipingRenderer, conduitRenderer, cableTrayRenderer]
+    
+    renderers.forEach((renderer, index) => {
+      const geometry = renderer[geometryKeys[index]]
+      if (geometry?.setSnapPoints) {
+        geometry.setSnapPoints(snapPoints)
+      }
+    })
 
     
-    // Setup duct editor callbacks
-    const handleDuctSelection = () => {
-      const selected = ductworkRenderer.ductInteraction?.selectedObject
-      setSelectedDuct(selected)
-      setShowDuctEditor(!!selected)
-    }
-    
-    // Setup pipe editor callbacks
-    const handlePipeSelection = () => {
-      const selected = pipingRenderer.pipeInteraction?.selectedObject
-      setSelectedPipe(selected)
-      setShowPipeEditor(!!selected)
-    }
-    
-    // Setup conduit editor callbacks
-    const handleConduitSelection = () => {
-      const selected = conduitRenderer.conduitInteraction?.selectedObject
-      setSelectedConduit(selected)
-      setShowConduitEditor(!!selected)
-    }
-    
-    // Setup cable tray editor callbacks
-    const handleCableTraySelection = () => {
-      const selected = cableTrayRenderer.cableTrayInteraction?.getSelectedCableTray()
-      setSelectedCableTray(selected)
-      // Only automatically open editor if not currently skipping recreation (during save operations)
-      if (!skipCableTrayRecreation) {
-        setShowCableTrayEditor(!!selected)
+    // Simple polling to check MEP selections and auto-open editors
+    const handleMepSelection = () => {
+      const selections = {
+        duct: ductworkRenderer.ductInteraction?.selectedObject,
+        pipe: pipingRenderer.pipeInteraction?.selectedObject,
+        conduit: conduitRenderer.conduitInteraction?.selectedObject,
+        cableTray: cableTrayRenderer.cableTrayInteraction?.getSelectedCableTray()
       }
+      
+      setMepEditorState(prev => {
+        const newState = { ...prev }
+        
+        Object.entries(selections).forEach(([type, selected]) => {
+          if (newState[type].selected !== selected) {
+            newState[type].selected = selected
+            
+            // Open editor when selected, close when deselected
+            if (selected && !newState[type].skipRecreation) {
+              newState[type].showEditor = true
+            } else if (!selected) {
+              newState[type].showEditor = false
+            }
+          }
+        })
+        
+        return newState
+      })
     }
     
-    // Setup trade rack editor callbacks
-    const handleTradeRackSelection = () => {
-      const selected = tradeRackInteractionRef.current?.selectedObject
-      setSelectedTradeRack(selected)
-      if (!skipTradeRackRecreation) {
-        setShowTradeRackEditor(!!selected)
-      }
-    }
+    // Poll every 200ms - simple and works
+    const pollSelection = setInterval(handleMepSelection, 200)
     
-    // Poll for duct, pipe, conduit, cable tray, and trade rack selection changes
-    const pollSelection = setInterval(() => {
-      handleDuctSelection()
-      handlePipeSelection()
-      handleConduitSelection()
-      handleCableTraySelection()
-      handleTradeRackSelection()
-    }, 100)
     
-    // Periodically update tier information for all ducts
+    // Periodically update tier information for all MEP systems
     const pollTierInfo = setInterval(() => {
-      if (ductworkRenderer.ductInteraction && mepItems.length > 0) {
-        ductworkRenderer.ductInteraction.updateAllDuctTierInfo()
-      }
-      // Update pipe tier information (now with Above/Below rack detection)
-      if (pipingRenderer.pipeInteraction && mepItems.length > 0) {
-        pipingRenderer.pipeInteraction.updateAllPipeTierInfo()
-      }
-      
-      // Update cable tray tier information
-      if (cableTrayRenderer.cableTrayInteraction && mepItems.length > 0) {
-        cableTrayRenderer.cableTrayInteraction.updateAllCableTrayTierInfo()
-      }
-    }, 5000) // Update every 5 seconds
-    
-    const handleDuctEditorSave = (newDimensions) => {
-      
-      if (ductworkRenderer.ductInteraction) {
-        // Update the 3D duct using base class method
-        ductworkRenderer.ductInteraction.updateObjectDimensions(newDimensions)
-        
-        // Update manifest (MEP panel data)
-        try {
-          const manifest = getProjectManifest()
-          const storedMepItems = [
-            ...(manifest.mepItems?.ductwork || []),
-            ...(manifest.mepItems?.piping || []),
-            ...(manifest.mepItems?.conduits || []),
-            ...(manifest.mepItems?.cableTrays || [])
-          ]
-          const selectedDuctData = selectedDuct?.userData?.ductData
-          
-          if (selectedDuctData) {
-            // Find and update the matching item
-            const updatedItems = storedMepItems.map(item => {
-              if (item.id === selectedDuctData.id) {
-                return { ...item, ...newDimensions }
-              }
-              return item
-            })
-            
-            updateMEPItems(updatedItems, 'all')
-            
-            // Trigger refresh of MEP panel if callback exists
-            if (window.refreshMepPanel) {
-              window.refreshMepPanel()
-            }
-          }
-        } catch (error) {
-          console.error('Error updating MEP items:', error)
+      if (mepItems.length > 0) {
+        if (ductworkRenderer.ductInteraction?.updateAllDuctTierInfo) {
+          ductworkRenderer.ductInteraction.updateAllDuctTierInfo()
+        }
+        if (pipingRenderer.pipeInteraction?.updateAllPipeTierInfo) {
+          pipingRenderer.pipeInteraction.updateAllPipeTierInfo()
+        }
+        if (cableTrayRenderer.cableTrayInteraction?.updateAllCableTrayTierInfo) {
+          cableTrayRenderer.cableTrayInteraction.updateAllCableTrayTierInfo()
         }
       }
-      
-      setShowDuctEditor(false)
-    }
+    }, 5000)
     
-    const handleDuctEditorCancel = () => {
-      setShowDuctEditor(false)
-    }
     
-    // Pipe editor handlers
-    const handlePipeEditorSave = (newDimensions) => {
-      
-      if (pipingRenderer.pipeInteraction) {
-        // Update the 3D pipe
-        pipingRenderer.pipeInteraction.updateObjectDimensions(newDimensions)
-        
-        // Update manifest (MEP panel data)
-        try {
-          const manifest = getProjectManifest()
-          const storedMepItems = [
-            ...(manifest.mepItems?.ductwork || []),
-            ...(manifest.mepItems?.piping || []),
-            ...(manifest.mepItems?.conduits || []),
-            ...(manifest.mepItems?.cableTrays || [])
-          ]
-          const selectedPipeData = selectedPipe?.userData?.pipeData
-          
-          if (selectedPipeData) {
-            // Find and update the matching item
-            // Handle ID matching - selectedPipeData.id might have _0, _1 suffix for multiple pipes
-            const baseId = selectedPipeData.id.toString().split('_')[0]
-            
-            const updatedItems = storedMepItems.map(item => {
-              const itemBaseId = item.id.toString().split('_')[0]
-              
-              if (itemBaseId === baseId && item.type === 'pipe') {
-                // Include current pipe position in the update
-                const currentPosition = {
-                  x: selectedPipe.position.x,
-                  y: selectedPipe.position.y, 
-                  z: selectedPipe.position.z
-                }
-                
-                const updatedItem = { 
-                  ...item, 
-                  ...newDimensions,
-                  position: currentPosition
-                }
-                return updatedItem
-              }
-              return item
-            })
-            
-            updateMEPItems(updatedItems, 'all')
-            
-            // IMPORTANT: Also update the manifest to ensure consistency
-            if (window.updateMEPItemsManifest) {
-              window.updateMEPItemsManifest(updatedItems)
-            } else {
-              console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-            }
-            
-            // Dispatch custom event to notify MEP panel of changes
-            window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-              detail: { updatedItems, updatedPipeId: selectedPipeData.id }
-            }))
-            
-            // Also try multiple refresh methods
-            if (window.refreshMepPanel) {
-              window.refreshMepPanel()
-            }
-            
-            // Force re-render by dispatching storage event
-            window.dispatchEvent(new StorageEvent('storage', {
-              key: 'projectManifest',
-              newValue: JSON.stringify(getProjectManifest()),
-              storageArea: localStorage
-            }))
-          }
-        } catch (error) {
-          console.error('Error updating MEP pipe items:', error)
-        }
-      }
-      
-      setShowPipeEditor(false)
-    }
-    
-    const handlePipeEditorCancel = () => {
-      setShowPipeEditor(false)
-    }
-    
-    const handleConduitEditorSave = (newDimensions) => {
-      // console.log(`⚡ ThreeScene: handleConduitEditorSave called with:`, newDimensions)
-      if (conduitRenderer.conduitInteraction) {
-        // Update the 3D conduit with new dimensions
-        conduitRenderer.conduitInteraction.updateConduitDimensions(newDimensions)
-        
-        // Update MEP items in manifest similar to pipes and ducts
-        try {
-          const manifest = getProjectManifest()
-          const storedMepItems = [
-            ...(manifest.mepItems?.ductwork || []),
-            ...(manifest.mepItems?.piping || []),
-            ...(manifest.mepItems?.conduits || []),
-            ...(manifest.mepItems?.cableTrays || [])
-          ]
-          const selectedConduitData = selectedConduit?.userData?.conduitData
-          
-          if (selectedConduitData && storedMepItems.length > 0) {
-            const baseId = selectedConduitData.id.toString().split('_')[0]
-            
-            const updatedItems = storedMepItems.map(item => {
-              const itemBaseId = item.id.toString().split('_')[0]
-              
-              if (itemBaseId === baseId && item.type === 'conduit') {
-                const currentPosition = {
-                  x: selectedConduit.position.x,
-                  y: selectedConduit.position.y, 
-                  z: selectedConduit.position.z
-                }
-                
-                // Include count in updates since it's now editable
-                const updatedItem = { 
-                  ...item, 
-                  ...newDimensions,
-                  position: currentPosition
-                }
-                return updatedItem
-              }
-              return item
-            })
-            
-            updateMEPItems(updatedItems, 'all')
-            
-            if (window.updateMEPItemsManifest) {
-              window.updateMEPItemsManifest(updatedItems)
-            }
-            
-            window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-              detail: { updatedItems, updatedConduitId: selectedConduitData.id }
-            }))
-            
-            if (window.refreshMepPanel) {
-              window.refreshMepPanel()
-            }
-            
-            window.dispatchEvent(new StorageEvent('storage', {
-              key: 'projectManifest',
-              newValue: JSON.stringify(getProjectManifest()),
-              storageArea: localStorage
-            }))
-          }
-        } catch (error) {
-          console.error('Error updating MEP conduit items:', error)
-        }
-      }
-      
-      setShowConduitEditor(false)
-    }
-    
-    const handleConduitEditorCancel = () => {
-      setShowConduitEditor(false)
-    }
-    
-    // Cable tray editor handlers
-    const handleCableTrayEditorSave = (newDimensions) => {
-      // console.log(`🔌 ThreeScene: handleCableTrayEditorSave called with:`, newDimensions)
-      
-      // Set flag to prevent cable tray recreation
-      setSkipCableTrayRecreation(true)
-      
-      if (cableTrayRendererRef.current?.cableTrayInteraction) {
-        // First update the selected cable tray's userData to ensure consistency
-        if (selectedCableTray?.userData?.cableTrayData) {
-          selectedCableTray.userData.cableTrayData = {
-            ...selectedCableTray.userData.cableTrayData,
-            ...newDimensions
-          }
-        }
-        
-        // Update the 3D cable tray with new dimensions
-        cableTrayRendererRef.current.cableTrayInteraction.updateCableTrayDimensions(newDimensions)
-        
-        // Update MEP items in manifest similar to other MEP systems
-        try {
-          const manifest = getProjectManifest()
-          const storedMepItems = [
-            ...(manifest.mepItems?.ductwork || []),
-            ...(manifest.mepItems?.piping || []),
-            ...(manifest.mepItems?.conduits || []),
-            ...(manifest.mepItems?.cableTrays || [])
-          ]
-          const selectedCableTrayData = selectedCableTray?.userData?.cableTrayData
-          
-          if (selectedCableTrayData && storedMepItems.length > 0) {
-            const baseId = selectedCableTrayData.id.toString().split('_')[0]
-            
-            const updatedItems = storedMepItems.map(item => {
-              const itemBaseId = item.id.toString().split('_')[0]
-              
-              if (itemBaseId === baseId && item.type === 'cableTray') {
-                // console.log(`🔌 Found matching cable tray in manifest to update:`, item)
-                const currentPosition = {
-                  x: selectedCableTray.position.x,
-                  y: selectedCableTray.position.y, 
-                  z: selectedCableTray.position.z
-                }
-                
-                const updatedItem = {
-                  ...item,
-                  width: newDimensions.width,
-                  height: newDimensions.height,
-                  trayType: newDimensions.trayType,
-                  tier: newDimensions.tier,
-                  tierName: `Tier ${newDimensions.tier}`,
-                  position: currentPosition
-                }
-                // console.log(`🔌 Updated cable tray item:`, updatedItem)
-                return updatedItem
-              }
-              return item
-            })
-            
-            updateMEPItems(updatedItems, 'all')
-            // console.log(`🔌 Updated cable tray ${selectedCableTrayData.id} in manifest`)
-            
-            // Dispatch storage event to update other components
-            window.dispatchEvent(new Event('storage'))
-          } else {
-            console.warn('⚠️ Could not find cable tray data for manifest update')
-          }
-        } catch (error) {
-          console.error('Error updating MEP cable tray items:', error)
-        }
-      }
-      
-      // Don't close the editor immediately - let user click away or edit another cable tray
-      // setShowCableTrayEditor(false)
-    }
-    
-    const handleCableTrayEditorCancel = () => {
-      setShowCableTrayEditor(false)
-    }
     
     
     // Base class handles editor callbacks automatically through events
@@ -1243,8 +1010,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     })()
 
     // Initialize centralized MEP selection manager AFTER all interactions are set up
-    const mepSelectionManager = initializeMepSelectionManager(scene, camera, renderer)
-    // console.log('🎯 MEP Selection Manager initialized in ThreeScene at end')
+    initializeMepSelectionManager(scene, camera, renderer)
 
     // Initialize trade rack interaction system AFTER MEP manager
     const tradeRackInteraction = new TradeRackInteraction(scene, camera, renderer, controls)
@@ -1256,12 +1022,18 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Add event listeners for trade rack selection
     const handleTradeRackSelected = (event) => {
       // console.log('🎯 Trade rack selected event:', event.detail)
-      setSelectedTradeRack(event.detail.rack)
+      setMepEditorState(prev => ({
+        ...prev,
+        tradeRack: { ...prev.tradeRack, selected: event.detail.rack, showEditor: true }
+      }))
     }
     
     const handleTradeRackDeselected = () => {
       // console.log('❌ Trade rack deselected event')
-      setSelectedTradeRack(null)
+      setMepEditorState(prev => ({
+        ...prev,
+        tradeRack: { ...prev.tradeRack, selected: null, showEditor: false }
+      }))
     }
     
     document.addEventListener('tradeRackSelected', handleTradeRackSelected)
@@ -1270,7 +1042,6 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     // Cleanup
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keydown', onLog)
       window.removeEventListener('resize', onResize)
       viewCubeRenderer.domElement.removeEventListener('click', onViewCubeClick)
       document.removeEventListener('tradeRackSelected', handleTradeRackSelected)
@@ -1340,28 +1111,25 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     }
   }, [axisLock])
 
-  // Update ductwork and piping when MEP items change
+  // Update ductwork and piping when MEP items change (NOT when editor state changes!)
   useEffect(() => {
-    if (skipDuctRecreation) {
-      setSkipDuctRecreation(false)
-      return
-    }
+    // Check skip flags and reset them
+    const shouldSkip = Object.entries(mepEditorState).some(([type, state]) => {
+      if (state.skipRecreation) {
+        setTimeout(() => {
+          setMepEditorState(prev => ({
+            ...prev,
+            [type]: { ...prev[type], skipRecreation: false }
+          }))
+        }, type === 'cableTray' ? 100 : 0)
+        return true
+      }
+      return false
+    })
     
-    if (skipPipeRecreation) {
-      setSkipPipeRecreation(false)
-      return
-    }
+    if (shouldSkip) return
     
-    if (skipConduitRecreation) {
-      setSkipConduitRecreation(false)
-      return
-    }
-    
-    if (skipCableTrayRecreation) {
-      // Don't reset the flag immediately - wait for next render cycle
-      setTimeout(() => setSkipCableTrayRecreation(false), 100)
-      return
-    }
+    console.log('🔄 MEP Items changed - updating renderers with:', mepItems?.length, 'items')
     
     if (ductworkRendererRef.current && mepItems) {
       ductworkRendererRef.current.updateDuctwork(mepItems)
@@ -1371,14 +1139,28 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       pipingRendererRef.current.updatePiping(mepItems)
     }
 
-    if (conduitRendererRef.current && mepItems && !skipConduitRecreation) {
+    if (conduitRendererRef.current && mepItems) {
       conduitRendererRef.current.updateConduits(mepItems)
     }
 
-    if (cableTrayRendererRef.current && mepItems && !skipCableTrayRecreation) {
+    if (cableTrayRendererRef.current && mepItems) {
       cableTrayRendererRef.current.updateCableTrays(mepItems)
     }
-  }, [mepItems, skipDuctRecreation, skipPipeRecreation, skipConduitRecreation, skipCableTrayRecreation])
+  }, [mepItems]) // REMOVED mepEditorState dependency!
+  
+  // Separate effect to handle skip recreation flags
+  useEffect(() => {
+    Object.entries(mepEditorState).forEach(([type, state]) => {
+      if (state.skipRecreation) {
+        setTimeout(() => {
+          setMepEditorState(prev => ({
+            ...prev,
+            [type]: { ...prev[type], skipRecreation: false }
+          }))
+        }, type === 'cableTray' ? 100 : 0)
+      }
+    })
+  }, [mepEditorState])
 
   const handleAxisToggle = (axis) => {
     setAxisLock(prev => {
@@ -1486,481 +1268,88 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
       )}
       
       {/* Duct Editor */}
-      {showDuctEditor && selectedDuct && cameraRef.current && rendererRef.current && (
+      {mepEditorState.duct.showEditor && mepEditorState.duct.selected && cameraRef.current && rendererRef.current && (
         <DuctEditor
-          selectedObject={selectedDuct}
+          selectedObject={mepEditorState.duct.selected}
           camera={cameraRef.current}
           renderer={rendererRef.current}
-          visible={showDuctEditor}
-          onSave={(dimensions) => {
-            
-            // Set flag to prevent duct recreation
-            setSkipDuctRecreation(true)
-            
-            if (ductworkRendererRef.current?.ductInteraction) {
-              // First update the selected duct's userData to ensure consistency
-              if (selectedDuct?.userData?.ductData) {
-                selectedDuct.userData.ductData = {
-                  ...selectedDuct.userData.ductData,
-                  ...dimensions
-                }
-              }
-              
-              // Update the 3D duct using base class method
-              ductworkRendererRef.current.ductInteraction.updateObjectDimensions(dimensions)
-              
-              // Update manifest (MEP panel data)
-              try {
-                const manifest = getProjectManifest()
-                const storedMepItems = [
-                  ...(manifest.mepItems?.ductwork || []),
-                  ...(manifest.mepItems?.piping || []),
-                  ...(manifest.mepItems?.conduits || []),
-                  ...(manifest.mepItems?.cableTrays || [])
-                ]
-                const selectedDuctData = selectedDuct?.userData?.ductData
-                
-                if (selectedDuctData) {
-                  
-                  // Find and update the matching item
-                  // Handle ID matching - selectedDuctData.id might have _0, _1 suffix for multiple ducts
-                  const baseId = selectedDuctData.id.toString().split('_')[0]
-                  
-                  const updatedItems = storedMepItems.map(item => {
-                    const itemBaseId = item.id.toString().split('_')[0]
-                    
-                    if (itemBaseId === baseId) {
-                      // Include current duct position in the update
-                      const currentPosition = {
-                        x: selectedDuct.position.x,
-                        y: selectedDuct.position.y, 
-                        z: selectedDuct.position.z
-                      }
-                      
-                      const updatedItem = { 
-                        ...item, 
-                        ...dimensions,
-                        position: currentPosition
-                      }
-                      return updatedItem
-                    }
-                    return item
-                  })
-                  
-                  updateMEPItems(updatedItems, 'all')
-                  
-                  // IMPORTANT: Also update the manifest to ensure consistency
-                  if (window.updateMEPItemsManifest) {
-                    window.updateMEPItemsManifest(updatedItems)
-                  } else {
-                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-                  }
-                  
-                  // Dispatch custom event to notify MEP panel of changes
-                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-                    detail: { updatedItems, updatedDuctId: selectedDuctData.id }
-                  }))
-                  
-                  // Also try multiple refresh methods
-                  if (window.refreshMepPanel) {
-                    window.refreshMepPanel()
-                  }
-                  
-                  // Force re-render by dispatching storage event
-                  window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'projectManifest',
-                    newValue: JSON.stringify(getProjectManifest()),
-                    storageArea: localStorage
-                  }))
-                }
-              } catch (error) {
-                console.error('Error updating MEP items:', error)
-              }
-            }
-            
-            // Don't close the editor immediately - let user click away or edit another duct
-            // setShowDuctEditor(false)
-          }}
-          onCancel={() => {
-            setShowDuctEditor(false)
-          }}
-          onCopy={() => {
-            if (ductworkRendererRef.current?.ductInteraction) {
-              ductworkRendererRef.current.ductInteraction.copySelectedObject()
-            }
-          }}
+          visible={mepEditorState.duct.showEditor}
+          onSave={handleDuctEditorSave}
+          onCancel={handleDuctEditorCancel}
+          onCopy={() => ductworkRendererRef.current?.ductInteraction?.copySelectedObject()}
         />
       )}
       
       {/* Pipe Editor */}
-      {showPipeEditor && selectedPipe && cameraRef.current && rendererRef.current && (
+      {mepEditorState.pipe.showEditor && mepEditorState.pipe.selected && cameraRef.current && rendererRef.current && (
         <PipeEditor
-          selectedObject={selectedPipe}
+          selectedObject={mepEditorState.pipe.selected}
           camera={cameraRef.current}
           renderer={rendererRef.current}
-          visible={showPipeEditor}
-          onSave={(dimensions) => {
-            
-            // Set flag to prevent pipe recreation
-            setSkipPipeRecreation(true)
-            
-            if (pipingRendererRef.current?.pipeInteraction) {
-              // First update the selected pipe's userData to ensure consistency
-              if (selectedPipe?.userData?.pipeData) {
-                selectedPipe.userData.pipeData = {
-                  ...selectedPipe.userData.pipeData,
-                  ...dimensions
-                }
-              }
-              
-              // Update the 3D pipe
-              pipingRendererRef.current.pipeInteraction.updateObjectDimensions(dimensions)
-              
-              // Update manifest (MEP panel data)
-              try {
-                const manifest = getProjectManifest()
-                const storedMepItems = [
-                  ...(manifest.mepItems?.ductwork || []),
-                  ...(manifest.mepItems?.piping || []),
-                  ...(manifest.mepItems?.conduits || []),
-                  ...(manifest.mepItems?.cableTrays || [])
-                ]
-                const selectedPipeData = selectedPipe?.userData?.pipeData
-                
-                if (selectedPipeData) {
-                  
-                  // Find and update the matching item
-                  // Handle ID matching - selectedPipeData.id might have _0, _1 suffix for multiple pipes
-                  const baseId = selectedPipeData.id.toString().split('_')[0]
-                  
-                  const updatedItems = storedMepItems.map(item => {
-                    const itemBaseId = item.id.toString().split('_')[0]
-                    
-                    if (itemBaseId === baseId && item.type === 'pipe') {
-                      // Include current pipe position in the update
-                      const currentPosition = {
-                        x: selectedPipe.position.x,
-                        y: selectedPipe.position.y, 
-                        z: selectedPipe.position.z
-                      }
-                      
-                      const updatedItem = { 
-                        ...item, 
-                        ...dimensions,
-                        position: currentPosition
-                      }
-                      return updatedItem
-                    }
-                    return item
-                  })
-                  
-                  updateMEPItems(updatedItems, 'all')
-                  
-                  // IMPORTANT: Also update the manifest to ensure consistency
-                  if (window.updateMEPItemsManifest) {
-                    window.updateMEPItemsManifest(updatedItems)
-                  } else {
-                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-                  }
-                  
-                  // Dispatch custom event to notify MEP panel of changes
-                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-                    detail: { updatedItems, updatedPipeId: selectedPipeData.id }
-                  }))
-                  
-                  // Also try multiple refresh methods
-                  if (window.refreshMepPanel) {
-                    window.refreshMepPanel()
-                  }
-                  
-                  // Force re-render by dispatching storage event
-                  window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'projectManifest',
-                    newValue: JSON.stringify(getProjectManifest()),
-                    storageArea: localStorage
-                  }))
-                }
-              } catch (error) {
-                console.error('Error updating MEP pipe items:', error)
-              }
-            }
-            
-            // Don't close the editor immediately - let user click away or edit another pipe
-            // setShowPipeEditor(false)
-          }}
-          onCancel={() => {
-            setShowPipeEditor(false)
-          }}
-          onCopy={() => {
-            if (pipingRendererRef.current?.pipeInteraction) {
-              pipingRendererRef.current.pipeInteraction.copySelectedObject()
-            }
-          }}
+          visible={mepEditorState.pipe.showEditor}
+          onSave={handlePipeEditorSave}
+          onCancel={handlePipeEditorCancel}
+          onCopy={() => pipingRendererRef.current?.pipeInteraction?.copySelectedObject()}
         />
       )}
       
       {/* Conduit Editor */}
-      {showConduitEditor && selectedConduit && cameraRef.current && rendererRef.current && (
+      {mepEditorState.conduit.showEditor && mepEditorState.conduit.selected && cameraRef.current && rendererRef.current && (
         <ConduitEditorUI
-          selectedConduit={selectedConduit}
+          selectedConduit={mepEditorState.conduit.selected}
           camera={cameraRef.current}
           renderer={rendererRef.current}
-          visible={showConduitEditor}
+          visible={mepEditorState.conduit.showEditor}
           rackParams={rackParams}
-          onSave={(dimensions) => {
-            
-            // Set flag to prevent conduit recreation
-            setSkipConduitRecreation(true)
-            
-            if (conduitRendererRef.current?.conduitInteraction) {
-              // First update the selected conduit's userData to ensure consistency
-              if (selectedConduit?.userData?.conduitData) {
-                selectedConduit.userData.conduitData = {
-                  ...selectedConduit.userData.conduitData,
-                  ...dimensions
-                }
-              }
-              
-              // Update the 3D conduit
-              conduitRendererRef.current.conduitInteraction.updateConduitDimensions(dimensions)
-              
-              // Update manifest (MEP panel data)
-              try {
-                const manifest = getProjectManifest()
-                const storedMepItems = [
-                  ...(manifest.mepItems?.ductwork || []),
-                  ...(manifest.mepItems?.piping || []),
-                  ...(manifest.mepItems?.conduits || []),
-                  ...(manifest.mepItems?.cableTrays || [])
-                ]
-                const selectedConduitData = selectedConduit?.userData?.conduitData
-                
-                if (selectedConduitData) {
-                  
-                  // Find and update the matching item
-                  // Handle ID matching - selectedConduitData.id might have _0, _1 suffix for multiple conduits
-                  const baseId = selectedConduitData.id.toString().split('_')[0]
-                  
-                  const updatedItems = storedMepItems.map(item => {
-                    const itemBaseId = item.id.toString().split('_')[0]
-                    
-                    if (itemBaseId === baseId && item.type === 'conduit') {
-                      // Include current conduit position in the update
-                      const currentPosition = {
-                        x: selectedConduit.position.x,
-                        y: selectedConduit.position.y, 
-                        z: selectedConduit.position.z
-                      }
-                      
-                      // Include count since it's now editable
-                      const updatedItem = { 
-                        ...item, 
-                        ...dimensions,
-                        position: currentPosition
-                      }
-                      return updatedItem
-                    }
-                    return item
-                  })
-                  
-                  updateMEPItems(updatedItems, 'all')
-                  
-                  // IMPORTANT: Also update the manifest to ensure consistency
-                  if (window.updateMEPItemsManifest) {
-                    window.updateMEPItemsManifest(updatedItems)
-                  } else {
-                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-                  }
-                  
-                  // Dispatch custom event to notify MEP panel of changes
-                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-                    detail: { updatedItems, updatedConduitId: selectedConduitData.id }
-                  }))
-                  
-                  // Also try multiple refresh methods
-                  if (window.refreshMepPanel) {
-                    window.refreshMepPanel()
-                  }
-                  
-                  // Force re-render by dispatching storage event
-                  window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'projectManifest',
-                    newValue: JSON.stringify(getProjectManifest()),
-                    storageArea: localStorage
-                  }))
-                }
-              } catch (error) {
-                console.error('Error updating MEP conduit items:', error)
-              }
-            }
-            
-            // Don't close the editor immediately - let user click away or edit another conduit
-            // setShowConduitEditor(false)
-          }}
-          onCancel={() => {
-            setShowConduitEditor(false)
-          }}
-          onCopy={() => {
-            if (conduitRendererRef.current?.conduitInteraction) {
-              conduitRendererRef.current.conduitInteraction.copySelectedConduit()
-            }
-          }}
+          onSave={handleConduitEditorSave}
+          onCancel={handleConduitEditorCancel}
+          onCopy={() => conduitRendererRef.current?.conduitInteraction?.copySelectedConduit()}
         />
       )}
       
       {/* Cable Tray Editor */}
-      {showCableTrayEditor && selectedCableTray && cameraRef.current && rendererRef.current && (
+      {mepEditorState.cableTray.showEditor && mepEditorState.cableTray.selected && cameraRef.current && rendererRef.current && (
         <CableTrayEditor
-          selectedCableTray={selectedCableTray}
+          selectedCableTray={mepEditorState.cableTray.selected}
           camera={cameraRef.current}
           renderer={rendererRef.current}
-          visible={showCableTrayEditor}
+          visible={mepEditorState.cableTray.showEditor}
           rackParams={rackParams}
-          onSave={(dimensions) => {
-            // console.log(`🔌 ThreeScene: Cable tray editor save called with:`, dimensions)
-            
-            // Set flag to prevent cable tray recreation
-            setSkipCableTrayRecreation(true)
-            
-            if (cableTrayRendererRef.current?.cableTrayInteraction) {
-              // First update the selected cable tray's userData to ensure consistency
-              if (selectedCableTray?.userData?.cableTrayData) {
-                selectedCableTray.userData.cableTrayData = {
-                  ...selectedCableTray.userData.cableTrayData,
-                  ...dimensions
-                }
-              }
-              
-              // Update the 3D cable tray
-              cableTrayRendererRef.current.cableTrayInteraction.updateCableTrayDimensions(dimensions)
-              
-              // Update manifest (MEP panel data)
-              try {
-                const manifest = getProjectManifest()
-                const storedMepItems = [
-                  ...(manifest.mepItems?.ductwork || []),
-                  ...(manifest.mepItems?.piping || []),
-                  ...(manifest.mepItems?.conduits || []),
-                  ...(manifest.mepItems?.cableTrays || [])
-                ]
-                const selectedCableTrayData = selectedCableTray?.userData?.cableTrayData
-                
-                if (selectedCableTrayData) {
-                  const baseId = selectedCableTrayData.id.toString().split('_')[0]
-                  
-                  const updatedItems = storedMepItems.map(item => {
-                    const itemBaseId = item.id.toString().split('_')[0]
-                    
-                    if (itemBaseId === baseId && item.type === 'cableTray') {
-                      // console.log(`🔌 Found matching cable tray in manifest:`, item)
-                      const currentPosition = {
-                        x: selectedCableTray.position.x,
-                        y: selectedCableTray.position.y,
-                        z: selectedCableTray.position.z
-                      }
-                      
-                      // Auto-detect tier based on current Y position
-                      let tierInfo = { tier: dimensions.tier, tierName: `Tier ${dimensions.tier}` }
-                      if (cableTrayRendererRef.current?.cableTrayInteraction) {
-                        const detectedTier = cableTrayRendererRef.current.cableTrayInteraction.calculateCableTrayTierFromPosition(
-                          currentPosition.y, 
-                          dimensions.height
-                        )
-                        if (detectedTier.tier) {
-                          tierInfo = detectedTier
-                          // console.log(`🔌 Auto-detected tier: ${tierInfo.tierName} for Y position ${currentPosition.y}`)
-                        }
-                      }
-                      
-                      const updatedItem = {
-                        ...item,
-                        width: dimensions.width,
-                        height: dimensions.height,
-                        trayType: dimensions.trayType,
-                        tier: tierInfo.tier,
-                        tierName: tierInfo.tierName,
-                        position: currentPosition
-                      }
-                      // console.log(`🔌 Updated cable tray item:`, updatedItem)
-                      return updatedItem
-                    }
-                    return item
-                  })
-                  
-                  updateMEPItems(updatedItems, 'all')
-                  // console.log(`🔌 Saved cable tray ${selectedCableTrayData.id} to manifest`)
-                  
-                  // IMPORTANT: Also update the manifest to ensure consistency
-                  if (window.updateMEPItemsManifest) {
-                    window.updateMEPItemsManifest(updatedItems)
-                  } else {
-                    console.warn('⚠️ updateMEPItemsManifest not available - manifest may be out of sync')
-                  }
-                  
-                  // Dispatch custom event to notify MEP panel of changes
-                  window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-                    detail: { updatedItems, updatedCableTrayId: selectedCableTrayData.id }
-                  }))
-                  
-                  // Also try multiple refresh methods
-                  if (window.refreshMepPanel) {
-                    window.refreshMepPanel()
-                  }
-                  
-                  // Dispatch storage event to update other components
-                  window.dispatchEvent(new Event('storage'))
-                } else {
-                  console.warn('⚠️ Could not find cable tray data for manifest update')
-                }
-              } catch (error) {
-                console.error('Error updating MEP cable tray items:', error)
-              }
-            }
-            
-            // Close the editor after saving (consistent with duct behavior)
-            setShowCableTrayEditor(false)
-          }}
-          onCancel={() => {
-            setShowCableTrayEditor(false)
-          }}
-          onCopy={() => {
-            if (cableTrayRendererRef.current?.cableTrayInteraction) {
-              cableTrayRendererRef.current.cableTrayInteraction.duplicateSelectedCableTray()
-            }
-          }}
+          onSave={handleCableTrayEditorSave}
+          onCancel={handleCableTrayEditorCancel}
+          onCopy={() => cableTrayRendererRef.current?.cableTrayInteraction?.duplicateSelectedCableTray()}
         />
       )}
       
       {/* Trade Rack Editor */}
-      {showTradeRackEditor && selectedTradeRack && cameraRef.current && rendererRef.current && (
+      {mepEditorState.tradeRack.showEditor && mepEditorState.tradeRack.selected && cameraRef.current && rendererRef.current && (
         <TradeRackEditor
-          selectedObject={selectedTradeRack}
+          selectedObject={mepEditorState.tradeRack.selected}
           camera={cameraRef.current}
           renderer={rendererRef.current}
-          visible={showTradeRackEditor}
+          visible={mepEditorState.tradeRack.showEditor}
           onSave={(newDimensions) => {
             console.log(`🔧 ThreeScene: TradeRackEditor save called with:`, newDimensions)
             
-            // Set flag to prevent trade rack recreation
-            setSkipTradeRackRecreation(true)
+            setMepEditorState(prev => ({
+              ...prev,
+              tradeRack: { ...prev.tradeRack, skipRecreation: true }
+            }))
             
             if (tradeRackInteractionRef.current && tradeRackInteractionRef.current.selectedObject) {
-              // Call the update method to rebuild the rack with new top clearance
               tradeRackInteractionRef.current.updateTradeRackDimensions(newDimensions)
-              
               console.log('🔧 Triggered trade rack rebuild with new dimensions:', newDimensions)
             }
             
-            // Reset flag after a brief delay
             setTimeout(() => {
-              setSkipTradeRackRecreation(false)
+              setMepEditorState(prev => ({
+                ...prev,
+                tradeRack: { ...prev.tradeRack, skipRecreation: false, showEditor: false }
+              }))
             }, 100)
-            
-            // Close the editor after saving
-            setShowTradeRackEditor(false)
           }}
           onCancel={() => {
-            setShowTradeRackEditor(false)
+            setMepEditorState(prev => ({ ...prev, tradeRack: { ...prev.tradeRack, showEditor: false } }))
           }}
         />
       )}
