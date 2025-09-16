@@ -7,7 +7,7 @@
 import * as THREE from 'three'
 import { RackSnapLineManager, DuctGeometry } from '../ductwork'
 import { DuctInteraction } from './DuctInteraction.js'
-import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
+// import { getProjectManifest } from '../../../utils/projectManifest' // Unused import
 import { getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary } from '../../../utils/temporaryState'
 
 /**
@@ -137,10 +137,10 @@ export class DuctworkRenderer {
    */
   createDuct(ductData) {
     const {
-      width = 12,
-      height = 8,
-      tier = 1,
-      position = 'bottom'
+      // width = 12, // Not used directly in this method (used in ductData)
+      // height = 8, // Not used directly in this method (used in ductData)
+      tier = 1
+      // position = 'bottom' // Not used in this method
     } = ductData
 
     // Get duct length from snapLineManager
@@ -200,6 +200,7 @@ export class DuctworkRenderer {
    * Calculate duct Y position within tier - unchanged logic
    */
   calculateDuctYPosition(ductData, tier = 1, position = 'bottom') {
+    // position parameter is for future use if needed
     let snapLines = null
     try {
       snapLines = this.snapLineManager?.getSnapLinesFromRackGeometry()

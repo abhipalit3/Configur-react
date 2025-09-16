@@ -7,7 +7,7 @@
 import * as THREE from 'three'
 import { PipeGeometry } from './PipeGeometry.js'
 import { PipeInteraction } from './PipeInteraction.js'
-import { getColumnSize } from '../core/utils'
+// import { getColumnSize } from '../core/utils' // Unused import
 import { getProjectManifest } from '../../../utils/projectManifest'
 import { getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary } from '../../../utils/temporaryState'
 
@@ -204,10 +204,10 @@ export class PipingRenderer {
    */
   createPipe(pipeData) {
     const {
-      diameter = 2,
-      pipeType = 'copper',
-      tier = 1,
-      position = 'bottom'
+      // diameter = 2, // Not used in this method
+      // pipeType = 'copper', // Not used in this method
+      tier = 1
+      // position = 'bottom' // Not used in this method
     } = pipeData
 
     // Get pipe length directly from rack parameters/localStorage (should match rack length exactly)
@@ -338,6 +338,7 @@ export class PipingRenderer {
    * Calculate pipe Y position within tier
    */
   calculatePipeYPosition(pipeData, tier = 1, position = 'bottom') {
+    // position parameter is for future use if needed
     // Get snap lines with better error handling
     let snapLines = null
     try {
