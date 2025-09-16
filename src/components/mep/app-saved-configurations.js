@@ -147,14 +147,59 @@ const AppSavedConfigurations = (props) => {
   const handleUpdateConfig = (configId, event) => {
     event.stopPropagation() // Prevent triggering the card click
     
-    // Get the current rack configuration from localStorage (the actual scene state)
+    console.log('🔧 UPDATE CONFIG DEBUG: Starting update process...')
+    
+    // Debug: Check all possible sources of rack configuration
+    const manifest = getProjectManifest()
     const currentRackParams = localStorage.getItem('rackParameters')
-    if (!currentRackParams) {
-      alert('No rack configuration in scene to update with.')
-      return
+    const tempStateStr = localStorage.getItem('rackTemporaryState')
+    
+    console.log('🔧 UPDATE CONFIG DEBUG:')
+    console.log('- manifest.tradeRacks:', manifest?.tradeRacks)
+    console.log('- manifest.tradeRacks.active:', manifest?.tradeRacks?.active)
+    console.log('- localStorage rackParameters:', currentRackParams)
+    console.log('- localStorage rackTemporaryState:', tempStateStr)
+    
+    // Try to get current rack configuration from multiple sources
+    let rackConfig = null
+    
+    // Priority 1: Try project manifest active configuration
+    if (manifest?.tradeRacks?.active) {
+      rackConfig = { ...manifest.tradeRacks.active }
+      console.log('🔧 Using rack config from manifest active:', rackConfig)
+    } 
+    // Priority 2: Try localStorage rackParameters (legacy fallback)
+    else if (currentRackParams) {
+      rackConfig = JSON.parse(currentRackParams)
+      console.log('🔧 Using rack config from localStorage:', rackConfig)
+    }
+    // Priority 3: Check if there's a temporary state we can use
+    else if (tempStateStr) {
+      const tempState = JSON.parse(tempStateStr)
+      console.log('🔧 Checking temporary state for rack config:', tempState)
+      
+      // If temp state has rack parameters, use them
+      if (tempState && Object.keys(tempState).length > 0) {
+        // Create a basic rack config from temp state
+        rackConfig = {
+          rackLength: tempState.rackLength || { feet: 8, inches: 0 },
+          rackWidth: tempState.rackWidth || { feet: 2, inches: 0 },
+          tierCount: tempState.tierCount || 3,
+          mountType: tempState.mountType || 'floor',
+          topClearance: tempState.topClearance || 0,
+          topClearanceInches: tempState.topClearanceInches || 0,
+          ...tempState
+        }
+        console.log('🔧 Created rack config from temporary state:', rackConfig)
+      }
     }
     
-    let rackConfig = JSON.parse(currentRackParams)
+    // If no configuration found anywhere, show detailed error
+    if (!rackConfig) {
+      console.error('🔧 UPDATE CONFIG ERROR: No rack configuration found in any source')
+      alert('No rack configuration in scene to update with. Please ensure a rack is properly configured before updating.')
+      return
+    }
     
     // Get current effective top clearance from temporary state if available
     try {
