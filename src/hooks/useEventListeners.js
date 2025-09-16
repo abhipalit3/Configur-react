@@ -10,6 +10,9 @@ import {
   updateMeasurements,
   updateMEPItems
 } from '../utils/projectManifest'
+import { 
+  getAllMEPItemsFromTemporary
+} from '../utils/temporaryState'
 
 /**
  * Custom hook for managing event listeners
@@ -48,18 +51,13 @@ export const useEventListeners = (
     }
 
     const handleManifestChange = (event) => {
-      if (event.key === 'projectManifest') {
+      if (event.key === 'projectManifest' || event.key === 'temporaryState') {
         try {
-          const manifest = JSON.parse(event.newValue)
-          const allMepItems = [
-            ...(manifest.mepItems?.ductwork || []),
-            ...(manifest.mepItems?.piping || []),
-            ...(manifest.mepItems?.conduits || []),
-            ...(manifest.mepItems?.cableTrays || [])
-          ]
+          // Use temporary state instead of legacy manifest
+          const allMepItems = getAllMEPItemsFromTemporary()
           setMepItems(allMepItems)
         } catch (error) {
-          console.error('Error parsing updated MEP items from manifest:', error)
+          console.error('Error loading MEP items from temporary state:', error)
         }
       }
     }
@@ -220,13 +218,8 @@ export const useEventListeners = (
     // Make MEP panel refresh function available globally
     window.refreshMepPanel = () => {
       try {
-        const manifest = getProjectManifest()
-        const allMepItems = [
-          ...(manifest.mepItems?.ductwork || []),
-          ...(manifest.mepItems?.piping || []),
-          ...(manifest.mepItems?.conduits || []),
-          ...(manifest.mepItems?.cableTrays || [])
-        ]
+        // Use temporary state instead of legacy manifest
+        const allMepItems = getAllMEPItemsFromTemporary()
         setMepItems([...allMepItems])
       } catch (error) {
         console.error('❌ Error refreshing MEP panel:', error)

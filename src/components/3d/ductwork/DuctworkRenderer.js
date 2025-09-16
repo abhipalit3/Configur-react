@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import { RackSnapLineManager, DuctGeometry } from '../ductwork'
 import { DuctInteraction } from './DuctInteraction.js'
 import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
+import { getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary } from '../../../utils/temporaryState'
 
 /**
  * DuctworkRenderer - Using the new base interaction class
@@ -79,16 +80,23 @@ export class DuctworkRenderer {
     // The base class provides comprehensive tier calculation automatically
     const ductsGroup = this.scene.getObjectByName('DuctsGroup')
     if (ductsGroup) {
+      const updatedDuctData = []
+      
       ductsGroup.children.forEach(duct => {
         if (duct.userData.type === 'duct') {
           const tierInfo = this.ductInteraction.calculateTier(duct.position.y)
           duct.userData.ductData.tier = tierInfo.tier
           duct.userData.ductData.tierName = tierInfo.tierName
+          
+          // Collect updated duct data
+          updatedDuctData.push(duct.userData.ductData)
         }
       })
       
-      // Update storage
-      this.ductInteraction.saveObjectPosition()
+      // Update storage for all ducts at once
+      if (updatedDuctData.length > 0) {
+        this.saveAllDuctsTierToStorage(updatedDuctData)
+      }
     }
   }
 
@@ -97,13 +105,8 @@ export class DuctworkRenderer {
    */
   refreshDuctwork() {
     try {
-      const manifest = getProjectManifest()
-      const allMepItems = [
-        ...manifest.mepItems.ductwork,
-        ...manifest.mepItems.piping,
-        ...manifest.mepItems.conduits,
-        ...manifest.mepItems.cableTrays
-      ]
+      // Use temporary state instead of legacy manifest
+      const allMepItems = getAllMEPItemsFromTemporary()
       const ductItems = allMepItems.filter(item => item && item.type === 'duct')
       
       if (ductItems.length > 0) {
@@ -179,8 +182,8 @@ export class DuctworkRenderer {
       ductData.tier = calculatedTierInfo.tier
       ductData.tierName = calculatedTierInfo.tierName
       
-      // Update in storage - this will be handled by the interaction class
-      // The duct interaction class will save the updated tier info via the base class
+      // Save updated tier info to storage immediately
+      this.saveDuctTierToStorage(ductData)
     }
     
     // Create duct group using modular geometry
@@ -233,6 +236,74 @@ export class DuctworkRenderer {
     console.warn(`⚠️ Tier ${tier} not available, using lowest beam`)
     const lowestBeam = beamTopSurfaces[beamTopSurfaces.length - 1]
     return lowestBeam.y + (totalHeight / 2)
+  }
+
+  /**
+   * Save duct tier information to storage
+   */
+  saveDuctTierToStorage(ductData) {
+    try {
+      const storedItems = getAllMEPItemsFromTemporary()
+      const baseId = ductData.id.toString().split('_')[0]
+      
+      const updatedItems = storedItems.map(item => {
+        const itemBaseId = item.id.toString().split('_')[0]
+        
+        if (itemBaseId === baseId && item.type === 'duct') {
+          return {
+            ...item,
+            tier: ductData.tier,
+            tierName: ductData.tierName
+          }
+        }
+        return item
+      })
+      
+      // Update temporary state with tier information
+      updateAllMEPItemsInTemporary(updatedItems)
+      
+      console.log(`🔧 Saved duct tier info to storage: ${ductData.tierName}`)
+      
+    } catch (error) {
+      console.error('Error saving duct tier to storage:', error)
+    }
+  }
+
+  /**
+   * Save tier information for all ducts to storage (batch update)
+   */
+  saveAllDuctsTierToStorage(ductDataArray) {
+    try {
+      const storedItems = getAllMEPItemsFromTemporary()
+      
+      const updatedItems = storedItems.map(item => {
+        if (item.type === 'duct') {
+          // Find matching duct data
+          const matchingDuctData = ductDataArray.find(ductData => {
+            const baseId = ductData.id.toString().split('_')[0]
+            const itemBaseId = item.id.toString().split('_')[0]
+            return itemBaseId === baseId
+          })
+          
+          if (matchingDuctData) {
+            return {
+              ...item,
+              tier: matchingDuctData.tier,
+              tierName: matchingDuctData.tierName
+            }
+          }
+        }
+        return item
+      })
+      
+      // Update temporary state with tier information
+      updateAllMEPItemsInTemporary(updatedItems)
+      
+      console.log(`🔧 Saved tier info for ${ductDataArray.length} ducts to storage`)
+      
+    } catch (error) {
+      console.error('Error saving ducts tier to storage:', error)
+    }
   }
 
   /**

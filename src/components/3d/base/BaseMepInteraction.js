@@ -6,7 +6,8 @@
 
 import * as THREE from 'three'
 import { getMepSelectionManager } from '../core/MepSelectionManager.js'
-import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
+import { getProjectManifest } from '../../../utils/projectManifest'
+import { getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary } from '../../../utils/temporaryState'
 import {
   setupTransformControls,
   setupRaycaster,
@@ -488,13 +489,8 @@ export class BaseMepInteraction {
       const objectData = this.getObjectData(this.selectedObject)
       const tierInfo = this.calculateTier(this.selectedObject.position.y)
       
-      const manifest = getProjectManifest()
-      const storedItems = [
-        ...(manifest.mepItems?.ductwork || []),
-        ...(manifest.mepItems?.piping || []),
-        ...(manifest.mepItems?.conduits || []),
-        ...(manifest.mepItems?.cableTrays || [])
-      ]
+      // Use temporary state instead of legacy manifest
+      const storedItems = getAllMEPItemsFromTemporary()
       const baseId = objectData.id.toString().split('_')[0]
       
       const updatedItems = storedItems.map(item => {
@@ -515,10 +511,18 @@ export class BaseMepInteraction {
         return item
       })
       
-      updateMEPItems(updatedItems, 'all')
+      // Update temporary state (primary storage)
+      updateAllMEPItemsInTemporary(updatedItems)
+      
+      // Legacy manifest update removed - using temporary state only
       
       if (window.updateMEPItemsManifest) {
         window.updateMEPItemsManifest(updatedItems)
+      }
+      
+      // Trigger MEP panel refresh to reflect changes
+      if (window.refreshMepPanel) {
+        window.refreshMepPanel()
       }
       
       window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
@@ -544,20 +548,18 @@ export class BaseMepInteraction {
     
     // Remove from storage
     try {
-      const manifest = getProjectManifest()
-      const storedItems = [
-        ...(manifest.mepItems?.ductwork || []),
-        ...(manifest.mepItems?.piping || []),
-        ...(manifest.mepItems?.conduits || []),
-        ...(manifest.mepItems?.cableTrays || [])
-      ]
+      // Use temporary state instead of legacy manifest
+      const storedItems = getAllMEPItemsFromTemporary()
       const updatedItems = storedItems.filter(item => {
         const baseId = objectData.id.toString().split('_')[0]
         const itemBaseId = item.id.toString().split('_')[0]
         return !(item.type === this.mepType && itemBaseId === baseId)
       })
       
-      updateMEPItems(updatedItems, 'all')
+      // Update temporary state (primary storage)
+      updateAllMEPItemsInTemporary(updatedItems)
+      
+      // Legacy manifest update removed - using temporary state only
       
       if (window.updateMEPItemsManifest) {
         window.updateMEPItemsManifest(updatedItems)
@@ -741,8 +743,14 @@ export class BaseMepInteraction {
     object.traverse((child) => {
       if (child.geometry) child.geometry.dispose()
       if (child.material) {
-        if (child.material.map) child.material.map.dispose()
-        child.material.dispose()
+        // Handle both single materials and material arrays
+        const materials = Array.isArray(child.material) ? child.material : [child.material]
+        materials.forEach(material => {
+          if (material && typeof material.dispose === 'function') {
+            if (material.map) material.map.dispose()
+            material.dispose()
+          }
+        })
       }
     })
   }

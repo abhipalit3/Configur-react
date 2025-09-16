@@ -10,7 +10,13 @@ import {
   updateTradeRackConfiguration,
   setActiveConfiguration
 } from '../utils/projectManifest'
-import { clearRackTemporaryState, updateRackTemporaryState } from '../utils/temporaryState'
+import { 
+  clearRackTemporaryState, 
+  updateRackTemporaryState, 
+  getAllMEPItemsFromTemporary,
+  updateAllMEPItemsInTemporary,
+  clearAllMEPItemsFromTemporary
+} from '../utils/temporaryState'
 
 /**
  * Creates configuration handlers for the application
@@ -70,13 +76,8 @@ export const createConfigurationHandlers = (
           window.ductworkRendererInstance.refreshDuctwork()
         }
         if (window.pipingRendererInstance) {
-          const manifest = getProjectManifest()
-          const allMepItems = [
-            ...(manifest.mepItems?.ductwork || []),
-            ...(manifest.mepItems?.piping || []),
-            ...(manifest.mepItems?.conduits || []),
-            ...(manifest.mepItems?.cableTrays || [])
-          ]
+          // Use temporary state instead of legacy manifest
+          const allMepItems = getAllMEPItemsFromTemporary()
           window.pipingRendererInstance.updatePiping(allMepItems)
         }
       }, 100)
@@ -220,6 +221,31 @@ export const createConfigurationHandlers = (
     })
     console.log('🔧 Updated temporary state with restored configuration position:', processedParams.position)
     
+    // Restore MEP items if present in configuration
+    if (config.mepItems) {
+      console.log('🔧 Restoring MEP items from configuration in handler:', config.mepItems)
+      
+      // Clear current MEP items and load from configuration
+      clearAllMEPItemsFromTemporary()
+      
+      // Combine all MEP items from the configuration
+      const allMepItems = [
+        ...(config.mepItems.ductwork || []),
+        ...(config.mepItems.piping || []),
+        ...(config.mepItems.conduits || []),
+        ...(config.mepItems.cableTrays || [])
+      ]
+      
+      if (allMepItems.length > 0) {
+        updateAllMEPItemsInTemporary(allMepItems)
+        console.log('🔧 Restored', allMepItems.length, 'MEP items to temporary state from handler')
+      }
+    } else {
+      // Clear MEP items if configuration doesn't have any
+      clearAllMEPItemsFromTemporary()
+      console.log('🔧 Configuration has no MEP items, cleared temporary state from handler')
+    }
+    
     setRackParams(processedParams)
     
     // Update manifest with restored rack configuration
@@ -257,16 +283,70 @@ export const createConfigurationHandlers = (
       }, 50)
     }
     
-    // Update ductwork renderer with restored rack parameters
-    if (window.ductworkRendererInstance) {
-      window.ductworkRendererInstance.updateRackParams(combinedParams)
+    // Update all MEP renderers with restored configuration
+    setTimeout(() => {
+      const restoredMEPItems = getAllMEPItemsFromTemporary()
+      console.log('🔧 Configuration restoration: Updating all MEP renderers with', restoredMEPItems.length, 'items')
       
-      setTimeout(() => {
-        if (window.ductworkRendererInstance) {
-          window.ductworkRendererInstance.recalculateTierInfo()
+      // Update ductwork renderer
+      if (window.ductworkRendererInstance) {
+        console.log('🔧 Updating ductwork renderer...')
+        window.ductworkRendererInstance.updateRackParams(combinedParams)
+        window.ductworkRendererInstance.recalculateTierInfo()
+        
+        // Update ductwork items
+        const ductItems = restoredMEPItems.filter(item => item.type === 'duct')
+        console.log('🔧 Found', ductItems.length, 'duct items to restore')
+        if (ductItems.length > 0) {
+          window.ductworkRendererInstance.updateDuctwork(ductItems)
+        } else {
+          window.ductworkRendererInstance.updateDuctwork([])
         }
-      }, 200)
-    }
+      } else {
+        console.warn('⚠️ ductworkRendererInstance not found on window object')
+      }
+      
+      // Update piping renderer
+      if (window.pipingRendererInstance) {
+        const pipeItems = restoredMEPItems.filter(item => item.type === 'pipe')
+        console.log('🔧 Updating piping renderer with', pipeItems.length, 'pipe items')
+        window.pipingRendererInstance.updatePiping(restoredMEPItems)
+      } else {
+        console.warn('⚠️ pipingRendererInstance not found on window object')
+      }
+      
+      // Update conduit renderer
+      if (window.conduitRendererInstance) {
+        const conduitItems = restoredMEPItems.filter(item => item.type === 'conduit')
+        console.log('🔧 Updating conduit renderer with', conduitItems.length, 'conduit items')
+        window.conduitRendererInstance.updateConduits(restoredMEPItems)
+      } else {
+        console.warn('⚠️ conduitRendererInstance not found on window object')
+      }
+      
+      // Update cable tray renderer
+      if (window.cableTrayRendererInstance) {
+        const cableTrayItems = restoredMEPItems.filter(item => item.type === 'cableTray')
+        console.log('🔧 Updating cable tray renderer with', cableTrayItems.length, 'cable tray items')
+        window.cableTrayRendererInstance.updateCableTrays(restoredMEPItems)
+      } else {
+        console.warn('⚠️ cableTrayRendererInstance not found on window object')
+      }
+      
+      // Refresh MEP panel to sync UI
+      if (window.refreshMepPanel) {
+        console.log('🔧 Refreshing MEP panel...')
+        window.refreshMepPanel()
+      } else {
+        console.warn('⚠️ refreshMepPanel function not found on window object')
+      }
+      
+      // Dispatch event to ensure React state is updated
+      console.log('🔧 Dispatching mepItemsUpdated event for UI sync')
+      window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
+        detail: { updatedItems: restoredMEPItems }
+      }))
+    }, 100)
     
     // Update manifest with restored configuration
     updateTradeRackConfiguration(combinedParams, false)

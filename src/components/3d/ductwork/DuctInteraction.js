@@ -6,7 +6,8 @@
 
 import { BaseMepInteraction } from '../base/BaseMepInteraction.js'
 import * as THREE from 'three'
-import { getProjectManifest, updateMEPItems } from '../../../utils/projectManifest'
+import { getProjectManifest } from '../../../utils/projectManifest'
+import { getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary } from '../../../utils/temporaryState'
 
 /**
  * DuctInteraction - Ductwork-specific implementation using base class
@@ -180,14 +181,13 @@ export class DuctInteraction extends BaseMepInteraction {
       // Get current MEP items from manifest
       const manifest = getProjectManifest()
       const currentItems = [
-        ...manifest.mepItems.ductwork,
-        ...manifest.mepItems.piping,
-        ...manifest.mepItems.conduits,
-        ...manifest.mepItems.cableTrays
+        // Use temporary state instead of legacy manifest
+        ...getAllMEPItemsFromTemporary()
       ]
       
       const updatedItems = [...currentItems, mepItem]
-      updateMEPItems(updatedItems, 'all')
+      // Update temporary state (primary storage)
+      updateAllMEPItemsInTemporary(updatedItems)
       
       // Legacy support - also update localStorage for components that still use it
       
@@ -209,10 +209,8 @@ export class DuctInteraction extends BaseMepInteraction {
       // Get current MEP items from manifest
       const manifest = getProjectManifest()
       const currentItems = [
-        ...manifest.mepItems.ductwork,
-        ...manifest.mepItems.piping,
-        ...manifest.mepItems.conduits,
-        ...manifest.mepItems.cableTrays
+        // Use temporary state instead of legacy manifest
+        ...getAllMEPItemsFromTemporary()
       ]
       
       const baseId = ductData.id.toString().split('_')[0]
@@ -225,7 +223,8 @@ export class DuctInteraction extends BaseMepInteraction {
         return item
       })
       
-      updateMEPItems(updatedItems, 'all')
+      // Update temporary state (primary storage)
+      updateAllMEPItemsInTemporary(updatedItems)
       
       // Legacy support - also update localStorage for components that still use it
       

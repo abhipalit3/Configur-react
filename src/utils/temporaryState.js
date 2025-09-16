@@ -39,6 +39,9 @@ export const createInitialTemporaryState = () => ({
     transformMode: 'translate',
     measurementToolActive: false,
     isRackPropertiesVisible: true,
+    isMeasurementActive: false,
+    isAddMEPVisible: false,
+    viewMode: '3D',
     colorPickerState: null
   },
   
@@ -51,13 +54,22 @@ export const createInitialTemporaryState = () => ({
     snapGuides: []
   },
   
-  // MEP object temporary states
+  // MEP object temporary states and active items
   mep: {
     selectedItemId: null,
     selectedItemType: null,
     editingItemId: null,
     previewItems: [],
-    snapLines: []
+    snapLines: [],
+    // Active MEP items for current session/configuration
+    activeItems: {
+      ductwork: [],
+      piping: [],
+      conduits: [],
+      cableTrays: []
+    },
+    totalCount: 0,
+    lastModified: null
   },
   
   // Measurement tool state
@@ -191,6 +203,148 @@ export const updateMEPState = (mepChanges) => {
 }
 
 /**
+ * Add MEP item to temporary state
+ */
+export const addMEPItemToTemporary = (item, category) => {
+  const state = getTemporaryState()
+  
+  if (!state.mep.activeItems[category]) {
+    state.mep.activeItems[category] = []
+  }
+  
+  const itemWithMetadata = {
+    ...item,
+    id: item.id || `${category}_${Date.now()}`,
+    addedAt: new Date().toISOString()
+  }
+  
+  state.mep.activeItems[category].push(itemWithMetadata)
+  state.mep.totalCount = Object.values(state.mep.activeItems)
+    .filter(Array.isArray)
+    .reduce((total, arr) => total + arr.length, 0)
+  state.mep.lastModified = new Date().toISOString()
+  
+  saveTemporaryState(state)
+  
+  // Update project statistics
+  try {
+    const { incrementMEPItemsAdded } = require('./projectManifest')
+    incrementMEPItemsAdded(1)
+  } catch (error) {
+    console.warn('Could not update MEP statistics:', error)
+  }
+  
+  return state
+}
+
+/**
+ * Remove MEP item from temporary state
+ */
+export const removeMEPItemFromTemporary = (itemId, category) => {
+  const state = getTemporaryState()
+  
+  if (state.mep.activeItems[category]) {
+    const initialCount = state.mep.activeItems[category].length
+    state.mep.activeItems[category] = state.mep.activeItems[category].filter(item => item.id !== itemId)
+    
+    if (state.mep.activeItems[category].length < initialCount) {
+      state.mep.totalCount = Object.values(state.mep.activeItems)
+        .filter(Array.isArray)
+        .reduce((total, arr) => total + arr.length, 0)
+      state.mep.lastModified = new Date().toISOString()
+      saveTemporaryState(state)
+    }
+  }
+  
+  return state
+}
+
+/**
+ * Update all MEP items in temporary state
+ */
+export const updateAllMEPItemsInTemporary = (items, category = 'all') => {
+  const state = getTemporaryState()
+  const previousTotalCount = state.mep.totalCount || 0
+  
+  // Map component types to temporary state categories
+  const mapTypeToCategory = (componentType) => {
+    const typeMap = {
+      'duct': 'ductwork',
+      'pipe': 'piping', 
+      'conduit': 'conduits',
+      'cableTray': 'cableTrays'
+    }
+    return typeMap[componentType] || componentType
+  }
+  
+  if (category === 'all') {
+    // Update all MEP items - map component types to categories
+    state.mep.activeItems = {
+      ductwork: items.filter(item => mapTypeToCategory(item.type) === 'ductwork'),
+      piping: items.filter(item => mapTypeToCategory(item.type) === 'piping'),
+      conduits: items.filter(item => mapTypeToCategory(item.type) === 'conduits'),
+      cableTrays: items.filter(item => mapTypeToCategory(item.type) === 'cableTrays')
+    }
+  } else {
+    // Update specific category
+    state.mep.activeItems[category] = items
+  }
+  
+  state.mep.totalCount = Object.values(state.mep.activeItems)
+    .filter(Array.isArray)
+    .reduce((total, arr) => total + arr.length, 0)
+  state.mep.lastModified = new Date().toISOString()
+  
+  saveTemporaryState(state)
+  
+  // Update project statistics if items were added (net positive change)
+  const newTotalCount = state.mep.totalCount
+  const itemsAdded = Math.max(0, newTotalCount - previousTotalCount)
+  
+  if (itemsAdded > 0) {
+    try {
+      const { incrementMEPItemsAdded } = require('./projectManifest')
+      incrementMEPItemsAdded(itemsAdded)
+    } catch (error) {
+      console.warn('Could not update MEP statistics:', error)
+    }
+  }
+  
+  return state
+}
+
+/**
+ * Get all MEP items from temporary state
+ */
+export const getAllMEPItemsFromTemporary = () => {
+  const state = getTemporaryState()
+  const allItems = [
+    ...(state.mep.activeItems.ductwork || []),
+    ...(state.mep.activeItems.piping || []),
+    ...(state.mep.activeItems.conduits || []),
+    ...(state.mep.activeItems.cableTrays || [])
+  ]
+  return allItems
+}
+
+/**
+ * Clear all MEP items from temporary state
+ */
+export const clearAllMEPItemsFromTemporary = () => {
+  const state = getTemporaryState()
+  state.mep.activeItems = {
+    ductwork: [],
+    piping: [],
+    conduits: [],
+    cableTrays: []
+  }
+  state.mep.totalCount = 0
+  state.mep.lastModified = new Date().toISOString()
+  saveTemporaryState(state)
+  return state
+}
+
+/**
  * Update measurement tool state
  */
 export const updateMeasurementState = (measurementChanges) => {
@@ -235,7 +389,15 @@ const validateAndMigrateTemporaryState = (state) => {
     camera: { ...initial.camera, ...state.camera },
     ui: { ...initial.ui, ...state.ui },
     rack: { ...initial.rack, ...state.rack },
-    mep: { ...initial.mep, ...state.mep },
+    mep: { 
+      ...initial.mep, 
+      ...state.mep,
+      // Ensure activeItems exists and has proper structure
+      activeItems: {
+        ...initial.mep.activeItems,
+        ...(state.mep?.activeItems || {})
+      }
+    },
     measurements: { ...initial.measurements, ...state.measurements }
   }
   

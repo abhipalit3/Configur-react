@@ -114,9 +114,15 @@ export class RackSnapLineManager {
     // Priority 3: Calculate from bay dimensions as last resort
     if (!rackLength || rackLength <= 0) {
       const bayCount = this.rackParams?.bayCount || 4
-      const bayWidth = this.rackParams?.bayWidth || 3
+      let bayWidth = this.rackParams?.bayWidth || 3
+      
+      // Convert bayWidth from feet+inches object to feet if needed
+      if (typeof bayWidth === 'object' && bayWidth.feet !== undefined) {
+        bayWidth = bayWidth.feet + (bayWidth.inches || 0) / 12
+      }
+      
       rackLength = bayCount * bayWidth
-      console.warn(`Using calculated rack length: ${rackLength}ft (${bayCount} bays × ${bayWidth}ft)`)
+      console.log(`🔧 Using calculated rack length: ${rackLength}ft (${bayCount} bays × ${bayWidth}ft)`)
     }
     
     return rackLength

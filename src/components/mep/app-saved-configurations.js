@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { getProjectManifest, setActiveConfiguration, updateTradeRackConfiguration, deleteTradeRackConfiguration, saveConfigurationToList } from '../../utils/projectManifest'
-import { getRackTemporaryState } from '../../utils/temporaryState'
+import { getRackTemporaryState, getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary, clearAllMEPItemsFromTemporary } from '../../utils/temporaryState'
 import { calculateTotalHeight } from '../../types/tradeRack'
 import './app-saved-configurations.css'
 
@@ -42,6 +42,32 @@ const AppSavedConfigurations = (props) => {
 
   const handleConfigClick = (config) => {
     console.log('🔧 CONFIG CLICK: Attempting to restore config:', JSON.stringify(config, null, 2))
+    
+    // Restore MEP items from the configuration to temporary state
+    if (config.mepItems) {
+      console.log('🔧 Restoring MEP items from configuration:', config.mepItems)
+      
+      // Clear current MEP items and load from configuration
+      clearAllMEPItemsFromTemporary()
+      
+      // Combine all MEP items from the configuration
+      const allMepItems = [
+        ...(config.mepItems.ductwork || []),
+        ...(config.mepItems.piping || []),
+        ...(config.mepItems.conduits || []),
+        ...(config.mepItems.cableTrays || [])
+      ]
+      
+      if (allMepItems.length > 0) {
+        updateAllMEPItemsInTemporary(allMepItems)
+        console.log('🔧 Restored', allMepItems.length, 'MEP items to temporary state')
+      }
+    } else {
+      // Clear MEP items if configuration doesn't have any
+      clearAllMEPItemsFromTemporary()
+      console.log('🔧 Configuration has no MEP items, cleared temporary state')
+    }
+    
     if (props.onRestoreConfiguration) {
       props.onRestoreConfiguration(config)
       setActiveConfigId(config.id) // Update local state immediately for better UX
@@ -95,6 +121,9 @@ const AppSavedConfigurations = (props) => {
       console.warn('Could not retrieve current rack position:', error)
     }
     
+    // Get current MEP items from temporary state
+    const currentMEPItems = getAllMEPItemsFromTemporary()
+    
     // Clean up the config and use only one position field
     const { currentPosition: oldPosition, ...cleanRackConfig } = rackConfig
     
@@ -105,7 +134,16 @@ const AppSavedConfigurations = (props) => {
       savedAt: new Date().toISOString(),
       totalHeight: calculateTotalHeight(rackConfig),
       // Use current position from scene, fallback to old position
-      position: currentPosition || oldPosition || { x: 0, y: 0, z: 0 }
+      position: currentPosition || oldPosition || { x: 0, y: 0, z: 0 },
+      // Include MEP items in the configuration
+      mepItems: {
+        ductwork: currentMEPItems.filter(item => item.type === 'duct'),
+        piping: currentMEPItems.filter(item => item.type === 'pipe'),
+        conduits: currentMEPItems.filter(item => item.type === 'conduit'),
+        cableTrays: currentMEPItems.filter(item => item.type === 'cableTray'),
+        totalCount: currentMEPItems.length,
+        savedAt: new Date().toISOString()
+      }
     }
     
     console.log('🔧 SAVE CONFIG DEBUG:')
@@ -113,6 +151,7 @@ const AppSavedConfigurations = (props) => {
     console.log('- currentPosition:', currentPosition)
     console.log('- newConfig.position:', newConfig.position)
     console.log('- newConfig.topClearance:', newConfig.topClearance)
+    console.log('- newConfig.mepItems:', newConfig.mepItems)
     
     try {
       console.log('🔧 SAVE CONFIG: Saving to manifest:', JSON.stringify(newConfig, null, 2))
@@ -263,6 +302,9 @@ const AppSavedConfigurations = (props) => {
       }
     }
 
+    // Get current MEP items from temporary state for update
+    const currentMEPItems = getAllMEPItemsFromTemporary()
+    
     // Create updated configuration preserving original metadata
     const updatedConfig = {
       ...rackConfig,
@@ -272,7 +314,16 @@ const AppSavedConfigurations = (props) => {
       updatedAt: new Date().toISOString(), // Add update timestamp
       totalHeight: calculateTotalHeight(rackConfig),
       // Include position if available
-      ...(currentPosition && { position: currentPosition })
+      ...(currentPosition && { position: currentPosition }),
+      // Update MEP items in the configuration
+      mepItems: {
+        ductwork: currentMEPItems.filter(item => item.type === 'duct'),
+        piping: currentMEPItems.filter(item => item.type === 'pipe'),
+        conduits: currentMEPItems.filter(item => item.type === 'conduit'),
+        cableTrays: currentMEPItems.filter(item => item.type === 'cableTray'),
+        totalCount: currentMEPItems.length,
+        updatedAt: new Date().toISOString()
+      }
     }
     
     // Update the configuration in the array
@@ -673,6 +724,11 @@ const AppSavedConfigurations = (props) => {
                   <div className="app-saved-configurations-detail-row">
                     <span className="app-saved-configurations-detail-label">
                       Top clearance: {formatTopClearance(config.topClearance)}
+                    </span>
+                  </div>
+                  <div className="app-saved-configurations-detail-row">
+                    <span className="app-saved-configurations-detail-label">
+                      MEP items: {config.mepItems?.totalCount || 0} components
                     </span>
                   </div>
                 </div>

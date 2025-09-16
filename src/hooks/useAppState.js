@@ -9,23 +9,21 @@ import { buildingShellDefaults } from '../types/buildingShell'
 import { tradeRackDefaults } from '../types/tradeRack'
 import { 
   getProjectManifest,
-  updateUIState,
   setActiveConfiguration,
   updateBuildingShell,
   updateTradeRackConfiguration
 } from '../utils/projectManifest'
-import { getTemporaryState, updateUIState as updateTempUIState, getRackTemporaryState } from '../utils/temporaryState'
+import { getTemporaryState, updateUIState as updateTempUIState, getRackTemporaryState, getAllMEPItemsFromTemporary } from '../utils/temporaryState'
 
 /**
  * Custom hook for managing application state
  */
 export const useAppState = () => {
-  // Helper function to restore UI state from manifest
+  // Helper function to restore UI state from temporary state
   const getInitialUIState = () => {
     try {
-      const manifest = getProjectManifest()
-      const savedUIState = manifest.uiState || {}
-      return savedUIState
+      const tempState = getTemporaryState()
+      return tempState.ui || {}
     } catch (error) {
       return {}
     }
@@ -47,7 +45,7 @@ export const useAppState = () => {
   const [isSavedConfigsVisible, setIsSavedConfigsVisible] = useState(true)
   const [savedConfigsRefresh, setSavedConfigsRefresh] = useState(0)
   const [isMeasurementActive, setIsMeasurementActive] = useState(
-    initialUIState.isMeasurementActive || false
+    initialUIState.isMeasurementActive !== undefined ? initialUIState.isMeasurementActive : false
   )
   const [viewMode, setViewMode] = useState(
     initialUIState.viewMode || '3D'
@@ -105,16 +103,8 @@ export const useAppState = () => {
   // MEP items state
   const [mepItems, setMepItems] = useState(() => {
     try {
-      const manifest = getProjectManifest()
-      
-      // Get all MEP items from manifest
-      const allMepItems = [
-        ...(manifest.mepItems?.ductwork || []),
-        ...(manifest.mepItems?.piping || []),
-        ...(manifest.mepItems?.conduits || []),
-        ...(manifest.mepItems?.cableTrays || [])
-      ]
-      
+      // Use temporary state instead of legacy manifest
+      const allMepItems = getAllMEPItemsFromTemporary()
       return allMepItems
     } catch (error) {
       console.error('Error loading MEP items:', error)
@@ -124,17 +114,13 @@ export const useAppState = () => {
 
   // Save UI state whenever it changes
   useEffect(() => {
-    // Update persistent UI state in manifest
-    updateUIState({
+    // Update all UI state in temporary storage only
+    updateTempUIState({
+      activePanel: activePanel,
       isRackPropertiesVisible: isRackPropertiesVisible,
       isMeasurementActive: isMeasurementActive,
       isAddMEPVisible: isAddMEPVisible,
       viewMode: viewMode
-    })
-    
-    // Update temporary UI state
-    updateTempUIState({
-      activePanel: activePanel
     })
   }, [activePanel, isRackPropertiesVisible, isMeasurementActive, isAddMEPVisible, viewMode])
 

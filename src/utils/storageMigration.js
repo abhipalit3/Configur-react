@@ -12,7 +12,13 @@
  */
 
 import { getProjectManifest, saveProjectManifest, updateTradeRackConfiguration, updateMEPItems } from './projectManifest'
-import { getTemporaryState, saveTemporaryState, updateCameraState, clearRackTemporaryState } from './temporaryState'
+import { 
+  getTemporaryState, 
+  saveTemporaryState, 
+  updateCameraState, 
+  clearRackTemporaryState,
+  updateAllMEPItemsInTemporary 
+} from './temporaryState'
 
 /**
  * Keys that will be migrated and removed
@@ -60,6 +66,9 @@ export const migrateLegacyStorage = () => {
     
     // Migrate project name
     migrationResults = migrateProjectName(manifest, migrationResults)
+    
+    // Migrate configurations to include MEP structure
+    migrationResults = migrateConfigurationsForMEP(manifest, migrationResults)
 
     // Save updated states
     saveProjectManifest(manifest)
@@ -99,7 +108,7 @@ const migrateRackParameters = (manifest, results) => {
 }
 
 /**
- * Migrate configurMepItems to projectManifest
+ * Migrate configurMepItems to temporary state (new system) and legacy manifest
  */
 const migrateMEPItems = (manifest, results) => {
   try {
@@ -107,11 +116,17 @@ const migrateMEPItems = (manifest, results) => {
     if (mepItems) {
       const parsedItems = JSON.parse(mepItems)
       
-      // Update MEP items in manifest
+      // Migrate to temporary state (new primary storage for MEP items)
+      if (parsedItems.length > 0) {
+        updateAllMEPItemsInTemporary(parsedItems, 'all')
+        console.log('✅ Migrated configurMepItems to temporary state (new system)')
+      }
+      
+      // Legacy migration to manifest (deprecated but kept for compatibility)
       updateMEPItems(parsedItems, 'all')
       
       results.migratedKeys.push('configurMepItems')
-      console.log('✅ Migrated configurMepItems to projectManifest')
+      console.log('✅ Migrated configurMepItems to both temporary state and manifest')
     } else {
       results.skippedKeys.push('configurMepItems (not found)')
     }
@@ -256,6 +271,49 @@ export const removeLegacyStorageKeys = () => {
  */
 export const isMigrationNeeded = () => {
   return LEGACY_KEYS.some(key => localStorage.getItem(key) !== null)
+}
+
+/**
+ * Migrate existing configurations to include MEP structure
+ */
+const migrateConfigurationsForMEP = (manifest, results) => {
+  try {
+    let migratedCount = 0
+    
+    if (manifest.tradeRacks?.configurations) {
+      manifest.tradeRacks.configurations = manifest.tradeRacks.configurations.map(config => {
+        // If configuration doesn't have MEP items, add empty structure
+        if (!config.mepItems) {
+          migratedCount++
+          return {
+            ...config,
+            mepItems: {
+              ductwork: [],
+              piping: [],
+              conduits: [],
+              cableTrays: [],
+              totalCount: 0,
+              migratedAt: new Date().toISOString()
+            }
+          }
+        }
+        return config
+      })
+      
+      if (migratedCount > 0) {
+        results.migratedKeys.push(`configurations_mep_structure (${migratedCount} configs)`)
+        console.log(`✅ Added MEP structure to ${migratedCount} existing configurations`)
+      } else {
+        results.skippedKeys.push('configurations_mep_structure (all configs already have MEP structure)')
+      }
+    } else {
+      results.skippedKeys.push('configurations_mep_structure (no configurations found)')
+    }
+  } catch (error) {
+    results.errors.push(`configurations_mep_structure: ${error.message}`)
+    console.error('❌ Error migrating configurations for MEP structure:', error)
+  }
+  return results
 }
 
 /**

@@ -9,6 +9,7 @@ import { PipeGeometry } from './PipeGeometry.js'
 import { PipeInteraction } from './PipeInteraction.js'
 import { getColumnSize } from '../core/utils'
 import { getProjectManifest } from '../../../utils/projectManifest'
+import { getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary } from '../../../utils/temporaryState'
 
 /**
  * PipingRenderer - Using the new base interaction class
@@ -159,16 +160,23 @@ export class PipingRenderer {
     // The base class provides comprehensive tier calculation automatically
     const pipesGroup = this.scene.getObjectByName('PipingGroup')
     if (pipesGroup) {
+      const updatedPipeData = []
+      
       pipesGroup.children.forEach(pipe => {
         if (pipe.userData.type === 'pipe') {
           const tierInfo = this.pipeInteraction.calculateTier(pipe.position.y)
           pipe.userData.pipeData.tier = tierInfo.tier
           pipe.userData.pipeData.tierName = tierInfo.tierName
+          
+          // Collect updated pipe data
+          updatedPipeData.push(pipe.userData.pipeData)
         }
       })
       
-      // Update storage
-      this.pipeInteraction.saveObjectPosition()
+      // Update storage for all pipes at once
+      if (updatedPipeData.length > 0) {
+        this.saveAllPipesTierToStorage(updatedPipeData)
+      }
     }
   }
 
@@ -244,8 +252,8 @@ export class PipingRenderer {
       pipeData.tier = calculatedTierInfo.tier
       pipeData.tierName = calculatedTierInfo.tierName
       
-      // Update in storage - this will be handled by the interaction class
-      // The pipe interaction class will save the updated tier info via the base class
+      // Save updated tier info to storage immediately
+      this.savePipeTierToStorage(pipeData)
     }
     
     // Create pipe group using geometry
@@ -256,6 +264,74 @@ export class PipingRenderer {
     )
     
     this.pipingGroup.add(pipeGroup)
+  }
+
+  /**
+   * Save pipe tier information to storage
+   */
+  savePipeTierToStorage(pipeData) {
+    try {
+      const storedItems = getAllMEPItemsFromTemporary()
+      const baseId = pipeData.id.toString().split('_')[0]
+      
+      const updatedItems = storedItems.map(item => {
+        const itemBaseId = item.id.toString().split('_')[0]
+        
+        if (itemBaseId === baseId && item.type === 'pipe') {
+          return {
+            ...item,
+            tier: pipeData.tier,
+            tierName: pipeData.tierName
+          }
+        }
+        return item
+      })
+      
+      // Update temporary state with tier information
+      updateAllMEPItemsInTemporary(updatedItems)
+      
+      console.log(`🔧 Saved pipe tier info to storage: ${pipeData.tierName}`)
+      
+    } catch (error) {
+      console.error('Error saving pipe tier to storage:', error)
+    }
+  }
+
+  /**
+   * Save tier information for all pipes to storage (batch update)
+   */
+  saveAllPipesTierToStorage(pipeDataArray) {
+    try {
+      const storedItems = getAllMEPItemsFromTemporary()
+      
+      const updatedItems = storedItems.map(item => {
+        if (item.type === 'pipe') {
+          // Find matching pipe data
+          const matchingPipeData = pipeDataArray.find(pipeData => {
+            const baseId = pipeData.id.toString().split('_')[0]
+            const itemBaseId = item.id.toString().split('_')[0]
+            return itemBaseId === baseId
+          })
+          
+          if (matchingPipeData) {
+            return {
+              ...item,
+              tier: matchingPipeData.tier,
+              tierName: matchingPipeData.tierName
+            }
+          }
+        }
+        return item
+      })
+      
+      // Update temporary state with tier information
+      updateAllMEPItemsInTemporary(updatedItems)
+      
+      console.log(`🔧 Saved tier info for ${pipeDataArray.length} pipes to storage`)
+      
+    } catch (error) {
+      console.error('Error saving pipes tier to storage:', error)
+    }
   }
 
   /**

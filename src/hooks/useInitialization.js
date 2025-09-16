@@ -8,9 +8,11 @@ import { useEffect } from 'react'
 import { 
   initializeProject,
   syncManifestWithLocalStorage,
-  syncMEPItemsWithLocalStorage,
-  updateMEPItems
+  updateBuildingShell,
+  syncProjectStatistics
 } from '../utils/projectManifest'
+import { updateAllMEPItemsInTemporary } from '../utils/temporaryState'
+import { buildingShellDefaults } from '../types/buildingShell'
 
 /**
  * Custom hook for initialization logic
@@ -30,18 +32,26 @@ export const useInitialization = (
     
     // Sync manifest with localStorage to ensure consistency
     syncManifestWithLocalStorage()
-    syncMEPItemsWithLocalStorage()
+    
+    // Initialize building shell with default parameters if not already set
+    if (!manifest.buildingShell?.parameters) {
+      console.log('🏗️ Initializing building shell with default parameters')
+      updateBuildingShell(buildingShellDefaults)
+    }
+    
+    // Sync project statistics to match current data
+    syncProjectStatistics()
     
     return () => {
       // Cleanup if needed
     }
   }, [])
 
-  // Update manifest whenever mepItems changes
+  // Update temporary state whenever mepItems changes
   useEffect(() => {
     try {
-      // Update manifest with current MEP items
-      updateMEPItems(mepItems, 'all')
+      // Update temporary state with current MEP items (primary storage)
+      updateAllMEPItemsInTemporary(mepItems)
     } catch (error) {
       console.error('Error saving MEP items:', error)
     }

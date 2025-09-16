@@ -46,14 +46,17 @@ export const createInitialManifest = () => ({
     totalCount: 0
   },
   
-  // MEP items (ductwork, piping, conduits, cable trays)
+  // Legacy MEP items (deprecated - now stored in configurations and temporary state)
+  // Keeping for migration purposes only
   mepItems: {
     ductwork: [],
     piping: [],
     conduits: [],
     cableTrays: [],
     totalCount: 0,
-    lastModified: null
+    lastModified: null,
+    deprecated: true,
+    migrationNote: "MEP items are now stored in individual rack configurations and temporary state"
   },
   
   // Measurements and annotations
@@ -63,13 +66,6 @@ export const createInitialManifest = () => ({
     lastModified: null
   },
   
-  // UI state and preferences
-  uiState: {
-    activePanel: null,
-    isRackPropertiesVisible: true,
-    isMeasurementActive: false,
-    lastModified: null
-  },
   
   // Session statistics
   statistics: {
@@ -345,6 +341,7 @@ export const syncManifestWithLocalStorage = () => {
 
 /**
  * Map component types to manifest categories
+ * @deprecated - MEP items are now stored in individual configurations and temporary state
  */
 const mapTypeToCategory = (componentType) => {
   const typeMap = {
@@ -358,40 +355,39 @@ const mapTypeToCategory = (componentType) => {
 
 /**
  * Update MEP items in manifest
+ * @deprecated - MEP items are now stored in individual configurations and temporary state
+ * This function is kept for migration purposes only
  */
 export const updateMEPItems = (items, category = 'all') => {
+  console.warn('⚠️ updateMEPItems is deprecated. MEP items are now stored in configurations and temporary state.')
   const manifest = getProjectManifest()
   
-  // Updating MEP items in manifest
-  
+  // Legacy update for migration compatibility only
   if (category === 'all') {
-    // Update all MEP items - map component types to manifest categories
     manifest.mepItems = {
+      ...manifest.mepItems,
       ductwork: items.filter(item => mapTypeToCategory(item.type) === 'ductwork'),
       piping: items.filter(item => mapTypeToCategory(item.type) === 'piping'),
       conduits: items.filter(item => mapTypeToCategory(item.type) === 'conduits'),
       cableTrays: items.filter(item => mapTypeToCategory(item.type) === 'cableTrays'),
       totalCount: items.length,
-      lastModified: new Date().toISOString()
+      lastModified: new Date().toISOString(),
+      deprecated: true
     }
   } else {
-    // Update specific category
     manifest.mepItems[category] = items
     manifest.mepItems.totalCount = Object.values(manifest.mepItems)
       .filter(Array.isArray)
       .reduce((total, arr) => total + arr.length, 0)
     manifest.mepItems.lastModified = new Date().toISOString()
+    manifest.mepItems.deprecated = true
   }
   
-  manifest.statistics.mepItemsAdded = manifest.mepItems.totalCount
-  
-  addChangeToHistory(manifest, 'mepItems', category === 'all' ? 'bulk_update' : 'category_update', {
+  addChangeToHistory(manifest, 'mepItems', 'legacy_update', {
     category: category,
     itemCount: category === 'all' ? items.length : items.length,
-    totalItems: manifest.mepItems.totalCount
+    note: 'Legacy MEP update - items should be stored in configurations'
   })
-  
-  // MEP items updated in manifest
   
   saveProjectManifest(manifest)
   return manifest
@@ -399,11 +395,13 @@ export const updateMEPItems = (items, category = 'all') => {
 
 /**
  * Sync MEP items with localStorage
+ * @deprecated - MEP items are now stored in configurations and temporary state
  */
 export const syncMEPItemsWithLocalStorage = () => {
+  console.warn('⚠️ syncMEPItemsWithLocalStorage is deprecated. MEP items are now stored in configurations and temporary state.')
   try {
     const storedMepItems = JSON.parse(localStorage.getItem('configurMepItems') || '[]')
-    // Syncing MEP items with localStorage
+    // Legacy sync for migration purposes only
     updateMEPItems(storedMepItems, 'all')
     return storedMepItems
   } catch (error) {
@@ -414,11 +412,14 @@ export const syncMEPItemsWithLocalStorage = () => {
 
 /**
  * Add new MEP item to manifest
+ * @deprecated - MEP items are now stored in configurations and temporary state
  */
 export const addMEPItem = (item) => {
+  console.warn('⚠️ addMEPItem is deprecated. MEP items are now stored in configurations and temporary state.')
   const manifest = getProjectManifest()
-  const category = mapTypeToCategory(item.type) // Map component type to manifest category
+  const category = mapTypeToCategory(item.type)
   
+  // Legacy add for migration compatibility only
   if (!manifest.mepItems[category]) {
     manifest.mepItems[category] = []
   }
@@ -426,22 +427,20 @@ export const addMEPItem = (item) => {
   const itemWithMetadata = {
     ...item,
     id: item.id || `${category}_${Date.now()}`,
-    addedAt: new Date().toISOString()
+    addedAt: new Date().toISOString(),
+    deprecated: true
   }
   
   manifest.mepItems[category].push(itemWithMetadata)
   manifest.mepItems.totalCount++
   manifest.mepItems.lastModified = new Date().toISOString()
-  manifest.statistics.mepItemsAdded++
+  manifest.mepItems.deprecated = true
   
-  addChangeToHistory(manifest, 'mepItems', 'item_added', {
+  addChangeToHistory(manifest, 'mepItems', 'legacy_item_added', {
     itemType: category,
     itemId: itemWithMetadata.id,
-    itemName: itemWithMetadata.name || `${category} item`,
-    originalType: item.type
+    note: 'Legacy MEP item - should be stored in configurations'
   })
-  
-  // MEP item added to manifest
   
   saveProjectManifest(manifest)
   return manifest
@@ -449,11 +448,14 @@ export const addMEPItem = (item) => {
 
 /**
  * Remove MEP item from manifest
+ * @deprecated - MEP items are now stored in configurations and temporary state
  */
 export const removeMEPItem = (itemId, itemType) => {
+  console.warn('⚠️ removeMEPItem is deprecated. MEP items are now stored in configurations and temporary state.')
   const manifest = getProjectManifest()
-  const category = mapTypeToCategory(itemType) // Map component type to manifest category
+  const category = mapTypeToCategory(itemType)
   
+  // Legacy remove for migration compatibility only
   if (manifest.mepItems[category]) {
     const initialCount = manifest.mepItems[category].length
     manifest.mepItems[category] = manifest.mepItems[category].filter(item => item.id !== itemId)
@@ -461,35 +463,18 @@ export const removeMEPItem = (itemId, itemType) => {
     if (manifest.mepItems[category].length < initialCount) {
       manifest.mepItems.totalCount--
       manifest.mepItems.lastModified = new Date().toISOString()
+      manifest.mepItems.deprecated = true
       
-      addChangeToHistory(manifest, 'mepItems', 'item_removed', {
+      addChangeToHistory(manifest, 'mepItems', 'legacy_item_removed', {
         itemType: category,
         itemId: itemId,
-        originalType: itemType
+        note: 'Legacy MEP item removal - should be stored in configurations'
       })
-      
-      // MEP item removed from manifest
       
       saveProjectManifest(manifest)
     }
   }
   
-  return manifest
-}
-
-/**
- * Update UI state in manifest
- */
-export const updateUIState = (stateChanges) => {
-  const manifest = getProjectManifest()
-  
-  manifest.uiState = {
-    ...manifest.uiState,
-    ...stateChanges,
-    lastModified: new Date().toISOString()
-  }
-  
-  saveProjectManifest(manifest)
   return manifest
 }
 
@@ -563,7 +548,6 @@ const validateAndMigrateManifest = (manifest) => {
     tradeRacks: { ...initial.tradeRacks, ...manifest.tradeRacks },
     mepItems: { ...initial.mepItems, ...manifest.mepItems },
     measurements: { ...initial.measurements, ...manifest.measurements },
-    uiState: { ...initial.uiState, ...manifest.uiState },
     statistics: { ...initial.statistics, ...manifest.statistics }
   }
   
@@ -597,16 +581,97 @@ export const exportProjectManifest = () => {
 }
 
 /**
+ * Update project statistics
+ */
+export const updateProjectStatistics = (statisticsUpdate) => {
+  const manifest = getProjectManifest()
+  
+  // Update statistics with provided values
+  manifest.statistics = {
+    ...manifest.statistics,
+    ...statisticsUpdate
+  }
+  
+  manifest.lastUpdated = new Date().toISOString()
+  saveProjectManifest(manifest)
+  
+  return manifest.statistics
+}
+
+/**
+ * Increment MEP items added statistic
+ */
+export const incrementMEPItemsAdded = (count = 1) => {
+  const manifest = getProjectManifest()
+  manifest.statistics.mepItemsAdded = (manifest.statistics.mepItemsAdded || 0) + count
+  manifest.lastUpdated = new Date().toISOString()
+  saveProjectManifest(manifest)
+  return manifest.statistics.mepItemsAdded
+}
+
+/**
+ * Recalculate and sync statistics based on current data
+ */
+export const syncProjectStatistics = () => {
+  const manifest = getProjectManifest()
+  
+  // Get current counts from actual data
+  const configurationsCount = manifest.tradeRacks?.configurations?.length || 0
+  
+  let currentMEPCount = 0
+  try {
+    const { getAllMEPItemsFromTemporary } = require('./temporaryState')
+    currentMEPCount = getAllMEPItemsFromTemporary().length
+  } catch (error) {
+    // Fallback to legacy manifest count
+    currentMEPCount = manifest.mepItems?.totalCount || 0
+  }
+  
+  const measurementsCount = manifest.measurements?.totalCount || 0
+  
+  // Update statistics to match current data
+  manifest.statistics = {
+    ...manifest.statistics,
+    configurationsSaved: configurationsCount,
+    mepItemsAdded: currentMEPCount,
+    measurementsTaken: measurementsCount,
+    lastSession: manifest.statistics.lastSession || new Date().toISOString(),
+    sessionTime: manifest.statistics.sessionTime || 0
+  }
+  
+  manifest.lastUpdated = new Date().toISOString()
+  saveProjectManifest(manifest)
+  
+  console.log('📊 Statistics synced:', {
+    configurations: configurationsCount,
+    mepItems: currentMEPCount,
+    measurements: measurementsCount
+  })
+  
+  return manifest.statistics
+}
+
+/**
  * Get project statistics
  */
 export const getProjectStatistics = () => {
   const manifest = getProjectManifest()
   
+  // Get current MEP count from temporary state (new primary storage)
+  let currentMEPCount = 0
+  try {
+    const { getAllMEPItemsFromTemporary } = require('./temporaryState')
+    currentMEPCount = getAllMEPItemsFromTemporary().length
+  } catch (error) {
+    // Fallback to legacy manifest count
+    currentMEPCount = manifest.mepItems?.totalCount || 0
+  }
+  
   return {
     ...manifest.statistics,
     totalComponents: {
       tradeRacks: manifest.tradeRacks.totalCount,
-      mepItems: manifest.mepItems.totalCount,
+      mepItems: currentMEPCount,
       measurements: manifest.measurements.totalCount
     },
     lastActivity: manifest.lastUpdated,

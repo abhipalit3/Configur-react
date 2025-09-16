@@ -9,6 +9,13 @@ import {
   addMEPItem,
   removeMEPItem
 } from '../utils/projectManifest'
+import {
+  addMEPItemToTemporary,
+  removeMEPItemFromTemporary,
+  updateAllMEPItemsInTemporary,
+  getAllMEPItemsFromTemporary,
+  clearAllMEPItemsFromTemporary
+} from '../utils/temporaryState'
 
 /**
  * Creates comprehensive MEP (Mechanical, Electrical, Plumbing) handlers for the application
@@ -22,7 +29,7 @@ export const createMEPHandlers = (mepItems, setMepItems) => {
   
   /**
    * Adds a new MEP item to the system
-   * Generates unique ID and updates both state and project manifest
+   * Generates unique ID and updates both state and temporary state
    * @param {Object} item - MEP item to add (duct, pipe, conduit, cable tray)
    * @returns {Object} The added item with generated ID
    */
@@ -30,7 +37,22 @@ export const createMEPHandlers = (mepItems, setMepItems) => {
     const newItem = { ...item, id: Date.now() + Math.random() }
     setMepItems([...mepItems, newItem])
     
-    // Update manifest with new item
+    // Map component type to temporary state category
+    const mapTypeToCategory = (componentType) => {
+      const typeMap = {
+        'duct': 'ductwork',
+        'pipe': 'piping', 
+        'conduit': 'conduits',
+        'cableTray': 'cableTrays'
+      }
+      return typeMap[componentType] || componentType
+    }
+    
+    // Add to temporary state (new primary storage)
+    const category = mapTypeToCategory(item.type)
+    addMEPItemToTemporary(newItem, category)
+    
+    // Legacy manifest update (deprecated but kept for compatibility)
     addMEPItem(newItem)
     
     return newItem
@@ -38,28 +60,46 @@ export const createMEPHandlers = (mepItems, setMepItems) => {
   
   /**
    * Removes a specific MEP item from the system
-   * Updates both state and project manifest
+   * Updates both state and temporary state
    * @param {number|string} itemId - Unique identifier of the item to remove
    */
   const handleRemoveMepItem = (itemId) => {
     const itemToRemove = mepItems.find(item => item.id === itemId)
     setMepItems(mepItems.filter(item => item.id !== itemId))
     
-    // Update manifest
     if (itemToRemove) {
+      // Map component type to temporary state category
+      const mapTypeToCategory = (componentType) => {
+        const typeMap = {
+          'duct': 'ductwork',
+          'pipe': 'piping', 
+          'conduit': 'conduits',
+          'cableTray': 'cableTrays'
+        }
+        return typeMap[componentType] || componentType
+      }
+      
+      // Remove from temporary state (new primary storage)
+      const category = mapTypeToCategory(itemToRemove.type)
+      removeMEPItemFromTemporary(itemId, category)
+      
+      // Legacy manifest update (deprecated but kept for compatibility)
       removeMEPItem(itemId, itemToRemove.type)
     }
   }
 
   /**
    * Removes all MEP items from the system
-   * Clears state and project manifest
+   * Clears state and temporary state
    */
   const handleDeleteAllMepItems = () => {
     // Clear all MEP items from state
     setMepItems([])
     
-    // Update manifest with empty array
+    // Clear from temporary state (new primary storage)
+    clearAllMEPItemsFromTemporary()
+    
+    // Legacy manifest update (deprecated but kept for compatibility)
     updateMEPItems([], 'all')
     
     // Trigger refresh of 3D scene to remove all MEP elements
