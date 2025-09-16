@@ -4,7 +4,7 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-import React from 'react'
+import React, { useCallback } from 'react'
 import { BaseMepEditor } from '../base/BaseMepEditor.js'
 
 /**
@@ -53,7 +53,7 @@ export const DuctEditor = (props) => {
   ]
 
   // Get initial dimensions from selected duct
-  const getInitialDimensions = (selectedDuct) => {
+  const getInitialDimensions = useCallback((selectedDuct) => {
     if (!selectedDuct?.userData?.ductData) {
       return {
         width: 12,
@@ -70,10 +70,10 @@ export const DuctEditor = (props) => {
       insulation: ductData.insulation || 0,
       tier: ductData.tier || 1
     }
-  }
+  }, [])
 
   // Calculate editor position offset based on duct size
-  const getOffsetY = (selectedDuct) => {
+  const getOffsetY = useCallback((selectedDuct) => {
     if (!selectedDuct?.userData?.ductData) return 0.3
     
     const ductData = selectedDuct.userData.ductData
@@ -87,7 +87,7 @@ export const DuctEditor = (props) => {
     
     // Position editor above the duct with some padding
     return (totalHeight / 2) + 0.3
-  }
+  }, [])
 
   // Use the base editor with duct-specific configuration
   return (

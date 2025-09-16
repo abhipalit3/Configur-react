@@ -4,7 +4,7 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-import React from 'react'
+import React, { useCallback } from 'react'
 import { BaseMepEditor } from '../base/BaseMepEditor.js'
 
 /**
@@ -55,14 +55,41 @@ export const ConduitEditorUI = ({ selectedConduit, ...otherProps }) => {
     }
   ]
 
-  const getInitialDimensions = (conduitData) => ({
-    diameter: conduitData?.diameter || 1,
-    conduitType: conduitData?.conduitType || 'EMT',
-    spacing: conduitData?.spacing || 4,
-    count: conduitData?.count || 1,
-    tier: conduitData?.tier || 1,
-    color: conduitData?.color || ''
-  })
+  const getInitialDimensions = useCallback((selectedConduit) => {
+    if (!selectedConduit?.userData?.conduitData) {
+      return {
+        diameter: 1,
+        conduitType: 'EMT',
+        spacing: 4,
+        count: 1,
+        tier: 1,
+        color: ''
+      }
+    }
+    
+    const conduitData = selectedConduit.userData.conduitData
+    return {
+      diameter: conduitData.diameter || 1,
+      conduitType: conduitData.conduitType || 'EMT',
+      spacing: conduitData.spacing || 4,
+      count: conduitData.count || 1,
+      tier: conduitData.tier || 1,
+      color: conduitData.color || ''
+    }
+  }, [])
+
+  const getOffsetY = useCallback((selectedConduit) => {
+    if (!selectedConduit?.userData?.conduitData) return 0.3
+    
+    const conduitData = selectedConduit.userData.conduitData
+    const diameter = conduitData.diameter || 1
+    
+    // Convert inches to meters
+    const diameterM = diameter * 0.0254
+    
+    // Position editor above the conduit with some padding
+    return (diameterM / 2) + 0.2
+  }, [])
 
   return (
     <BaseMepEditor
@@ -71,6 +98,7 @@ export const ConduitEditorUI = ({ selectedConduit, ...otherProps }) => {
       mepType="conduit"
       fields={fields}
       getInitialDimensions={getInitialDimensions}
+      getOffsetY={getOffsetY}
     />
   )
 }

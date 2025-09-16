@@ -4,7 +4,7 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-import React from 'react'
+import React, { useCallback } from 'react'
 import { BaseMepEditor } from '../base/BaseMepEditor.js'
 
 /**
@@ -57,7 +57,7 @@ export const PipeEditor = (props) => {
   ]
 
   // Get initial dimensions from selected pipe
-  const getInitialDimensions = (selectedPipe) => {
+  const getInitialDimensions = useCallback((selectedPipe) => {
     if (!selectedPipe?.userData?.pipeData) {
       return {
         diameter: 2,
@@ -76,10 +76,10 @@ export const PipeEditor = (props) => {
       tier: pipeData.tier || 1,
       color: pipeData.color || ''
     }
-  }
+  }, [])
 
   // Calculate editor position offset based on pipe size
-  const getOffsetY = (selectedPipe) => {
+  const getOffsetY = useCallback((selectedPipe) => {
     if (!selectedPipe?.userData?.pipeData) return 0.3
     
     const pipeData = selectedPipe.userData.pipeData
@@ -93,7 +93,7 @@ export const PipeEditor = (props) => {
     
     // Position editor above the pipe with some padding
     return (totalDiameter / 2) + 0.2
-  }
+  }, [])
 
   // Use the base editor with pipe-specific configuration
   return (

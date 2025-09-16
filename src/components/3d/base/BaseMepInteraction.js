@@ -632,7 +632,16 @@ export class BaseMepInteraction {
     
     try {
       const objectData = this.getObjectData(this.selectedObject)
-      const updatedData = { ...objectData, ...newDimensions }
+      const updatedData = { 
+        ...objectData, 
+        ...newDimensions,
+        // Always include current position to handle tier changes
+        position: {
+          x: this.selectedObject.position.x,
+          y: this.selectedObject.position.y,
+          z: this.selectedObject.position.z
+        }
+      }
       
       this.setObjectData(this.selectedObject, updatedData)
       

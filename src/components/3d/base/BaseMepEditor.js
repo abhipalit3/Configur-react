@@ -34,7 +34,7 @@ export const BaseMepEditor = ({
   getOffsetY = () => 0.3,
   minWidth = '400px'
 }) => {
-  const [dimensions, setDimensions] = useState(getInitialDimensions(selectedObject))
+  const [dimensions, setDimensions] = useState(() => getInitialDimensions(selectedObject))
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [forceUpdate, setForceUpdate] = useState(0)
   const editorRef = useRef(null)
@@ -43,9 +43,16 @@ export const BaseMepEditor = ({
   // Update dimensions when selected object changes
   useEffect(() => {
     if (selectedObject?.userData?.[`${mepType}Data`]) {
-      setDimensions(getInitialDimensions(selectedObject))
+      const newDimensions = getInitialDimensions(selectedObject)
+      console.log(`✅ ${mepType} editor: Loading properties:`, newDimensions)
+      console.log(`✅ ${mepType} editor: Object userData:`, selectedObject.userData)
+      setDimensions(newDimensions)
+    } else {
+      console.warn(`⚠️ ${mepType} editor: No data found, using defaults`)
+      console.log(`⚠️ ${mepType} editor: Object userData:`, selectedObject?.userData)
+      console.log(`⚠️ ${mepType} editor: Expected key:`, `${mepType}Data`)
     }
-  }, [selectedObject, mepType, getInitialDimensions])
+  }, [selectedObject, mepType])
 
   // Update screen position
   useEffect(() => {
@@ -105,8 +112,17 @@ export const BaseMepEditor = ({
     setDimensions(prev => ({ ...prev, tier: tierValue }))
     
     // Update object position based on tier
-    if (selectedObject && window[`${mepType}RendererInstance`]) {
-      const rendererInstance = window[`${mepType}RendererInstance`]
+    // Map mepType to actual window renderer instance names
+    const rendererInstanceMap = {
+      'duct': 'ductworkRendererInstance',
+      'pipe': 'pipingRendererInstance', 
+      'conduit': 'conduitRendererInstance',
+      'cableTray': 'cableTrayRendererInstance'
+    }
+    
+    const rendererInstanceName = rendererInstanceMap[mepType]
+    if (selectedObject && rendererInstanceName && window[rendererInstanceName]) {
+      const rendererInstance = window[rendererInstanceName]
       const objectData = selectedObject.userData[`${mepType}Data`]
       
       try {
@@ -121,8 +137,17 @@ export const BaseMepEditor = ({
           selectedObject.userData[`${mepType}Data`].tier = tierValue
           
           // Update measurements if interaction exists
-          if (rendererInstance[`${mepType}Interaction`]) {
-            const interaction = rendererInstance[`${mepType}Interaction`]
+          // Map mepType to actual interaction property names  
+          const interactionMap = {
+            'duct': 'ductInteraction',
+            'pipe': 'pipeInteraction',
+            'conduit': 'conduitInteraction', 
+            'cableTray': 'cableTrayInteraction'
+          }
+          
+          const interactionName = interactionMap[mepType]
+          if (interactionName && rendererInstance[interactionName]) {
+            const interaction = rendererInstance[interactionName]
             interaction.clearMeasurements?.()
             interaction.createMeasurements?.()
           }
@@ -135,8 +160,10 @@ export const BaseMepEditor = ({
           }, 50)
         }
       } catch (error) {
-        console.error(`Error positioning ${mepType} using geometry:`, error)
+        console.error(`❌ ${mepType} editor: Error updating tier:`, error)
       }
+    } else {
+      console.error(`❌ ${mepType} editor: No renderer instance found (looking for ${rendererInstanceName})`)
     }
   }
 
@@ -169,7 +196,16 @@ export const BaseMepEditor = ({
   }
 
   const getTierOptions = () => {
-    const snapLineManager = window[`${mepType}RendererInstance`]?.snapLineManager
+    // Map mepType to actual window renderer instance names
+    const rendererInstanceMap = {
+      'duct': 'ductworkRendererInstance',
+      'pipe': 'pipingRendererInstance', 
+      'conduit': 'conduitRendererInstance',
+      'cableTray': 'cableTrayRendererInstance'
+    }
+    
+    const rendererInstanceName = rendererInstanceMap[mepType]
+    const snapLineManager = rendererInstanceName ? window[rendererInstanceName]?.snapLineManager : null
     return getTierOptionsFromGeometry(snapLineManager)
   }
 

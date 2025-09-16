@@ -96,64 +96,11 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         }
       }
       
-      // Update 3D object
+      // Update 3D object - this will also save to storage via updateObjectDimensions
       renderer[interactionKey][updateMethod](newDimensions)
       
-      // Update manifest
-      try {
-        const manifest = getProjectManifest()
-        const storedMepItems = [
-          ...(manifest.mepItems?.ductwork || []),
-          ...(manifest.mepItems?.piping || []),
-          ...(manifest.mepItems?.conduits || []),
-          ...(manifest.mepItems?.cableTrays || [])
-        ]
-        const selectedData = selectedObject?.userData?.[dataKey]
-        
-        if (selectedData) {
-          const baseId = selectedData.id.toString().split('_')[0]
-          const updatedItems = storedMepItems.map(item => {
-            const itemBaseId = item.id.toString().split('_')[0]
-            
-            if (itemBaseId === baseId && (type === 'duct' || item.type === type)) {
-              const currentPosition = {
-                x: selectedObject.position.x,
-                y: selectedObject.position.y,
-                z: selectedObject.position.z
-              }
-              
-              return {
-                ...item,
-                ...newDimensions,
-                position: currentPosition
-              }
-            }
-            return item
-          })
-          
-          updateMEPItems(updatedItems, 'all')
-          
-          if (window.updateMEPItemsManifest) {
-            window.updateMEPItemsManifest(updatedItems)
-          }
-          
-          window.dispatchEvent(new CustomEvent('mepItemsUpdated', {
-            detail: { updatedItems, [`updated${type.charAt(0).toUpperCase() + type.slice(1)}Id`]: selectedData.id }
-          }))
-          
-          if (window.refreshMepPanel) {
-            window.refreshMepPanel()
-          }
-          
-          window.dispatchEvent(new StorageEvent('storage', {
-            key: 'projectManifest',
-            newValue: JSON.stringify(getProjectManifest()),
-            storageArea: localStorage
-          }))
-        }
-      } catch (error) {
-        console.error(`Error updating MEP ${type} items:`, error)
-      }
+      // The save is now handled by updateObjectDimensions in the interaction class
+      // This prevents double-save conflicts that were overriding tier position changes
     }
     
     // Reset skip flag after delay
@@ -845,6 +792,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         conduit: conduitRenderer.conduitInteraction?.selectedObject,
         cableTray: cableTrayRenderer.cableTrayInteraction?.getSelectedCableTray()
       }
+      
       
       setMepEditorState(prev => {
         const newState = { ...prev }
