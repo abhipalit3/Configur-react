@@ -163,7 +163,7 @@ export class DuctworkRenderer {
       }
     } else {
       // Calculate default position within tier
-      const yPos = this.calculateDuctYPosition(ductData, tier, position)
+      const yPos = this.calculateDuctYPosition(ductData, tier, ductData.position || 'bottom')
       
       const postSizeInches = this.snapLineManager.getPostSize()
       const postSizeM = this.snapLineManager.in2m(postSizeInches)
