@@ -14,7 +14,9 @@
       "Bash(npm run deploy:*)",
       "Bash(rm:*)",
       "Bash(npm start)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

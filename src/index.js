@@ -12,8 +12,16 @@ import {
   Switch,
   Redirect,
 } from 'react-router-dom'
+import { Amplify } from 'aws-amplify'
+import { amplifyConfig } from './amplifyconfig'
+import manifestSyncService from './services/manifestSync'
+import { AuthProvider } from './components/AuthProvider'
+import { AuthWrapper } from './components/AuthWrapper'
 
 import './style.css'
+
+Amplify.configure(amplifyConfig)
+
 import {
   ProjectDashboard,
   Projects,
@@ -25,19 +33,27 @@ import {
 } from './pages'
 
 const App = () => {
+  React.useEffect(() => {
+    manifestSyncService.initializeManifest()
+  }, [])
+
   return (
-    <Router basename="/Configur-react">
-      <Switch>
-        <Route component={ProjectDashboard} exact path="/project-dashboard" />
-        <Route component={Projects} exact path="/projects" />
-        <Route component={Home} exact path="/" />
-        <Route component={AppPage} exact path="/app-page" />
-        <Route component={SignupPage} exact path="/signup-page" />
-        <Route component={Login} exact path="/login" />
-        <Route component={NotFound} path="**" />
-        <Redirect to="**" />
-      </Switch>
-    </Router>
+    <AuthProvider>
+      <AuthWrapper>
+        <Router basename="/Configur-react">
+          <Switch>
+            <Route component={ProjectDashboard} exact path="/project-dashboard" />
+            <Route component={Projects} exact path="/projects" />
+            <Route component={Home} exact path="/" />
+            <Route component={AppPage} exact path="/app-page" />
+            <Route component={SignupPage} exact path="/signup-page" />
+            <Route component={Login} exact path="/login" />
+            <Route component={NotFound} path="**" />
+            <Redirect to="**" />
+          </Switch>
+        </Router>
+      </AuthWrapper>
+    </AuthProvider>
   )
 }
 
