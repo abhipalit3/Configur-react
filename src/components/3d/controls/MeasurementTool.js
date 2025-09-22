@@ -579,8 +579,12 @@ export class MeasurementTool {
   }
 
   onMouseUp(event) {
+    console.log('🔧 MeasurementTool onMouseUp called')
     // Don't process if this is a right-click or middle-click (for panning)
-    if (event.button !== 0) return
+    if (event.button !== 0) {
+      console.log('🔧 Ignoring non-left click:', event.button)
+      return
+    }
     
     // Check if this was a drag operation (mouse moved more than 5 pixels)
     if (this.mouseDownPos) {
@@ -592,7 +596,10 @@ export class MeasurementTool {
       
       // If user dragged, don't process as a click (let pan work)
       if (dragDistance > 5) {
+        console.log('🔧 Ignoring drag operation, distance:', dragDistance)
         return
+      } else {
+        console.log('🔧 Click detected, drag distance:', dragDistance)
       }
     }
     
@@ -631,18 +638,15 @@ export class MeasurementTool {
     // Now check for snap points for measurement creation
     let snapResult = this.findClosestSnapPoint(event)
     let point = snapResult ? snapResult.point : null
-    
-    // If this is the first point, it MUST snap to a snap point
-    if (this.points.length === 0) {
-      if (!snapResult) {
-        // No snap point and no measurement clicked - just return
-        return
-      }
+
+    // Allow free measurements for both first and second points
+    if (!snapResult) {
+      // If no snap point found, use world position from mouse
+      console.log('🔧 No snap point found, creating free measurement point')
+      point = this.getWorldPositionFromMouse(event)
+      console.log('🔧 Free measurement point created:', point)
     } else {
-      // For the second point, allow fallback to world position if no snap point
-      if (!snapResult) {
-        point = this.getWorldPositionFromMouse(event)
-      }
+      console.log('🔧 Using snap point:', snapResult.point)
     }
     
     if (!point) {
