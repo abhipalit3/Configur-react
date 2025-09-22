@@ -22,15 +22,15 @@ export class MeasurementTool {
     this.measurementId = 0
     this.clickHandler = null // Will be bound in enable()
     this.mouseDownPos = null // Track mouse down position for drag detection
-    
+
     // Axis locking state
     this.axisLock = { x: false, y: false, z: false }
-    
+
     // Button visual state (tracks which buttons should appear active)
     this.buttonActive = { x: false, y: false, z: false }
-    
+
     // MeasurementTool initialized
-    
+
     // Blue color scheme to match labels
     this.colors = {
       primary: 0x4A90E2,      // Blue for main measurement lines (matching label)
@@ -42,10 +42,22 @@ export class MeasurementTool {
       border: '#E1E8ED',      // Subtle border
       shadow: 'rgba(0, 0, 0, 0.3)' // Darker shadow for better visibility
     }
-    
+
     // Enhanced hover markers with professional styling
     this.createHoverMarkers()
     this.createPreviewLine()
+  }
+
+  /**
+   * Update snap points for measurement tool
+   * This should be called whenever geometry changes (rack moves, MEP items added/removed)
+   */
+  updateSnapPoints(newSnapPoints) {
+    console.log('🔧 MeasurementTool: Updating snap points', {
+      oldCount: this.snapPoints.length,
+      newCount: newSnapPoints.length
+    })
+    this.snapPoints = newSnapPoints || []
   }
 
   createHoverMarkers() {

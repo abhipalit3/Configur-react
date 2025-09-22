@@ -206,8 +206,8 @@ export class PipingRenderer {
     const {
       // diameter = 2, // Not used in this method
       // pipeType = 'copper', // Not used in this method
-      tier = 1
-      // position = 'bottom' // Not used in this method
+      tier = 1,
+      position = 'bottom'
     } = pipeData
 
     // Get pipe length directly from rack parameters/localStorage (should match rack length exactly)

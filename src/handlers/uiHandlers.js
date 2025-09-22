@@ -38,8 +38,12 @@ export const createUIHandlers = (
   // Handler for view mode change (2D/3D)
   const handleViewModeChange = (mode) => {
     setViewMode(mode)
-    if (window.sceneViewModeHandler) {
-      window.sceneViewModeHandler(mode)
+    if (window.sceneViewModeHandler && typeof window.sceneViewModeHandler === 'function') {
+      try {
+        window.sceneViewModeHandler(mode)
+      } catch (error) {
+        console.warn('Scene view mode handler error:', error)
+      }
     }
   }
   

@@ -50,8 +50,9 @@ function syncArrays(p) {
  * @param {THREE.Scene} scene
  * @param {Object} params
  * @param {Object} mats  { postMaterial, longBeamMaterial, transBeamMaterial, wallMaterial, ceilingMaterial, floorMaterial, roofMaterial, ductMat }
+ * @param {Array} existingSnapPoints - Optional array to collect snap points into
  */
-export function buildRackScene(scene, params, mats) {
+export function buildRackScene(scene, params, mats, existingSnapPoints = null) {
   console.log('🔧 BUILD RACK SCENE: Received params:', JSON.stringify({
     position: params.position,
     topClearance: params.topClearance,
@@ -70,7 +71,7 @@ export function buildRackScene(scene, params, mats) {
     }
   })
 
-  const snapPoints = []
+  const snapPoints = existingSnapPoints || []
 
   // rack only - shell will be managed separately
   const rack = buildRack(params, mats.postMaterial, mats.longBeamMaterial, mats.transBeamMaterial, snapPoints)

@@ -12,6 +12,7 @@ import { dispose } from '../core/utils.js'
 import { ViewCube } from '../controls/ViewCube.js'
 import {buildRackScene} from '../trade-rack/buildRack.js'
 import { MeasurementTool } from '../controls/MeasurementTool.js'
+import { extractSnapPoints } from '../core/extractGeometrySnapPoints.js'
 import { DuctworkRenderer, DuctEditor } from '../ductwork'
 import { PipingRenderer } from '../piping'
 import { PipeEditor } from '../piping'
@@ -372,6 +373,55 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
         };
     
     const snapPoints = buildRackScene(scene, params, mats)
+
+    // Function to refresh snap points after geometry changes
+    const refreshSnapPoints = () => {
+      console.log('🔧 Refreshing snap points after geometry change')
+      const newSnapPoints = []
+
+      // Collect snap points from rack geometry
+      scene.traverse((child) => {
+        if (child.userData?.type === 'tradeRack') {
+          // Traverse all rack children (posts, beams) to extract snap points
+          child.traverse((rackChild) => {
+            if (rackChild.geometry && rackChild.isMesh) {
+              rackChild.updateMatrixWorld(true)
+              const { corners, edges } = extractSnapPoints(rackChild.geometry, rackChild.matrixWorld)
+              newSnapPoints.push(...corners.map(p => ({ point: p, type: 'vertex' })))
+              newSnapPoints.push(...edges.map(p => ({ point: p, type: 'edge' })))
+            }
+          })
+        }
+      })
+
+      // Collect snap points from MEP components
+      const renderers = [ductworkRendererRef.current, pipingRendererRef.current, conduitRendererRef.current, cableTrayRendererRef.current]
+      const geometryKeys = ['ductGeometry', 'pipeGeometry', 'conduitGeometry', 'cableTrayGeometry']
+
+      renderers.forEach((renderer, index) => {
+        if (renderer) {
+          const geometry = renderer[geometryKeys[index]]
+          if (geometry?.setSnapPoints) {
+            geometry.setSnapPoints(newSnapPoints)
+          }
+        }
+      })
+
+      // Update measurement tool with new snap points
+      if (measurementToolRef.current) {
+        measurementToolRef.current.updateSnapPoints(newSnapPoints)
+      }
+      if (window.measurementToolInstance) {
+        window.measurementToolInstance.updateSnapPoints(newSnapPoints)
+      }
+
+      console.log('🔧 Refreshed snap points:', newSnapPoints.length)
+      return newSnapPoints
+    }
+
+    // Make refresh function and extractSnapPoints globally accessible
+    window.refreshSnapPoints = refreshSnapPoints
+    window.extractSnapPoints = extractSnapPoints
     
     // Update rack configuration and position with temporary state values for consistency
     if (tempState) {
@@ -384,6 +434,9 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
               tempState.position.y || child.position.y,
               tempState.position.z || child.position.z
             )
+            console.log('🔧 Rack position updated, refreshing snap points...')
+            // Refresh snap points after rack position change
+            refreshSnapPoints()
           }
           
           // Update configuration with temporary state values
@@ -1082,7 +1135,7 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     if (ductworkRendererRef.current && mepItems) {
       ductworkRendererRef.current.updateDuctwork(mepItems)
     }
-    
+
     if (pipingRendererRef.current && mepItems) {
       pipingRendererRef.current.updatePiping(mepItems)
     }
@@ -1094,6 +1147,14 @@ export default function ThreeScene({ isMeasurementActive, mepItems = [], initial
     if (cableTrayRendererRef.current && mepItems) {
       cableTrayRendererRef.current.updateCableTrays(mepItems)
     }
+
+    // Refresh snap points after MEP items update to include new MEP snap points
+    setTimeout(() => {
+      if (window.refreshSnapPoints) {
+        console.log('🔧 MEP items updated, refreshing snap points...')
+        window.refreshSnapPoints()
+      }
+    }, 100) // Small delay to ensure MEP geometry is fully created
   }, [mepItems]) // REMOVED mepEditorState dependency!
   
   // Separate effect to handle skip recreation flags

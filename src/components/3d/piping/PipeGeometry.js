@@ -134,12 +134,12 @@ export class PipeGeometry {
       console.error('❌ Invalid pipe diameter:', diameter)
       return new THREE.Group() // Return empty group
     }
-    
+
     if (!isFinite(insulation) || insulation < 0) {
       console.warn('⚠️ Invalid insulation value, using 0:', insulation)
       insulation = 0
     }
-    
+
     if (!isFinite(pipeLength) || pipeLength <= 0) {
       console.error('❌ Invalid pipe length:', pipeLength)
       return new THREE.Group()
