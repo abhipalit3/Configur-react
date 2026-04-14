@@ -7,11 +7,13 @@
 import { useState, useEffect } from 'react'
 import { buildingShellDefaults } from '../types/buildingShell'
 import { tradeRackDefaults } from '../types/tradeRack'
+import { createBathroomPodFromTemplate } from '../types/bathroomPod'
 import { 
   getProjectManifest,
   setActiveConfiguration,
   updateBuildingShell,
-  updateTradeRackConfiguration
+  updateTradeRackConfiguration,
+  updateProjectProductType
 } from '../utils/projectManifest'
 import { getTemporaryState, updateUIState as updateTempUIState, getRackTemporaryState, getAllMEPItemsFromTemporary } from '../utils/temporaryState'
 
@@ -30,6 +32,15 @@ export const useAppState = () => {
   }
 
   const initialUIState = getInitialUIState()
+
+  const [productType, setProductType] = useState(() => {
+    try {
+      const manifest = getProjectManifest()
+      return initialUIState.productType || manifest.activeProductType || 'mtr'
+    } catch (error) {
+      return initialUIState.productType || 'mtr'
+    }
+  })
 
   // State to track project name
   const [projectName, setProjectName] = useState(() => {
@@ -112,6 +123,28 @@ export const useAppState = () => {
     }
   })
 
+  // Bathroom pod parameters state
+  const [bathroomPod, setBathroomPod] = useState(() => {
+    try {
+      const manifest = getProjectManifest()
+      if (manifest.bathroomPods?.active) {
+        const { lastApplied, ...podParams } = manifest.bathroomPods.active
+        return podParams
+      }
+
+      const activeConfigId = manifest.bathroomPods?.activeConfigurationId
+      if (activeConfigId && manifest.bathroomPods?.configurations) {
+        const activeConfig = manifest.bathroomPods.configurations.find(config => config.id === activeConfigId)
+        if (activeConfig) return activeConfig
+      }
+
+      return createBathroomPodFromTemplate('standard')
+    } catch (error) {
+      console.error('Error loading bathroom pod parameters:', error)
+      return createBathroomPodFromTemplate('standard')
+    }
+  })
+
   // Save UI state whenever it changes
   useEffect(() => {
     // Update all UI state in temporary storage only
@@ -120,9 +153,10 @@ export const useAppState = () => {
       isRackPropertiesVisible: isRackPropertiesVisible,
       isMeasurementActive: isMeasurementActive,
       isAddMEPVisible: isAddMEPVisible,
-      viewMode: viewMode
+      viewMode: viewMode,
+      productType: productType
     })
-  }, [activePanel, isRackPropertiesVisible, isMeasurementActive, isAddMEPVisible, viewMode])
+  }, [activePanel, isRackPropertiesVisible, isMeasurementActive, isAddMEPVisible, viewMode, productType])
 
   // Mark configuration as loaded after initial render
   useEffect(() => {
@@ -147,6 +181,20 @@ export const useAppState = () => {
     
     // Save updated manifest
     require('../utils/projectManifest').saveProjectManifest(manifest)
+  }
+
+  const handleProductTypeChange = (newProductType) => {
+    const safeProductType = newProductType || 'mtr'
+    setProductType(safeProductType)
+    updateProjectProductType(safeProductType)
+
+    if (safeProductType === 'bathroomPod') {
+      setActivePanel(null)
+      setIsRackPropertiesVisible(false)
+      setIsAddMEPVisible(false)
+    } else {
+      setIsRackPropertiesVisible(true)
+    }
   }
 
   /**
@@ -213,6 +261,8 @@ export const useAppState = () => {
     buildingParams,
     rackParams,
     mepItems,
+    productType,
+    bathroomPod,
     
     // Setters
     setProjectName,
@@ -227,9 +277,12 @@ export const useAppState = () => {
     setBuildingParams,
     setRackParams,
     setMepItems,
+    setProductType,
+    setBathroomPod,
     
     // Handlers
     handleProjectNameChange,
+    handleProductTypeChange,
     handlePanelClick
   }
 }

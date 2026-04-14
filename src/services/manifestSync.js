@@ -1,7 +1,13 @@
-import { generateClient } from 'aws-amplify/data';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from 'aws-amplify/auth/cognito';
 
-const client = generateClient();
+let manifestClient = null;
+
+const getManifestClient = async () => {
+  if (manifestClient) return manifestClient;
+  const { generateClient } = await import('aws-amplify/data');
+  manifestClient = generateClient();
+  return manifestClient;
+};
 
 class ManifestSyncService {
   constructor() {
@@ -32,6 +38,7 @@ class ManifestSyncService {
     try {
       this.syncInProgress = true;
       const user = await getCurrentUser();
+      const client = await getManifestClient();
 
       const manifestRecords = await client.models.ManifestData.list({
         filter: {
@@ -65,6 +72,7 @@ class ManifestSyncService {
     try {
       this.syncInProgress = true;
       const user = await getCurrentUser();
+      const client = await getManifestClient();
       const localManifest = localStorage.getItem(this.localStorageKey);
 
       if (!localManifest) {

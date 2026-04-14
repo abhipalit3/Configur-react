@@ -42,6 +42,7 @@ export const createInitialTemporaryState = () => ({
     isMeasurementActive: false,
     isAddMEPVisible: false,
     viewMode: '3D',
+    productType: 'mtr',
     colorPickerState: null
   },
   

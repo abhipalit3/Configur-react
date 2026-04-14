@@ -75,6 +75,18 @@ const AppTopMainMenu = (props) => {
         </svg>
         <hr className="app-top-main-menu-separator1"></hr>
       </div>
+      <label className="app-top-main-menu-product-type" title="Product type">
+        <span className="app-top-main-menu-product-label">Product</span>
+        <select
+          className="app-top-main-menu-product-select"
+          value={props.productType || 'mtr'}
+          onChange={(event) => props.onProductTypeChange?.(event.target.value)}
+        >
+          <option value="mtr">MTR</option>
+          <option value="bathroomPod">Bathroom Pod</option>
+        </select>
+      </label>
+      <hr className="app-top-main-menu-separator-product"></hr>
       {isEditing ? (
         <div className="app-top-main-menu-edit-container" style={{
           display: 'flex',
@@ -250,6 +262,8 @@ AppTopMainMenu.defaultProps = {
   designOption3: undefined,
   designOption1: undefined,
   onProjectNameChange: undefined,
+  productType: 'mtr',
+  onProductTypeChange: undefined,
 }
 
 AppTopMainMenu.propTypes = {
@@ -258,6 +272,8 @@ AppTopMainMenu.propTypes = {
   projectName: PropTypes.string,
   addNewOption: PropTypes.element,
   selectedOption: PropTypes.element,
+  productType: PropTypes.oneOf(['mtr', 'bathroomPod']),
+  onProductTypeChange: PropTypes.func,
   designOption3: PropTypes.element,
   designOption1: PropTypes.element,
   onProjectNameChange: PropTypes.func,

@@ -1,0 +1,347 @@
+.bathroom-pod-workspace {
+  position: fixed;
+  top: 52px;
+  right: 332px;
+  bottom: 18px;
+  left: 20px;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  color: #17202a;
+  font-family: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.bathroom-pod-control-panel {
+  width: 310px;
+  min-width: 310px;
+  overflow-y: auto;
+  border: 1px solid #d5dde7;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  padding: 12px;
+}
+
+.bathroom-pod-panel-heading,
+.bathroom-pod-pane-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.bathroom-pod-panel-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.bathroom-pod-panel-heading span,
+.bathroom-pod-pane-heading span {
+  color: #526173;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bathroom-pod-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bathroom-pod-field input,
+.bathroom-pod-field select,
+.bathroom-pod-grid-3 input,
+.bathroom-pod-fixture-row select {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 7px;
+  color: #17202a;
+  background: white;
+  font-size: 12px;
+}
+
+.bathroom-pod-feet-inches {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.bathroom-pod-feet-inches span {
+  font-size: 11px;
+  color: #475569;
+}
+
+.bathroom-pod-button-row,
+.bathroom-pod-fixture-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bathroom-pod-button-row button,
+.bathroom-pod-fixture-row button,
+.bathroom-pod-secondary-button {
+  min-height: 30px;
+  border: 1px solid #b8c4d2;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: #f8fafc;
+  color: #233243;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bathroom-pod-button-row button:hover,
+.bathroom-pod-fixture-row button:hover,
+.bathroom-pod-secondary-button:hover {
+  background: #e9f2ff;
+  border-color: #7aa7d9;
+}
+
+.bathroom-pod-secondary-button {
+  width: 100%;
+  margin: -2px 0 10px;
+}
+
+.bathroom-pod-section-title {
+  margin: 14px 0 8px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bathroom-pod-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.bathroom-pod-grid-3 label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bathroom-pod-data-display {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.bathroom-pod-data-display div {
+  min-height: 54px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.bathroom-pod-data-display span,
+.bathroom-pod-data-display strong {
+  display: block;
+}
+
+.bathroom-pod-data-display span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bathroom-pod-data-display strong {
+  margin-top: 6px;
+  color: #111827;
+  font-size: 13px;
+}
+
+.bathroom-pod-counts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px 8px;
+  color: #475569;
+  font-size: 11px;
+}
+
+.bathroom-pod-message {
+  margin-top: 12px;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bathroom-pod-message.error {
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.bathroom-pod-message.info {
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.bathroom-pod-split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+
+.bathroom-pod-plan-shell,
+.bathroom-pod-preview-shell {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d5dde7;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.bathroom-pod-pane-heading {
+  height: 42px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.bathroom-pod-pane-heading span:first-child {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.bathroom-pod-plan,
+.bathroom-pod-preview-canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.bathroom-pod-plan {
+  cursor: crosshair;
+  background: #ffffff;
+}
+
+.bathroom-pod-floor-fill {
+  fill: rgba(198, 210, 222, 0.55);
+  stroke: none;
+}
+
+.bathroom-pod-wall-line {
+  stroke: #0f172a;
+  stroke-width: 5;
+  stroke-linecap: square;
+}
+
+.bathroom-pod-wall-line.cove {
+  stroke: #f4b83f;
+  stroke-width: 7;
+}
+
+.bathroom-pod-door-line {
+  stroke: #ef4444;
+  stroke-width: 4;
+  stroke-dasharray: 8 5;
+}
+
+.bathroom-pod-edge-hit {
+  stroke: transparent;
+  stroke-width: 18;
+  cursor: pointer;
+}
+
+.bathroom-pod-edge-hit.selected {
+  stroke: rgba(59, 130, 246, 0.2);
+}
+
+.bathroom-pod-slope-box {
+  fill: rgba(20, 184, 166, 0.22);
+  stroke: #0f766e;
+  stroke-width: 2;
+  stroke-dasharray: 7 4;
+}
+
+.bathroom-pod-fixture {
+  cursor: grab;
+}
+
+.bathroom-pod-fixture text {
+  pointer-events: none;
+  fill: #111827;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.bathroom-pod-fixture.selected circle {
+  stroke: #2563eb;
+  stroke-width: 3;
+}
+
+.bathroom-pod-vertex,
+.bathroom-pod-draft-start {
+  fill: #ffffff;
+  stroke: #0f172a;
+  stroke-width: 2;
+  cursor: grab;
+}
+
+.bathroom-pod-vertex.selected {
+  fill: #bfdbfe;
+  stroke: #2563eb;
+}
+
+.bathroom-pod-draft-start {
+  fill: #dcfce7;
+  stroke: #16a34a;
+}
+
+.bathroom-pod-draft-line {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 3;
+  stroke-dasharray: 8 5;
+}
+
+@media (max-width: 1180px) {
+  .bathroom-pod-workspace {
+    right: 20px;
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .bathroom-pod-control-panel {
+    width: 100%;
+    min-width: 0;
+    max-height: none;
+  }
+
+  .bathroom-pod-split {
+    min-height: 720px;
+    grid-template-columns: 1fr;
+  }
+}

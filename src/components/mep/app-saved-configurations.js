@@ -6,9 +6,21 @@
 
 import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { getProjectManifest, setActiveConfiguration, updateTradeRackConfiguration, deleteTradeRackConfiguration, saveConfigurationToList } from '../../utils/projectManifest'
+import {
+  getProjectManifest,
+  setActiveConfiguration,
+  updateTradeRackConfiguration,
+  deleteTradeRackConfiguration,
+  saveConfigurationToList,
+  saveBathroomPodConfigurationToList,
+  updateBathroomPodConfiguration,
+  deleteBathroomPodConfiguration,
+  setActiveBathroomPodConfiguration
+} from '../../utils/projectManifest'
 import { getRackTemporaryState, getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary, clearAllMEPItemsFromTemporary } from '../../utils/temporaryState'
 import { calculateTotalHeight } from '../../types/tradeRack'
+import { formatInchesAsFeet } from '../../types/bathroomPod'
+import { getFixtureCounts, validateBathroomPodLayout } from '../../utils/bathroomPodGeometry'
 import './app-saved-configurations.css'
 
 const AppSavedConfigurations = (props) => {
@@ -17,12 +29,15 @@ const AppSavedConfigurations = (props) => {
   const [configurationName, setConfigurationName] = useState('')
   const [editingConfigId, setEditingConfigId] = useState(null)
   const [editingName, setEditingName] = useState('')
+  const isBathroomPod = props.productType === 'bathroomPod'
 
   // Load saved configurations from manifest on mount and when refreshTrigger changes
   useEffect(() => {
     try {
       const manifest = getProjectManifest()
-      const configs = manifest.tradeRacks?.configurations || []
+      const configs = isBathroomPod
+        ? (manifest.bathroomPods?.configurations || [])
+        : (manifest.tradeRacks?.configurations || [])
       
       // Sort by updatedAt (if exists) or savedAt date, newest first
       const sortedConfigs = configs.sort((a, b) => {
@@ -33,14 +48,23 @@ const AppSavedConfigurations = (props) => {
       setSavedConfigs(sortedConfigs)
       
       // Get active configuration ID from manifest
-      setActiveConfigId(manifest.tradeRacks?.activeConfigurationId)
+      setActiveConfigId(isBathroomPod ? manifest.bathroomPods?.activeConfigurationId : manifest.tradeRacks?.activeConfigurationId)
     } catch (error) {
       console.error('Error loading saved configurations:', error)
       setSavedConfigs([])
     }
-  }, [props.refreshTrigger])
+  }, [props.refreshTrigger, isBathroomPod])
 
   const handleConfigClick = (config) => {
+    if (isBathroomPod) {
+      if (props.onRestoreBathroomPodConfiguration) {
+        props.onRestoreBathroomPodConfiguration(config)
+      }
+      setActiveBathroomPodConfiguration(config.id)
+      setActiveConfigId(config.id)
+      return
+    }
+
     console.log('🔧 CONFIG CLICK: Attempting to restore config:', JSON.stringify(config, null, 2))
     
     // Restore MEP items from the configuration to temporary state
@@ -77,6 +101,48 @@ const AppSavedConfigurations = (props) => {
   const handleSaveConfiguration = () => {
     if (!configurationName.trim()) {
       alert('Please enter a configuration name')
+      return
+    }
+
+    if (isBathroomPod) {
+      const currentPod = props.currentBathroomPod
+      if (!currentPod) {
+        alert('No bathroom pod configuration to save.')
+        return
+      }
+
+      const validation = validateBathroomPodLayout(currentPod)
+      if (!validation.valid) {
+        alert(`Cannot save bathroom pod: ${validation.errors[0]}`)
+        return
+      }
+
+      const newConfig = {
+        ...currentPod,
+        id: Date.now(),
+        productType: 'bathroomPod',
+        name: configurationName.trim(),
+        savedAt: new Date().toISOString()
+      }
+
+      try {
+        saveBathroomPodConfigurationToList(newConfig)
+        const manifest = getProjectManifest()
+        const configs = manifest.bathroomPods?.configurations || []
+        const sortedConfigs = configs.sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.savedAt)
+          const dateB = new Date(b.updatedAt || b.savedAt)
+          return dateB - dateA
+        })
+        setSavedConfigs(sortedConfigs)
+        setConfigurationName('')
+        if (props.onConfigurationSaved) {
+          props.onConfigurationSaved(newConfig)
+        }
+      } catch (error) {
+        console.error('Error saving bathroom pod configuration:', error)
+        alert('Failed to save bathroom pod configuration. Please try again.')
+      }
       return
     }
     
@@ -185,6 +251,61 @@ const AppSavedConfigurations = (props) => {
 
   const handleUpdateConfig = (configId, event) => {
     event.stopPropagation() // Prevent triggering the card click
+
+    if (isBathroomPod) {
+      const currentPod = props.currentBathroomPod
+      if (!currentPod) {
+        alert('No bathroom pod configuration to update with.')
+        return
+      }
+
+      const validation = validateBathroomPodLayout(currentPod)
+      if (!validation.valid) {
+        alert(`Cannot update bathroom pod: ${validation.errors[0]}`)
+        return
+      }
+
+      const configIndex = savedConfigs.findIndex(config => config.id === configId)
+      if (configIndex === -1) {
+        alert('Configuration not found.')
+        return
+      }
+
+      const existingConfig = savedConfigs[configIndex]
+      if (!window.confirm(`Update "${existingConfig.name}" with the current bathroom pod configuration?`)) {
+        return
+      }
+
+      const updatedConfig = {
+        ...currentPod,
+        id: existingConfig.id,
+        productType: 'bathroomPod',
+        name: existingConfig.name,
+        savedAt: existingConfig.savedAt,
+        updatedAt: new Date().toISOString()
+      }
+
+      const updatedConfigs = [...savedConfigs]
+      updatedConfigs[configIndex] = updatedConfig
+      const sortedConfigs = updatedConfigs.sort((a, b) => {
+        const dateA = new Date(a.updatedAt || a.savedAt)
+        const dateB = new Date(b.updatedAt || b.savedAt)
+        return dateB - dateA
+      })
+      setSavedConfigs(sortedConfigs)
+
+      try {
+        saveBathroomPodConfigurationToList(updatedConfig)
+        updateBathroomPodConfiguration(updatedConfig, false)
+        if (activeConfigId === configId) {
+          setActiveBathroomPodConfiguration(configId)
+        }
+      } catch (error) {
+        console.error('Error updating bathroom pod configuration:', error)
+        alert('Failed to update bathroom pod configuration. Please try again.')
+      }
+      return
+    }
     
     console.log('🔧 UPDATE CONFIG DEBUG: Starting update process...')
     
@@ -397,16 +518,19 @@ const AppSavedConfigurations = (props) => {
 
     try {
       const manifest = getProjectManifest()
-      const configIndex = manifest.tradeRacks.configurations.findIndex(config => config.id === configId)
+      const configList = isBathroomPod
+        ? manifest.bathroomPods.configurations
+        : manifest.tradeRacks.configurations
+      const configIndex = configList.findIndex(config => config.id === configId)
       if (configIndex !== -1) {
-        manifest.tradeRacks.configurations[configIndex].name = editingName.trim()
-        manifest.tradeRacks.configurations[configIndex].updatedAt = new Date().toISOString()
+        configList[configIndex].name = editingName.trim()
+        configList[configIndex].updatedAt = new Date().toISOString()
         
         // Save updated manifest
         require('../../utils/projectManifest').saveProjectManifest(manifest)
         
         // Update local state
-        const sortedConfigs = [...manifest.tradeRacks.configurations].sort((a, b) => {
+        const sortedConfigs = [...configList].sort((a, b) => {
           const dateA = new Date(a.updatedAt || a.savedAt)
           const dateB = new Date(b.updatedAt || b.savedAt)
           return dateB - dateA
@@ -430,7 +554,11 @@ const AppSavedConfigurations = (props) => {
     
     try {
       // Delete configuration from manifest
-      deleteTradeRackConfiguration(configId)
+      if (isBathroomPod) {
+        deleteBathroomPodConfiguration(configId)
+      } else {
+        deleteTradeRackConfiguration(configId)
+      }
     } catch (error) {
       console.error('Error deleting configuration:', error)
     }
@@ -492,7 +620,7 @@ const AppSavedConfigurations = (props) => {
               fill="currentColor"
             />
           </svg>
-          <h1 className="heading">Saved Configurations</h1>
+          <h1 className="heading">{isBathroomPod ? 'Saved Pod Configurations' : 'Saved Configurations'}</h1>
         </div>
       </div>
 
@@ -501,7 +629,7 @@ const AppSavedConfigurations = (props) => {
         <div className="app-saved-configurations-save-input-group">
           <input
             type="text"
-            placeholder="Enter configuration name..."
+            placeholder={isBathroomPod ? 'Enter pod configuration name...' : 'Enter configuration name...'}
             value={configurationName}
             onChange={(e) => setConfigurationName(e.target.value)}
             className="app-saved-configurations-name-input"
@@ -525,7 +653,7 @@ const AppSavedConfigurations = (props) => {
             >
               <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V6h10v3z"/>
             </svg>
-            Save Configuration
+            {isBathroomPod ? 'Save Pod Configuration' : 'Save Configuration'}
           </button>
         </div>
       </div>
@@ -534,7 +662,9 @@ const AppSavedConfigurations = (props) => {
         {savedConfigs.length === 0 ? (
           <div className="app-saved-configurations-empty">
             <p className="app-saved-configurations-empty-text">
-              No saved configurations yet. Add a rack and save the configuration to see it here.
+              {isBathroomPod
+                ? 'No saved pod configurations yet. Build a bathroom pod layout and save it here.'
+                : 'No saved configurations yet. Add a rack and save the configuration to see it here.'}
             </p>
           </div>
         ) : (
@@ -649,7 +779,7 @@ const AppSavedConfigurations = (props) => {
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: 'calc(100% - 30px)' }}>
                       <h3 className="app-saved-configurations-card-title" style={{ margin: 0, fontSize: '14px', fontWeight: 'normal', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {config.name || `Rack Configuration ${config.id}`}
+                        {config.name || (isBathroomPod ? `Bathroom Pod ${config.id}` : `Rack Configuration ${config.id}`)}
                       </h3>
                       <button
                         onClick={(e) => handleStartRename(config, e)}
@@ -711,32 +841,61 @@ const AppSavedConfigurations = (props) => {
                 </div>
 
                 <div className="app-saved-configurations-card-details">
-                  <div className="app-saved-configurations-detail-row">
-                    <span className="app-saved-configurations-detail-label">
-                      {formatDimension(config.rackLength)} × {formatDimension(config.rackWidth)} × {config.tierCount} tiers
-                    </span>
-                  </div>
-                  <div className="app-saved-configurations-detail-row">
-                    <span className="app-saved-configurations-detail-label">
-                      Total height: {config.totalHeight || calculateTotalHeight(config)}
-                    </span>
-                  </div>
-                  <div className="app-saved-configurations-detail-row">
-                    <span className="app-saved-configurations-detail-label">
-                      Top clearance: {formatTopClearance(config.topClearance)}
-                    </span>
-                  </div>
-                  <div className="app-saved-configurations-detail-row">
-                    <span className="app-saved-configurations-detail-label">
-                      MEP items: {config.mepItems?.totalCount || 0} components
-                    </span>
-                  </div>
+                  {isBathroomPod ? (
+                    <>
+                      <div className="app-saved-configurations-detail-row">
+                        <span className="app-saved-configurations-detail-label">
+                          {config.layout?.length || 0} segments × {getFixtureCounts(config.fixtures || []).total || 0} fixtures
+                        </span>
+                      </div>
+                      <div className="app-saved-configurations-detail-row">
+                        <span className="app-saved-configurations-detail-label">
+                          Pod height: {formatInchesAsFeet(config.heights?.overall || 0)} / clear {formatInchesAsFeet(config.heights?.clear || 0)}
+                        </span>
+                      </div>
+                      <div className="app-saved-configurations-detail-row">
+                        <span className="app-saved-configurations-detail-label">
+                          GFRC slope depth: {config.slopeBox?.depth || 0}" | Finish: {config.finishType === 'tile' ? 'Tile' : 'Future Finish'}
+                        </span>
+                      </div>
+                      <div className="app-saved-configurations-detail-row">
+                        <span className="app-saved-configurations-detail-label">
+                          Structure: {config.structuralType === 'tiesIntoExisting' ? 'Ties into existing' : 'Monolithic'}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="app-saved-configurations-detail-row">
+                        <span className="app-saved-configurations-detail-label">
+                          {formatDimension(config.rackLength)} × {formatDimension(config.rackWidth)} × {config.tierCount} tiers
+                        </span>
+                      </div>
+                      <div className="app-saved-configurations-detail-row">
+                        <span className="app-saved-configurations-detail-label">
+                          Total height: {config.totalHeight || calculateTotalHeight(config)}
+                        </span>
+                      </div>
+                      <div className="app-saved-configurations-detail-row">
+                        <span className="app-saved-configurations-detail-label">
+                          Top clearance: {formatTopClearance(config.topClearance)}
+                        </span>
+                      </div>
+                      <div className="app-saved-configurations-detail-row">
+                        <span className="app-saved-configurations-detail-label">
+                          MEP items: {config.mepItems?.totalCount || 0} components
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="app-saved-configurations-card-footer">
                   <div className="app-saved-configurations-mount-type">
                     <span className="app-saved-configurations-mount-badge">
-                      {config.mountType === 'deck' ? 'Deck' : 'Floor'} mounted
+                      {isBathroomPod
+                        ? (config.productType === 'bathroomPod' ? 'Pod' : 'Pod')
+                        : `${config.mountType === 'deck' ? 'Deck' : 'Floor'} mounted`}
                     </span>
                   </div>
                   <div className="app-saved-configurations-date">
@@ -748,7 +907,7 @@ const AppSavedConfigurations = (props) => {
                     <button
                       className="app-saved-configurations-update-btn"
                       onClick={(e) => handleUpdateConfig(config.id, e)}
-                      title="Update configuration with current rack"
+                      title={isBathroomPod ? 'Update configuration with current pod' : 'Update configuration with current rack'}
                       style={{
                         background: 'none',
                         border: 'none',
@@ -800,15 +959,21 @@ const AppSavedConfigurations = (props) => {
 AppSavedConfigurations.defaultProps = {
   rootClassName: '',
   onRestoreConfiguration: () => {},
+  onRestoreBathroomPodConfiguration: () => {},
   refreshTrigger: 0,
   onConfigurationSaved: () => {},
+  productType: 'mtr',
+  currentBathroomPod: null,
 }
 
 AppSavedConfigurations.propTypes = {
   rootClassName: PropTypes.string,
   onRestoreConfiguration: PropTypes.func,
+  onRestoreBathroomPodConfiguration: PropTypes.func,
   refreshTrigger: PropTypes.number,
   onConfigurationSaved: PropTypes.func,
+  productType: PropTypes.oneOf(['mtr', 'bathroomPod']),
+  currentBathroomPod: PropTypes.object,
 }
 
 export default AppSavedConfigurations

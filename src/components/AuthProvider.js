@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getCurrentUser, signOut, signIn, signUp, confirmSignUp } from 'aws-amplify/auth';
+import { getCurrentUser, signOut, signIn, signUp, confirmSignUp } from 'aws-amplify/auth/cognito';
 
 const AuthContext = createContext();
 
@@ -22,6 +22,16 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthState = async () => {
     try {
+      const allowLocalPreview = process.env.NODE_ENV === 'development' &&
+        new URLSearchParams(window.location.search).get('localAuth') === '1';
+      if (allowLocalPreview) {
+        setUser({
+          username: 'Local Preview',
+          userId: 'local-preview'
+        });
+        return;
+      }
+
       const currentUser = await getCurrentUser();
       setUser(currentUser);
     } catch (error) {
