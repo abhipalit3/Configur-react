@@ -52,6 +52,55 @@ const makeFixture = (type, x, y, label) => ({
   label
 })
 
+const getLayoutBounds = (layout = []) => {
+  if (!layout.length) {
+    return {
+      minX: 0,
+      minY: 0,
+      maxX: 96,
+      maxY: 120,
+      width: 96,
+      height: 120
+    }
+  }
+
+  const xs = layout.map(point => point.x)
+  const ys = layout.map(point => point.y)
+  const minX = Math.min(...xs)
+  const minY = Math.min(...ys)
+  const maxX = Math.max(...xs)
+  const maxY = Math.max(...ys)
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX,
+    height: maxY - minY
+  }
+}
+
+const getLayoutCenter = (layout = []) => {
+  const bounds = getLayoutBounds(layout)
+  return {
+    x: Math.round(((bounds.minX + bounds.maxX) / 2) * 100) / 100,
+    y: Math.round(((bounds.minY + bounds.maxY) / 2) * 100) / 100
+  }
+}
+
+const getDefaultSlopeBoxForLayout = (layout = []) => {
+  const bounds = getLayoutBounds(layout)
+  const minDimension = Math.max(18, Math.min(bounds.width, bounds.height))
+  const size = Math.round(Math.min(36, minDimension * 0.45) * 100) / 100
+  return {
+    width: size,
+    length: size,
+    rotation: 0,
+    depth: 1
+  }
+}
+
 export const bathroomPodTemplates = [
   {
     id: 'compact',
@@ -97,7 +146,8 @@ export const bathroomPodDefaults = {
   finishType: 'tile',
   heights: {
     overall: 108,
-    clear: 96
+    clear: 96,
+    floorBase: 6
   },
   slopeBox: {
     width: 36,
@@ -123,21 +173,27 @@ export const bathroomPodDefaults = {
   ]
 }
 
-export const createBathroomPodFromTemplate = (templateId = 'standard') => {
-  const template = bathroomPodTemplates.find(item => item.id === templateId) || bathroomPodTemplates[1]
-  const drain = template.drain
-
+export const createBathroomPodFromLayout = ({
+  layout = bathroomPodTemplates[1].points,
+  name = 'Custom Pod',
+  templateId = 'custom',
+  sourceImportBatchId = null
+} = {}) => {
+  const nextLayout = layout.map(point => ({ ...point }))
+  const drain = getLayoutCenter(nextLayout)
   return {
     ...bathroomPodDefaults,
     id: `bathroom_pod_${Date.now()}`,
-    name: template.name,
-    templateId: template.id,
-    layout: template.points.map(point => ({ ...point })),
+    name,
+    templateId,
+    sourceImportBatchId,
+    layout: nextLayout,
+    slopeBox: getDefaultSlopeBoxForLayout(nextLayout),
     doorway: {
       ...bathroomPodDefaults.doorway,
       edgeIndex: 0
     },
-    coveEdgeIndex: Math.min(2, template.points.length - 1),
+    coveEdgeIndex: Math.min(2, nextLayout.length - 1),
     fixtures: [
       {
         id: 'drain_default',
@@ -152,8 +208,16 @@ export const createBathroomPodFromTemplate = (templateId = 'standard') => {
   }
 }
 
+export const createBathroomPodFromTemplate = (templateId = 'standard') => {
+  const template = bathroomPodTemplates.find(item => item.id === templateId) || bathroomPodTemplates[1]
+  return createBathroomPodFromLayout({
+    layout: template.points,
+    name: template.name,
+    templateId: template.id
+  })
+}
+
 export const createBathroomPodFixture = (type, x, y) => {
   const fixtureType = bathroomPodFixtureTypes.find(item => item.value === type) || bathroomPodFixtureTypes[5]
   return makeFixture(fixtureType.value, x, y, fixtureType.label)
 }
-

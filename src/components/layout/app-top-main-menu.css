@@ -1,14 +1,15 @@
 .app-top-main-menu-container {
-  width: 540px;
-  height: 36px;
+  width: min(840px, calc(100vw - 48px));
+  min-height: 56px;
   display: flex;
   position: relative;
   box-shadow: 1px 1px 1px 0px #d4d4d4,-1px -1px 1px 0px #d4d4d4;
   align-items: center;
   border-radius: var(--dl-layout-radius-radius8);
   flex-direction: row;
-  justify-content: space-between;
-  background-color: rgba(255, 255, 255, 0.8);
+  justify-content: flex-start;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
 }
 
 .app-top-main-menu-product-type {
@@ -56,7 +57,7 @@
  
 .app-top-main-menu-menu {
   width: 44px;
-  height: 44px;
+  height: 56px;
   display: flex;
   align-items: center;
   flex-direction: row;
@@ -65,7 +66,7 @@
  
 .app-top-main-menu-menu-icon {
   width: 44px;
-  height: 36px;
+  height: 56px;
   padding: 10px;
   border-radius: var(--dl-layout-radius-radius8);
 }
@@ -77,16 +78,13 @@
 }
  
 .app-top-main-menu-project-name {
-  width: 100%;
+  flex: 1;
   height: 100%;
   display: flex;
   overflow: hidden;
   font-size: 14px;
-  max-width: auto;
-  min-width: auto;
   align-self: center;
-  max-height: 30px;
-  text-align: left;
+  text-align: center;
   align-items: center;
   font-family: "Bricolage Grotesque";
   font-weight: 600;
@@ -95,8 +93,33 @@
   padding-right: var(--dl-layout-space-unit);
   padding-bottom: var(--dl-layout-space-halfunit);
   text-transform: none;
-  justify-content: flex-start;
+  justify-content: center;
   text-decoration: none;
+}
+
+.app-top-main-menu-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px;
+}
+
+.app-top-main-menu-project-button {
+  min-height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: "Bricolage Grotesque";
+  font-weight: 700;
+}
+
+.app-top-main-menu-project-button:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
 }
  
 .app-top-main-menu-separator2 {
@@ -336,14 +359,30 @@
 }
  
 .app-top-main-menuroot-class-name {
-  top: var(--dl-layout-space-twounits);
-  left: var(--dl-layout-space-twounits);
+  top: calc((var(--configur-top-band-height) - 48px) / 2);
+  left: 50%;
+  transform: translateX(-50%);
   position: fixed;
 }
  
 .app-top-main-menuroot-class-name1 {
-  top: var(--dl-layout-space-twounits);
-  left: var(--dl-layout-space-twounits);
+  top: calc((var(--configur-top-band-height) - 48px) / 2);
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1000;
   position: fixed;
+}
+
+@media (max-width: 920px) {
+  .app-top-main-menu-container {
+    width: calc(100vw - 24px);
+  }
+
+  .app-top-main-menu-project-name {
+    min-width: 0;
+  }
+
+  .app-top-main-menu-actions {
+    padding-left: 0;
+  }
 }

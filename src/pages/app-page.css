@@ -94,7 +94,7 @@
  
 .app-page-right-menus {
   gap: 0;
-  top: var(--dl-layout-space-twounits);
+  top: var(--configur-top-content-top);
   right: var(--dl-layout-space-twounits);
   width: auto;
   height: auto;
@@ -102,6 +102,16 @@
   position: fixed;
   flex-direction: column;
   justify-content: flex-start;
+}
+
+.app-page-right-menus.bathroom-pod {
+  gap: 14px;
+  width: 310px;
+}
+
+.app-page-right-menus.bathroom-pod .app-saved-configurations-container {
+  margin-bottom: 0;
+  max-height: calc(50vh - 18px);
 }
  
 .app-page-text32 {

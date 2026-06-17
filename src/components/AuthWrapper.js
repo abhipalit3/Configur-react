@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthProvider';
 
+const USER_BAR_HEIGHT = '84px';
+
 export const AuthWrapper = ({ children }) => {
   const { user, loading, login, register, confirmRegistration, logout, error } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
@@ -16,11 +18,53 @@ export const AuthWrapper = ({ children }) => {
   if (user) {
     return (
       <div>
-        <div style={{ padding: '10px', background: '#f0f0f0', marginBottom: '20px' }}>
-          Welcome, {user.username}!
-          <button onClick={logout} style={{ marginLeft: '10px' }}>Logout</button>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: USER_BAR_HEIGHT,
+            zIndex: 900,
+            background: 'rgba(240, 244, 248, 0.96)',
+            borderBottom: '1px solid rgba(148, 163, 184, 0.35)',
+            boxShadow: '0 2px 10px rgba(15, 23, 42, 0.08)',
+            backdropFilter: 'blur(8px)'
+          }}
+        >
+          <div
+            style={{
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '12px',
+              padding: '0 24px',
+              color: '#334155',
+              fontSize: '13px',
+              fontWeight: 600
+            }}
+          >
+            <span>Welcome, {user.username}!</span>
+            <button
+              onClick={logout}
+              style={{
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                background: '#ffffff',
+                color: '#1e293b',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              Logout
+            </button>
+          </div>
         </div>
-        {children}
+        <div style={{ paddingTop: USER_BAR_HEIGHT }}>
+          {children}
+        </div>
       </div>
     );
   }

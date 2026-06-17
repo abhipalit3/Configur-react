@@ -9,9 +9,10 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import {
   getDrainFixture,
+  getInsetPolygon,
   getPointAlongEdge,
   getRotatedBoxCorners,
-  getWallSegmentsWithDoor,
+  getWallFacePolygons,
   validateDoorOpening
 } from '../../utils/bathroomPodGeometry'
 import { bathroomPodFixtureTypes } from '../../types/bathroomPod'
@@ -19,6 +20,7 @@ import { bathroomPodFixtureTypes } from '../../types/bathroomPod'
 import './bathroom-pod.css'
 
 const INCH_TO_FEET = 1 / 12
+const WALL_THICKNESS_INCHES = 6
 
 const toScenePoint = (point, center) => ({
   x: (point.x - center.x) * INCH_TO_FEET,
@@ -64,6 +66,20 @@ const makeLine = (points, color, y = 0.02) => {
   )))
   const material = new THREE.LineBasicMaterial({ color })
   return new THREE.LineLoop(geometry, material)
+}
+
+const addExtrudedPlanPolygon = (group, polygon, height, topY, material) => {
+  if (!Array.isArray(polygon) || polygon.length < 3 || height <= 0.001) return
+
+  const shape = new THREE.Shape(polygon.map(point => new THREE.Vector2(point.x, point.z)))
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: height,
+    bevelEnabled: false
+  })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.rotation.x = Math.PI / 2
+  mesh.position.y = topY
+  group.add(mesh)
 }
 
 export default function BathroomPodPreview3D({ pod }) {
@@ -164,7 +180,8 @@ export default function BathroomPodPreview3D({ pod }) {
     if (!group || !pod?.layout?.length) return
 
     while (group.children.length) {
-      const child = group.children.pop()
+      const child = group.children[0]
+      group.remove(child)
       child.traverse(object => {
         if (object.geometry) object.geometry.dispose()
         if (object.material) {
@@ -179,7 +196,35 @@ export default function BathroomPodPreview3D({ pod }) {
 
     const center = getCenter(pod.layout)
     const planPoints = pod.layout.map(point => toScenePoint(point, center))
+    const ceilingPlanPoints = getInsetPolygon(pod.layout, WALL_THICKNESS_INCHES).map(point => toScenePoint(point, center))
     const shape = new THREE.Shape(planPoints.map(point => new THREE.Vector2(point.x, point.z)))
+    const ceilingShape = new THREE.Shape(ceilingPlanPoints.map(point => new THREE.Vector2(point.x, point.z)))
+    const floorBaseThickness = Math.max((pod.heights?.floorBase || 0) * INCH_TO_FEET, 0)
+    const overallHeight = Math.max((pod.heights?.overall || 108) * INCH_TO_FEET, 0)
+    const clearHeight = Math.max((pod.heights?.clear || 96) * INCH_TO_FEET, 0)
+    const topOfPod = Math.max(clearHeight, overallHeight - floorBaseThickness)
+    const ceilingThickness = Math.max(0, topOfPod - clearHeight)
+    const wallBottomY = -floorBaseThickness
+    const wallTopY = topOfPod
+    const wallHeight = Math.max(0.001, wallTopY - wallBottomY)
+    const wallCenterY = (wallTopY + wallBottomY) / 2
+
+    if (floorBaseThickness > 0.001) {
+      const floorBaseGeometry = new THREE.ExtrudeGeometry(shape, {
+        depth: floorBaseThickness,
+        bevelEnabled: false
+      })
+      const floorBaseMaterial = new THREE.MeshStandardMaterial({
+        color: 0xb2bcc8,
+        roughness: 0.82,
+        metalness: 0.04
+      })
+      const floorBase = new THREE.Mesh(floorBaseGeometry, floorBaseMaterial)
+      floorBase.rotation.x = Math.PI / 2
+      floorBase.position.y = 0
+      group.add(floorBase)
+    }
+
     const floorGeometry = new THREE.ShapeGeometry(shape)
     const floorMaterial = new THREE.MeshStandardMaterial({
       color: 0xd8dee6,
@@ -191,6 +236,22 @@ export default function BathroomPodPreview3D({ pod }) {
     floor.rotation.x = Math.PI / 2
     floor.position.y = 0
     group.add(floor)
+
+    if (ceilingThickness > 0.001) {
+      const ceilingGeometry = new THREE.ExtrudeGeometry(ceilingShape, {
+        depth: ceilingThickness,
+        bevelEnabled: false
+      })
+      const ceilingMaterial = new THREE.MeshStandardMaterial({
+        color: 0xf8fafc,
+        roughness: 0.68,
+        metalness: 0.03
+      })
+      const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial)
+      ceiling.rotation.x = Math.PI / 2
+      ceiling.position.y = clearHeight + ceilingThickness
+      group.add(ceiling)
+    }
 
     group.add(makeLine(planPoints, 0x0f172a, 0.03))
 
@@ -223,27 +284,42 @@ export default function BathroomPodPreview3D({ pod }) {
 
     const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7 })
     const coveMaterial = new THREE.MeshStandardMaterial({ color: 0xf5c542, roughness: 0.6 })
-    const overallHeight = (pod.heights?.overall || 108) * INCH_TO_FEET
+    const selectedWallMaterial = new THREE.MeshStandardMaterial({
+      color: 0x60a5fa,
+      roughness: 0.45,
+      transparent: true,
+      opacity: 0.42
+    })
     const doorValidation = validateDoorOpening(pod)
     const doorway = doorValidation.valid ? pod.doorway : null
-    const wallSegments = getWallSegmentsWithDoor(pod.layout, doorway)
-    wallSegments.filter(segment => segment.type === 'wall').forEach(segment => {
-      const start = toScenePoint(segment.start, center)
-      const end = toScenePoint(segment.end, center)
-      const material = segment.edgeIndex === pod.coveEdgeIndex ? coveMaterial : wallMaterial
-      addBoxBetweenPoints(group, start, end, overallHeight, 0.28, overallHeight / 2, material)
+    const wallFaces = getWallFacePolygons(pod.layout, doorway, WALL_THICKNESS_INCHES)
+    wallFaces.filter(face => face.type === 'wall').forEach(face => {
+      const polygon = face.polygon.map(point => toScenePoint(point, center))
+      const material = face.edgeIndex === pod.selectedWallFaceIndex
+        ? selectedWallMaterial
+        : (face.edgeIndex === pod.coveEdgeIndex ? coveMaterial : wallMaterial)
+      addExtrudedPlanPolygon(group, polygon, wallHeight, wallTopY, material)
     })
 
     if (doorway) {
-      const clearHeight = (doorway.height || 84) * INCH_TO_FEET
-      const headerHeight = Math.max(0, overallHeight - clearHeight)
+      const doorwayHeight = (doorway.height || 84) * INCH_TO_FEET
+      const headerHeight = Math.max(0, wallTopY - doorwayHeight)
+      const doorwayMaterial = doorway.edgeIndex === pod.selectedWallFaceIndex ? selectedWallMaterial : wallMaterial
+      const doorFace = wallFaces.find(face => face.type === 'door' && face.edgeIndex === doorway.edgeIndex)
+      if (doorFace && headerHeight > 0.001) {
+        addExtrudedPlanPolygon(
+          group,
+          doorFace.polygon.map(point => toScenePoint(point, center)),
+          headerHeight,
+          wallTopY,
+          doorwayMaterial
+        )
+      }
       const start = toScenePoint(getPointAlongEdge(pod.layout, doorway.edgeIndex, doorway.offset), center)
       const end = toScenePoint(getPointAlongEdge(pod.layout, doorway.edgeIndex, doorway.offset + doorway.width), center)
-      addBoxBetweenPoints(group, start, end, headerHeight, 0.3, clearHeight + headerHeight / 2, wallMaterial)
       addBoxBetweenPoints(group, start, end, 0.06, 0.36, 0.08, new THREE.MeshStandardMaterial({ color: 0xef4444 }))
     }
 
-    const clearHeight = (pod.heights?.clear || 96) * INCH_TO_FEET
     const clearancePoints = planPoints.map(point => new THREE.Vector3(point.x, clearHeight, point.z))
     const clearanceGeometry = new THREE.BufferGeometry().setFromPoints([...clearancePoints, clearancePoints[0]])
     const clearanceMaterial = new THREE.LineDashedMaterial({ color: 0x3b82f6, dashSize: 0.16, gapSize: 0.08 })
@@ -267,7 +343,7 @@ export default function BathroomPodPreview3D({ pod }) {
     if (cameraRef.current && controlsRef.current) {
       const camera = cameraRef.current
       const controls = controlsRef.current
-      controls.target.set(0, overallHeight / 3, 0)
+      controls.target.set(0, Math.max(1.25, wallTopY / 3), 0)
       camera.updateProjectionMatrix()
       controls.update()
     }

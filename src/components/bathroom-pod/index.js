@@ -5,4 +5,4 @@
  */
 
 export { default as BathroomPodWorkspace } from './BathroomPodWorkspace'
-
+export { default as BathroomPodPreconPanel } from './BathroomPodPreconPanel'

@@ -14,6 +14,53 @@ export const distance = (a, b) => {
   return Math.sqrt(dx * dx + dy * dy)
 }
 
+const normalizeVector = (vector) => {
+  const length = Math.sqrt(vector.x * vector.x + vector.y * vector.y)
+  if (length < EPSILON) return { x: 0, y: 0 }
+  return {
+    x: vector.x / length,
+    y: vector.y / length
+  }
+}
+
+const addPoints = (a, b) => ({
+  x: a.x + b.x,
+  y: a.y + b.y
+})
+
+const scaleVector = (vector, scale) => ({
+  x: vector.x * scale,
+  y: vector.y * scale
+})
+
+const interpolatePoint = (start, end, t) => ({
+  x: start.x + (end.x - start.x) * t,
+  y: start.y + (end.y - start.y) * t
+})
+
+const getLineIntersection = (lineAStart, lineAEnd, lineBStart, lineBEnd) => {
+  const denominator = (
+    (lineAStart.x - lineAEnd.x) * (lineBStart.y - lineBEnd.y) -
+    (lineAStart.y - lineAEnd.y) * (lineBStart.x - lineBEnd.x)
+  )
+
+  if (Math.abs(denominator) < EPSILON) return null
+
+  const determinantA = lineAStart.x * lineAEnd.y - lineAStart.y * lineAEnd.x
+  const determinantB = lineBStart.x * lineBEnd.y - lineBStart.y * lineBEnd.x
+
+  return {
+    x: (
+      determinantA * (lineBStart.x - lineBEnd.x) -
+      (lineAStart.x - lineAEnd.x) * determinantB
+    ) / denominator,
+    y: (
+      determinantA * (lineBStart.y - lineBEnd.y) -
+      (lineAStart.y - lineAEnd.y) * determinantB
+    ) / denominator
+  }
+}
+
 export const pointsAlmostEqual = (a, b, tolerance = EPSILON) => {
   return Math.abs(a.x - b.x) <= tolerance && Math.abs(a.y - b.y) <= tolerance
 }
@@ -243,12 +290,118 @@ export const getPointAlongEdge = (points = [], edgeIndex = 0, offset = 0) => {
   }
 }
 
+export const getInsetPolygon = (points = [], thickness = 6) => {
+  if (!Array.isArray(points) || points.length < 3) return []
+
+  const insetDistance = Math.max(0, Number(thickness) || 0)
+  if (insetDistance < EPSILON) return points.map(point => ({ ...point }))
+
+  const area = polygonArea(points)
+  const insetPoints = []
+
+  for (let index = 0; index < points.length; index += 1) {
+    const previous = points[(index - 1 + points.length) % points.length]
+    const current = points[index]
+    const next = points[(index + 1) % points.length]
+
+    const previousDirection = normalizeVector({
+      x: current.x - previous.x,
+      y: current.y - previous.y
+    })
+    const nextDirection = normalizeVector({
+      x: next.x - current.x,
+      y: next.y - current.y
+    })
+
+    const previousInwardNormal = area >= 0
+      ? { x: -previousDirection.y, y: previousDirection.x }
+      : { x: previousDirection.y, y: -previousDirection.x }
+    const nextInwardNormal = area >= 0
+      ? { x: -nextDirection.y, y: nextDirection.x }
+      : { x: nextDirection.y, y: -nextDirection.x }
+
+    const previousLineStart = addPoints(previous, scaleVector(previousInwardNormal, insetDistance))
+    const previousLineEnd = addPoints(current, scaleVector(previousInwardNormal, insetDistance))
+    const nextLineStart = addPoints(current, scaleVector(nextInwardNormal, insetDistance))
+    const nextLineEnd = addPoints(next, scaleVector(nextInwardNormal, insetDistance))
+
+    const intersection = getLineIntersection(previousLineStart, previousLineEnd, nextLineStart, nextLineEnd)
+    insetPoints.push(intersection || addPoints(
+      current,
+      scaleVector(normalizeVector(addPoints(previousInwardNormal, nextInwardNormal)), insetDistance)
+    ))
+  }
+
+  return insetPoints
+}
+
+export const getWallFacePolygons = (points = [], doorway, thickness = 6) => {
+  if (!Array.isArray(points) || points.length < 3) return []
+
+  const insetPoints = getInsetPolygon(points, thickness)
+  const wallFaces = []
+
+  points.forEach((outerStart, edgeIndex) => {
+    const outerEnd = points[(edgeIndex + 1) % points.length]
+    const innerStart = insetPoints[edgeIndex]
+    const innerEnd = insetPoints[(edgeIndex + 1) % insetPoints.length]
+    const edgeLength = distance(outerStart, outerEnd)
+
+    const addWallFace = (startRatio, endRatio, type = 'wall') => {
+      if (endRatio - startRatio <= EPSILON) return
+      wallFaces.push({
+        edgeIndex,
+        type,
+        polygon: [
+          interpolatePoint(outerStart, outerEnd, startRatio),
+          interpolatePoint(outerStart, outerEnd, endRatio),
+          interpolatePoint(innerStart, innerEnd, endRatio),
+          interpolatePoint(innerStart, innerEnd, startRatio)
+        ]
+      })
+    }
+
+    if (!doorway || doorway.edgeIndex !== edgeIndex || doorway.width <= 0 || edgeLength < EPSILON) {
+      addWallFace(0, 1)
+      return
+    }
+
+    const startRatio = Math.max(0, Math.min(1, doorway.offset / edgeLength))
+    const endRatio = Math.max(0, Math.min(1, (doorway.offset + doorway.width) / edgeLength))
+
+    if (startRatio > EPSILON) addWallFace(0, startRatio)
+    wallFaces.push({
+      edgeIndex,
+      type: 'door',
+      polygon: [
+        interpolatePoint(outerStart, outerEnd, startRatio),
+        interpolatePoint(outerStart, outerEnd, endRatio),
+        interpolatePoint(innerStart, innerEnd, endRatio),
+        interpolatePoint(innerStart, innerEnd, startRatio)
+      ],
+      caps: [
+        {
+          start: interpolatePoint(outerStart, outerEnd, startRatio),
+          end: interpolatePoint(innerStart, innerEnd, startRatio)
+        },
+        {
+          start: interpolatePoint(outerStart, outerEnd, endRatio),
+          end: interpolatePoint(innerStart, innerEnd, endRatio)
+        }
+      ]
+    })
+    if (endRatio < 1 - EPSILON) addWallFace(endRatio, 1)
+  })
+
+  return wallFaces
+}
+
 export const validateDoorOpening = (pod) => {
   const points = pod?.layout || []
   const doorway = pod?.doorway
   if (!doorway || !points.length) return { valid: true, message: '' }
   if (doorway.edgeIndex < 0 || doorway.edgeIndex >= points.length) {
-    return { valid: false, message: 'Select a valid doorway edge.' }
+    return { valid: false, message: 'Select a valid doorway wall face.' }
   }
 
   const edgeLength = getEdgeLength(points, doorway.edgeIndex)
@@ -256,7 +409,7 @@ export const validateDoorOpening = (pod) => {
   if (doorway.height <= 0) return { valid: false, message: 'Doorway height must be greater than 0.' }
   if (doorway.offset < 0) return { valid: false, message: 'Doorway offset cannot be negative.' }
   if (doorway.offset + doorway.width > edgeLength + EPSILON) {
-    return { valid: false, message: 'Doorway opening must fit on the selected segment.' }
+    return { valid: false, message: 'Doorway opening must fit on the selected wall face.' }
   }
   if (pod?.heights?.overall && doorway.height > pod.heights.overall + EPSILON) {
     return { valid: false, message: 'Doorway height cannot exceed pod height.' }
@@ -301,8 +454,8 @@ export const validateBathroomPodLayout = (pod) => {
   const drain = getDrainFixture(pod?.fixtures || [])
   const errors = []
 
-  if (points.length < 3) errors.push('Pod layout must have at least 3 segments.')
-  if (points.length > BATHROOM_POD_MAX_SEGMENTS) errors.push(`Pod layout cannot exceed ${BATHROOM_POD_MAX_SEGMENTS} segments.`)
+  if (points.length < 3) errors.push('Pod layout must have at least 3 wall faces.')
+  if (points.length > BATHROOM_POD_MAX_SEGMENTS) errors.push(`Pod layout cannot exceed ${BATHROOM_POD_MAX_SEGMENTS} wall faces.`)
   if (hasDuplicatePoints(points)) errors.push('Pod layout cannot contain duplicate vertices.')
   if (Math.abs(polygonArea(points)) < EPSILON) errors.push('Pod layout area must be greater than 0.')
   if (hasSelfIntersections(points)) errors.push('Pod layout cannot self-intersect.')

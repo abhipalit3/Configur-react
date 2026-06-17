@@ -4,7 +4,7 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-import React, { Fragment } from 'react'
+import React, { Fragment, useState } from 'react'
 import { Helmet } from 'react-helmet'
 
 import {
@@ -25,7 +25,7 @@ import {
 import { AppAIChatPanel } from '../components/ui'
 import { AppManualBuilding } from '../components/forms'
 import { ThreeScene } from '../components/3d'
-import { BathroomPodWorkspace } from '../components/bathroom-pod'
+import { BathroomPodPreconPanel, BathroomPodWorkspace } from '../components/bathroom-pod'
 
 // Custom hooks
 import { useSceneShell } from '../hooks/useSceneShell'
@@ -44,10 +44,15 @@ import { createUIHandlers } from '../handlers/uiHandlers'
 import '../utils/manifestExporter'
 import { initializeStorageSystem, getStorageSystemStatus } from '../utils/initializeStorage'
 import { testStorageSystem } from '../utils/testStorage'
-import { updateBathroomPodConfiguration } from '../utils/projectManifest'
+import {
+  updateBathroomPodConfiguration,
+  updateBathroomPodProjectLocation
+} from '../utils/projectManifest'
+import { chooseLocalProjectDirectory } from '../utils/localProjectFiles'
 import './app-page.css'
 
 const AppPage = (props) => {
+  const [projectRepositoryRefreshKey, setProjectRepositoryRefreshKey] = useState(0)
   // Application state management
   const {
     projectName,
@@ -146,6 +151,27 @@ const AppPage = (props) => {
     updateBathroomPodConfiguration(nextPod, false)
   }
 
+  const handleProjectRepositoryUpdated = (projectNameOverride) => {
+    if (projectNameOverride) {
+      handleProjectNameChange(projectNameOverride)
+    }
+    setProjectRepositoryRefreshKey(previous => previous + 1)
+  }
+
+  const handleSelectProject = async () => {
+    try {
+      const handle = await chooseLocalProjectDirectory()
+      if (!handle) return
+      updateBathroomPodProjectLocation({
+        mode: 'directory',
+        label: handle.name
+      })
+      handleProjectRepositoryUpdated(handle.name)
+    } catch (error) {
+      console.error('Project selection cancelled or failed:', error)
+    }
+  }
+
   const isMtrProduct = productType === 'mtr'
   const isBathroomPodProduct = productType === 'bathroomPod'
 
@@ -167,9 +193,9 @@ const AppPage = (props) => {
       <AppTopMainMenu 
         rootClassName="app-top-main-menuroot-class-name1" 
         projectName={projectName}
-        onProjectNameChange={handleProjectNameChange}
         productType={productType}
         onProductTypeChange={handleProductTypeChange}
+        onSelectProject={handleSelectProject}
       />
       
       {isMtrProduct && (
@@ -181,7 +207,7 @@ const AppPage = (props) => {
         />
       )}
 
-      <div className="app-page-right-menus">
+      <div className={`app-page-right-menus ${isBathroomPodProduct ? 'bathroom-pod' : ''}`}>
         {isMtrProduct && isRackPropertiesVisible && (
           <AppRackProperties 
             rootClassName="app-rack-propertiesroot-class-name2" 
@@ -196,9 +222,16 @@ const AppPage = (props) => {
           currentBathroomPod={bathroomPod}
           onRestoreConfiguration={configHandlers.handleRestoreConfiguration}
           onRestoreBathroomPodConfiguration={handleBathroomPodChange}
+          onProjectRepositoryUpdated={handleProjectRepositoryUpdated}
           refreshTrigger={savedConfigsRefresh}
           onConfigurationSaved={configHandlers.handleConfigurationSaved}
         />
+        {isBathroomPodProduct && (
+          <BathroomPodPreconPanel
+            pod={bathroomPod}
+            onChange={handleBathroomPodChange}
+          />
+        )}
         {isMtrProduct && (
           <AppTierMEP 
             rootClassName="app-tier-me-proot-class-name" 
@@ -321,6 +354,8 @@ const AppPage = (props) => {
         <BathroomPodWorkspace
           podData={bathroomPod}
           onChange={handleBathroomPodChange}
+          projectRefreshKey={projectRepositoryRefreshKey}
+          onProjectRepositoryUpdated={handleProjectRepositoryUpdated}
         />
       ) : (
         <div style={{

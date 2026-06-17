@@ -23,7 +23,7 @@ describe('bathroom pod geometry', () => {
     })
   })
 
-  test('rejects layouts with more than 10 straight segments', () => {
+  test('rejects layouts with more than 10 wall faces', () => {
     const pod = createBathroomPodFromTemplate('standard')
     pod.layout = Array.from({ length: 11 }, (_, index) => {
       const angle = (Math.PI * 2 * index) / 11
@@ -36,7 +36,7 @@ describe('bathroom pod geometry', () => {
     const result = validateBathroomPodLayout(pod)
 
     expect(result.valid).toBe(false)
-    expect(result.errors.some(error => error.includes('10 segments'))).toBe(true)
+    expect(result.errors.some(error => error.includes('10 wall faces'))).toBe(true)
   })
 
   test('rejects self-intersecting loops', () => {
@@ -65,7 +65,7 @@ describe('bathroom pod geometry', () => {
     expect(isRotatedBoxInsidePolygon(drain, { width: 140, length: 36, rotation: 35 }, pod.layout)).toBe(false)
   })
 
-  test('validates doorway opening fit on selected segment', () => {
+  test('validates doorway opening fit on selected wall face', () => {
     const pod = createBathroomPodFromTemplate('standard')
     pod.doorway = { edgeIndex: 0, offset: 20, width: 36, height: 84 }
     expect(validateDoorOpening(pod).valid).toBe(true)
@@ -89,4 +89,3 @@ describe('bathroom pod geometry', () => {
     expect(counts.toilet).toBe(1)
   })
 })
-

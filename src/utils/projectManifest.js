@@ -52,6 +52,15 @@ export const createInitialManifest = () => ({
     active: null,
     activeConfigurationId: null,
     configurations: [],
+    types: [],
+    podTypeCount: 3,
+    importBatches: [],
+    exportHistory: [],
+    projectLocation: {
+      mode: 'download',
+      label: 'Browser Downloads',
+      lastSelectedAt: null
+    },
     lastModified: null,
     totalCount: 0
   },
@@ -180,6 +189,15 @@ const ensureBathroomPodsSection = (manifest) => {
       active: null,
       activeConfigurationId: null,
       configurations: [],
+      types: [],
+      podTypeCount: 3,
+      importBatches: [],
+      exportHistory: [],
+      projectLocation: {
+        mode: 'download',
+        label: 'Browser Downloads',
+        lastSelectedAt: null
+      },
       lastModified: null,
       totalCount: 0
     }
@@ -187,7 +205,111 @@ const ensureBathroomPodsSection = (manifest) => {
   if (!Array.isArray(manifest.bathroomPods.configurations)) {
     manifest.bathroomPods.configurations = []
   }
+  if (!Array.isArray(manifest.bathroomPods.types)) {
+    manifest.bathroomPods.types = []
+  }
+  if (!Number.isFinite(Number(manifest.bathroomPods.podTypeCount))) {
+    manifest.bathroomPods.podTypeCount = 3
+  }
+  if (!Array.isArray(manifest.bathroomPods.importBatches)) {
+    manifest.bathroomPods.importBatches = []
+  }
+  if (!Array.isArray(manifest.bathroomPods.exportHistory)) {
+    manifest.bathroomPods.exportHistory = []
+  }
+  manifest.bathroomPods.projectLocation = {
+    mode: 'download',
+    label: 'Browser Downloads',
+    lastSelectedAt: null,
+    ...(manifest.bathroomPods.projectLocation || {})
+  }
   return manifest.bathroomPods
+}
+
+export const updateBathroomPodProjectLocation = (projectLocation) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  bathroomPods.projectLocation = {
+    ...bathroomPods.projectLocation,
+    ...projectLocation,
+    lastSelectedAt: new Date().toISOString()
+  }
+  bathroomPods.lastModified = new Date().toISOString()
+  addChangeToHistory(manifest, 'bathroomPods', 'project_location_updated', {
+    mode: bathroomPods.projectLocation.mode,
+    label: bathroomPods.projectLocation.label
+  })
+  saveProjectManifest(manifest)
+  return bathroomPods.projectLocation
+}
+
+export const updateBathroomPodTypeCount = (podTypeCount) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  bathroomPods.podTypeCount = Math.max(1, Math.round(Number(podTypeCount) || 1))
+  bathroomPods.lastModified = new Date().toISOString()
+  addChangeToHistory(manifest, 'bathroomPods', 'pod_type_count_updated', {
+    podTypeCount: bathroomPods.podTypeCount
+  })
+  saveProjectManifest(manifest)
+  return bathroomPods.podTypeCount
+}
+
+export const saveBathroomPodImportBatch = (importBatch, importedTypes = []) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  const nextBatch = {
+    ...importBatch,
+    id: importBatch.id || `import_batch_${Date.now()}`,
+    createdAt: importBatch.createdAt || new Date().toISOString()
+  }
+
+  bathroomPods.importBatches.unshift(nextBatch)
+  bathroomPods.importBatches = bathroomPods.importBatches.slice(0, 25)
+
+  importedTypes.forEach((importedType) => {
+    const existingIndex = bathroomPods.types.findIndex(type => type.id === importedType.id)
+    const nextType = {
+      ...importedType,
+      sourceImportBatchId: nextBatch.id,
+      importedAt: new Date().toISOString()
+    }
+
+    if (existingIndex >= 0) {
+      bathroomPods.types[existingIndex] = nextType
+    } else {
+      bathroomPods.types.unshift(nextType)
+    }
+  })
+
+  bathroomPods.lastModified = new Date().toISOString()
+  addChangeToHistory(manifest, 'bathroomPods', 'types_imported', {
+    importBatchId: nextBatch.id,
+    typeCount: importedTypes.length
+  })
+  saveProjectManifest(manifest)
+  return nextBatch
+}
+
+export const saveBathroomPodExportRecord = (exportRecord) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  const nextRecord = {
+    ...exportRecord,
+    id: exportRecord.id || `export_${Date.now()}`,
+    createdAt: exportRecord.createdAt || new Date().toISOString()
+  }
+
+  bathroomPods.exportHistory.unshift(nextRecord)
+  bathroomPods.exportHistory = bathroomPods.exportHistory.slice(0, 25)
+  bathroomPods.lastModified = new Date().toISOString()
+  addChangeToHistory(manifest, 'bathroomPods', 'pod_exported', {
+    exportId: nextRecord.id,
+    format: nextRecord.format,
+    target: nextRecord.target
+  })
+  saveProjectManifest(manifest)
+  return nextRecord
 }
 
 /**
@@ -716,7 +838,14 @@ const validateAndMigrateManifest = (manifest) => {
     project: { ...initial.project, ...manifest.project },
     buildingShell: { ...initial.buildingShell, ...manifest.buildingShell },
     tradeRacks: { ...initial.tradeRacks, ...manifest.tradeRacks },
-    bathroomPods: { ...initial.bathroomPods, ...manifest.bathroomPods },
+    bathroomPods: {
+      ...initial.bathroomPods,
+      ...manifest.bathroomPods,
+      projectLocation: {
+        ...initial.bathroomPods.projectLocation,
+        ...(manifest.bathroomPods?.projectLocation || {})
+      }
+    },
     mepItems: { ...initial.mepItems, ...manifest.mepItems },
     measurements: { ...initial.measurements, ...manifest.measurements },
     statistics: { ...initial.statistics, ...manifest.statistics }
