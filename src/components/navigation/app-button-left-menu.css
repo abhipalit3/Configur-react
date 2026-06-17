@@ -291,12 +291,12 @@
 }
  
 .app-button-left-menuroot-class-name {
-  top: var(--dl-layout-space-sixunits);
+  top: var(--configur-top-content-top);
   left: var(--dl-layout-space-twounits);
 }
  
 .app-button-left-menuroot-class-name1 {
-  top: var(--dl-layout-space-sixunits);
+  top: var(--configur-top-content-top);
   left: var(--dl-layout-space-twounits);
   position: fixed;
 }

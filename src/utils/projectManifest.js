@@ -21,6 +21,7 @@ export const createInitialManifest = () => ({
   projectId: `project_${Date.now()}`,
   createdAt: new Date().toISOString(),
   lastUpdated: new Date().toISOString(),
+  activeProductType: 'mtr',
   
   // Project metadata
   project: {
@@ -42,6 +43,24 @@ export const createInitialManifest = () => ({
     active: null, // Currently active configuration
     activeConfigurationId: null, // ID of the currently selected/active configuration
     configurations: [], // All saved configurations
+    lastModified: null,
+    totalCount: 0
+  },
+
+  // Bathroom pod configurations
+  bathroomPods: {
+    active: null,
+    activeConfigurationId: null,
+    configurations: [],
+    types: [],
+    podTypeCount: 3,
+    importBatches: [],
+    exportHistory: [],
+    projectLocation: {
+      mode: 'download',
+      label: 'Browser Downloads',
+      lastSelectedAt: null
+    },
     lastModified: null,
     totalCount: 0
   },
@@ -147,6 +166,278 @@ export const updateBuildingShell = (parameters) => {
     parametersCount: Object.keys(parameters).length
   })
   
+  saveProjectManifest(manifest)
+  return manifest
+}
+
+/**
+ * Persist the currently selected product workspace.
+ */
+export const updateProjectProductType = (productType) => {
+  const manifest = getProjectManifest()
+  manifest.activeProductType = productType || 'mtr'
+  addChangeToHistory(manifest, 'project', 'product_type_changed', {
+    productType: manifest.activeProductType
+  })
+  saveProjectManifest(manifest)
+  return manifest
+}
+
+const ensureBathroomPodsSection = (manifest) => {
+  if (!manifest.bathroomPods) {
+    manifest.bathroomPods = {
+      active: null,
+      activeConfigurationId: null,
+      configurations: [],
+      types: [],
+      podTypeCount: 3,
+      importBatches: [],
+      exportHistory: [],
+      projectLocation: {
+        mode: 'download',
+        label: 'Browser Downloads',
+        lastSelectedAt: null
+      },
+      lastModified: null,
+      totalCount: 0
+    }
+  }
+  if (!Array.isArray(manifest.bathroomPods.configurations)) {
+    manifest.bathroomPods.configurations = []
+  }
+  if (!Array.isArray(manifest.bathroomPods.types)) {
+    manifest.bathroomPods.types = []
+  }
+  if (!Number.isFinite(Number(manifest.bathroomPods.podTypeCount))) {
+    manifest.bathroomPods.podTypeCount = 3
+  }
+  if (!Array.isArray(manifest.bathroomPods.importBatches)) {
+    manifest.bathroomPods.importBatches = []
+  }
+  if (!Array.isArray(manifest.bathroomPods.exportHistory)) {
+    manifest.bathroomPods.exportHistory = []
+  }
+  manifest.bathroomPods.projectLocation = {
+    mode: 'download',
+    label: 'Browser Downloads',
+    lastSelectedAt: null,
+    ...(manifest.bathroomPods.projectLocation || {})
+  }
+  return manifest.bathroomPods
+}
+
+export const updateBathroomPodProjectLocation = (projectLocation) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  bathroomPods.projectLocation = {
+    ...bathroomPods.projectLocation,
+    ...projectLocation,
+    lastSelectedAt: new Date().toISOString()
+  }
+  bathroomPods.lastModified = new Date().toISOString()
+  addChangeToHistory(manifest, 'bathroomPods', 'project_location_updated', {
+    mode: bathroomPods.projectLocation.mode,
+    label: bathroomPods.projectLocation.label
+  })
+  saveProjectManifest(manifest)
+  return bathroomPods.projectLocation
+}
+
+export const updateBathroomPodTypeCount = (podTypeCount) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  bathroomPods.podTypeCount = Math.max(1, Math.round(Number(podTypeCount) || 1))
+  bathroomPods.lastModified = new Date().toISOString()
+  addChangeToHistory(manifest, 'bathroomPods', 'pod_type_count_updated', {
+    podTypeCount: bathroomPods.podTypeCount
+  })
+  saveProjectManifest(manifest)
+  return bathroomPods.podTypeCount
+}
+
+export const saveBathroomPodImportBatch = (importBatch, importedTypes = []) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  const nextBatch = {
+    ...importBatch,
+    id: importBatch.id || `import_batch_${Date.now()}`,
+    createdAt: importBatch.createdAt || new Date().toISOString()
+  }
+
+  bathroomPods.importBatches.unshift(nextBatch)
+  bathroomPods.importBatches = bathroomPods.importBatches.slice(0, 25)
+
+  importedTypes.forEach((importedType) => {
+    const existingIndex = bathroomPods.types.findIndex(type => type.id === importedType.id)
+    const nextType = {
+      ...importedType,
+      sourceImportBatchId: nextBatch.id,
+      importedAt: new Date().toISOString()
+    }
+
+    if (existingIndex >= 0) {
+      bathroomPods.types[existingIndex] = nextType
+    } else {
+      bathroomPods.types.unshift(nextType)
+    }
+  })
+
+  bathroomPods.lastModified = new Date().toISOString()
+  addChangeToHistory(manifest, 'bathroomPods', 'types_imported', {
+    importBatchId: nextBatch.id,
+    typeCount: importedTypes.length
+  })
+  saveProjectManifest(manifest)
+  return nextBatch
+}
+
+export const saveBathroomPodExportRecord = (exportRecord) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  const nextRecord = {
+    ...exportRecord,
+    id: exportRecord.id || `export_${Date.now()}`,
+    createdAt: exportRecord.createdAt || new Date().toISOString()
+  }
+
+  bathroomPods.exportHistory.unshift(nextRecord)
+  bathroomPods.exportHistory = bathroomPods.exportHistory.slice(0, 25)
+  bathroomPods.lastModified = new Date().toISOString()
+  addChangeToHistory(manifest, 'bathroomPods', 'pod_exported', {
+    exportId: nextRecord.id,
+    format: nextRecord.format,
+    target: nextRecord.target
+  })
+  saveProjectManifest(manifest)
+  return nextRecord
+}
+
+/**
+ * Save bathroom pod configuration to list only.
+ */
+export const saveBathroomPodConfigurationToList = (configuration) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  const existingConfigIndex = bathroomPods.configurations.findIndex(
+    config => config.id === configuration.id
+  )
+
+  if (existingConfigIndex >= 0) {
+    bathroomPods.configurations[existingConfigIndex] = {
+      ...configuration,
+      productType: 'bathroomPod',
+      updatedAt: new Date().toISOString(),
+      version: (bathroomPods.configurations[existingConfigIndex].version || 0) + 1
+    }
+  } else {
+    const configWithMetadata = {
+      ...configuration,
+      productType: 'bathroomPod',
+      id: configuration.id || Date.now(),
+      savedAt: configuration.savedAt || new Date().toISOString(),
+      version: 1
+    }
+    bathroomPods.configurations.unshift(configWithMetadata)
+    bathroomPods.totalCount = bathroomPods.configurations.length
+    manifest.statistics.configurationsSaved++
+  }
+
+  bathroomPods.lastModified = new Date().toISOString()
+  bathroomPods.totalCount = bathroomPods.configurations.length
+  saveProjectManifest(manifest)
+  return manifest
+}
+
+/**
+ * Update active bathroom pod configuration.
+ */
+export const updateBathroomPodConfiguration = (configuration, isNewSave = false) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+
+  if (isNewSave) {
+    const existingConfigIndex = bathroomPods.configurations.findIndex(
+      config => config.id === configuration.id
+    )
+
+    if (existingConfigIndex >= 0) {
+      bathroomPods.configurations[existingConfigIndex] = {
+        ...configuration,
+        productType: 'bathroomPod',
+        updatedAt: new Date().toISOString(),
+        version: (bathroomPods.configurations[existingConfigIndex].version || 0) + 1
+      }
+    } else {
+      bathroomPods.configurations.push({
+        ...configuration,
+        productType: 'bathroomPod',
+        id: configuration.id || Date.now(),
+        savedAt: configuration.savedAt || new Date().toISOString(),
+        version: 1
+      })
+      manifest.statistics.configurationsSaved++
+    }
+  }
+
+  bathroomPods.active = {
+    ...configuration,
+    productType: 'bathroomPod',
+    lastApplied: new Date().toISOString()
+  }
+  bathroomPods.lastModified = new Date().toISOString()
+  bathroomPods.totalCount = bathroomPods.configurations.length
+
+  addChangeToHistory(manifest, 'bathroomPods', 'configuration_applied', {
+    fixtureCount: configuration.fixtures?.length || 0,
+    segmentCount: configuration.layout?.length || 0,
+    structuralType: configuration.structuralType
+  })
+
+  saveProjectManifest(manifest)
+  return manifest
+}
+
+/**
+ * Delete bathroom pod configuration from manifest.
+ */
+export const deleteBathroomPodConfiguration = (configurationId) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  const configToDelete = bathroomPods.configurations.find(config => config.id === configurationId)
+
+  if (configToDelete) {
+    bathroomPods.configurations = bathroomPods.configurations.filter(config => config.id !== configurationId)
+    bathroomPods.totalCount = bathroomPods.configurations.length
+    bathroomPods.lastModified = new Date().toISOString()
+
+    if (bathroomPods.activeConfigurationId === configurationId) {
+      bathroomPods.activeConfigurationId = null
+    }
+
+    addChangeToHistory(manifest, 'bathroomPods', 'configuration_deleted', {
+      configurationId,
+      configurationName: configToDelete.name || `Bathroom Pod ${configurationId}`
+    })
+
+    saveProjectManifest(manifest)
+  }
+
+  return manifest
+}
+
+/**
+ * Set the active bathroom pod configuration ID.
+ */
+export const setActiveBathroomPodConfiguration = (configurationId) => {
+  const manifest = getProjectManifest()
+  const bathroomPods = ensureBathroomPodsSection(manifest)
+  bathroomPods.activeConfigurationId = configurationId
+  bathroomPods.lastModified = new Date().toISOString()
+
+  addChangeToHistory(manifest, 'bathroomPods', 'configuration_activated', {
+    configurationId
+  })
+
   saveProjectManifest(manifest)
   return manifest
 }
@@ -542,10 +833,19 @@ const validateAndMigrateManifest = (manifest) => {
   const migratedManifest = {
     ...initial,
     ...manifest,
+    activeProductType: manifest.activeProductType || initial.activeProductType,
     // Ensure nested objects exist
     project: { ...initial.project, ...manifest.project },
     buildingShell: { ...initial.buildingShell, ...manifest.buildingShell },
     tradeRacks: { ...initial.tradeRacks, ...manifest.tradeRacks },
+    bathroomPods: {
+      ...initial.bathroomPods,
+      ...manifest.bathroomPods,
+      projectLocation: {
+        ...initial.bathroomPods.projectLocation,
+        ...(manifest.bathroomPods?.projectLocation || {})
+      }
+    },
     mepItems: { ...initial.mepItems, ...manifest.mepItems },
     measurements: { ...initial.measurements, ...manifest.measurements },
     statistics: { ...initial.statistics, ...manifest.statistics }
@@ -616,7 +916,10 @@ export const syncProjectStatistics = () => {
   const manifest = getProjectManifest()
   
   // Get current counts from actual data
-  const configurationsCount = manifest.tradeRacks?.configurations?.length || 0
+  const configurationsCount = (
+    (manifest.tradeRacks?.configurations?.length || 0) +
+    (manifest.bathroomPods?.configurations?.length || 0)
+  )
   
   let currentMEPCount = 0
   try {
@@ -671,6 +974,7 @@ export const getProjectStatistics = () => {
     ...manifest.statistics,
     totalComponents: {
       tradeRacks: manifest.tradeRacks.totalCount,
+      bathroomPods: manifest.bathroomPods?.totalCount || 0,
       mepItems: currentMEPCount,
       measurements: manifest.measurements.totalCount
     },

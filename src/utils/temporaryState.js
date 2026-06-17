@@ -42,6 +42,8 @@ export const createInitialTemporaryState = () => ({
     isMeasurementActive: false,
     isAddMEPVisible: false,
     viewMode: '3D',
+    productType: 'mtr',
+    bathroomPodCollapsedSections: {},
     colorPickerState: null
   },
   

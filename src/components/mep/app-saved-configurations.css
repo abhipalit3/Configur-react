@@ -1,9 +1,9 @@
 .app-saved-configurations-container {
-  width: 300px;
+  width: 310px;
   height: auto;
   display: flex;
   position: relative;
-  max-height: 320px;
+  max-height: 520px;
   align-items: flex-start;
   border-radius: var(--dl-layout-radius-radius8);
   flex-direction: column;
@@ -127,7 +127,7 @@
   width: 100%;
   padding: 8px;
   overflow-y: auto;
-  max-height: 260px;
+  max-height: 460px;
   flex: 1;
 }
 
@@ -206,6 +206,29 @@
   margin-bottom: 8px;
 }
 
+.app-saved-configurations-export-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.app-saved-configurations-export-heading {
+  color: #1e293b;
+  font-size: 11px;
+  font-family: "Bricolage Grotesque";
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-saved-configurations-export-copy {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 11px;
+  font-family: "Bricolage Grotesque";
+  line-height: 1.4;
+}
+
 .app-saved-configurations-detail-row {
   margin-bottom: 4px;
 }
@@ -222,6 +245,8 @@
   align-items: center;
   justify-content: space-between;
   margin-top: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .app-saved-configurations-mount-type {
@@ -243,7 +268,8 @@
 
 .app-saved-configurations-date {
   flex: 1;
-  text-align: center;
+  min-width: 110px;
+  text-align: left;
 }
 
 .app-saved-configurations-date-text {
@@ -268,6 +294,41 @@
 .app-saved-configurations-delete-btn:hover {
   color: #f44336;
   background-color: rgba(244, 67, 54, 0.1);
+}
+
+.app-saved-configurations-export-btn {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 8px;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: "Bricolage Grotesque";
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.app-saved-configurations-export-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.app-saved-configurations-export-btn.secondary {
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: rgba(67, 56, 202, 0.25);
+}
+
+.app-saved-configurations-export-btn.secondary:hover:not(:disabled) {
+  background: #e0e7ff;
+}
+
+.app-saved-configurations-export-btn:disabled {
+  opacity: 0.65;
+  cursor: progress;
 }
 
 /* Scrollbar styling */

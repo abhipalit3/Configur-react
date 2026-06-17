@@ -4,7 +4,7 @@
  * Unauthorized copying or distribution is strictly prohibited.
  */
 
-import React, { Fragment } from 'react'
+import React, { Fragment, useState } from 'react'
 import { Helmet } from 'react-helmet'
 
 import {
@@ -25,6 +25,7 @@ import {
 import { AppAIChatPanel } from '../components/ui'
 import { AppManualBuilding } from '../components/forms'
 import { ThreeScene } from '../components/3d'
+import { BathroomPodPreconPanel, BathroomPodWorkspace } from '../components/bathroom-pod'
 
 // Custom hooks
 import { useSceneShell } from '../hooks/useSceneShell'
@@ -43,9 +44,15 @@ import { createUIHandlers } from '../handlers/uiHandlers'
 import '../utils/manifestExporter'
 import { initializeStorageSystem, getStorageSystemStatus } from '../utils/initializeStorage'
 import { testStorageSystem } from '../utils/testStorage'
+import {
+  updateBathroomPodConfiguration,
+  updateBathroomPodProjectLocation
+} from '../utils/projectManifest'
+import { chooseLocalProjectDirectory } from '../utils/localProjectFiles'
 import './app-page.css'
 
 const AppPage = (props) => {
+  const [projectRepositoryRefreshKey, setProjectRepositoryRefreshKey] = useState(0)
   // Application state management
   const {
     projectName,
@@ -60,6 +67,8 @@ const AppPage = (props) => {
     buildingParams,
     rackParams,
     mepItems,
+    productType,
+    bathroomPod,
     setActivePanel,
     setIsRackPropertiesVisible,
     setSavedConfigsRefresh,
@@ -69,7 +78,9 @@ const AppPage = (props) => {
     setBuildingParams,
     setRackParams,
     setMepItems,
+    setBathroomPod,
     handleProjectNameChange,
+    handleProductTypeChange,
     handlePanelClick
   } = useAppState()
 
@@ -135,6 +146,35 @@ const AppPage = (props) => {
     configHandlers.handleAddRack(params, setIsRackPropertiesVisible)
   }
 
+  const handleBathroomPodChange = (nextPod) => {
+    setBathroomPod(nextPod)
+    updateBathroomPodConfiguration(nextPod, false)
+  }
+
+  const handleProjectRepositoryUpdated = (projectNameOverride) => {
+    if (projectNameOverride) {
+      handleProjectNameChange(projectNameOverride)
+    }
+    setProjectRepositoryRefreshKey(previous => previous + 1)
+  }
+
+  const handleSelectProject = async () => {
+    try {
+      const handle = await chooseLocalProjectDirectory()
+      if (!handle) return
+      updateBathroomPodProjectLocation({
+        mode: 'directory',
+        label: handle.name
+      })
+      handleProjectRepositoryUpdated(handle.name)
+    } catch (error) {
+      console.error('Project selection cancelled or failed:', error)
+    }
+  }
+
+  const isMtrProduct = productType === 'mtr'
+  const isBathroomPodProduct = productType === 'bathroomPod'
+
   return (
     <div className="app-page-container">
       <Helmet>
@@ -153,18 +193,22 @@ const AppPage = (props) => {
       <AppTopMainMenu 
         rootClassName="app-top-main-menuroot-class-name1" 
         projectName={projectName}
-        onProjectNameChange={handleProjectNameChange}
+        productType={productType}
+        onProductTypeChange={handleProductTypeChange}
+        onSelectProject={handleSelectProject}
       />
       
-      <AppButtonLeftMenu 
-        rootClassName="app-button-left-menuroot-class-name1"
-        onPanelClick={handlePanelClick}
-        activePanel={activePanel}
-        isRackPropertiesVisible={isRackPropertiesVisible}
-      />
+      {isMtrProduct && (
+        <AppButtonLeftMenu 
+          rootClassName="app-button-left-menuroot-class-name1"
+          onPanelClick={handlePanelClick}
+          activePanel={activePanel}
+          isRackPropertiesVisible={isRackPropertiesVisible}
+        />
+      )}
 
-      <div className="app-page-right-menus">
-        {isRackPropertiesVisible && (
+      <div className={`app-page-right-menus ${isBathroomPodProduct ? 'bathroom-pod' : ''}`}>
+        {isMtrProduct && isRackPropertiesVisible && (
           <AppRackProperties 
             rootClassName="app-rack-propertiesroot-class-name2" 
             initial={rackParams}
@@ -174,20 +218,32 @@ const AppPage = (props) => {
         )}
         <AppSavedConfigurations 
           rootClassName="app-saved-configurationsroot-class-name" 
+          productType={productType}
+          currentBathroomPod={bathroomPod}
           onRestoreConfiguration={configHandlers.handleRestoreConfiguration}
+          onRestoreBathroomPodConfiguration={handleBathroomPodChange}
+          onProjectRepositoryUpdated={handleProjectRepositoryUpdated}
           refreshTrigger={savedConfigsRefresh}
           onConfigurationSaved={configHandlers.handleConfigurationSaved}
         />
-        <AppTierMEP 
-          rootClassName="app-tier-me-proot-class-name" 
-          mepItems={mepItems}
-          onRemoveItem={mepHandlers.handleRemoveMepItem}
-          onItemClick={mepHandlers.handleMepItemClick}
-          onColorChange={mepHandlers.handleDuctColorChange}
-          onToggleAddMEP={uiHandlers.handleToggleAddMEP}
-          onDeleteAll={mepHandlers.handleDeleteAllMepItems}
-        />
-        {isAddMEPVisible && (
+        {isBathroomPodProduct && (
+          <BathroomPodPreconPanel
+            pod={bathroomPod}
+            onChange={handleBathroomPodChange}
+          />
+        )}
+        {isMtrProduct && (
+          <AppTierMEP 
+            rootClassName="app-tier-me-proot-class-name" 
+            mepItems={mepItems}
+            onRemoveItem={mepHandlers.handleRemoveMepItem}
+            onItemClick={mepHandlers.handleMepItemClick}
+            onColorChange={mepHandlers.handleDuctColorChange}
+            onToggleAddMEP={uiHandlers.handleToggleAddMEP}
+            onDeleteAll={mepHandlers.handleDeleteAllMepItems}
+          />
+        )}
+        {isMtrProduct && isAddMEPVisible && (
           <AppAddMEP 
             rootClassName="app-add-me-proot-class-name"
             onDuctworkClick={uiHandlers.createMEPPanelHandler('ductwork')}
@@ -199,14 +255,14 @@ const AppPage = (props) => {
       </div>
       
       {/* Conditionally render panels based on activePanel state */}
-      {activePanel === 'aiChat' && (
+      {isMtrProduct && activePanel === 'aiChat' && (
         <AppAIChatPanel 
           rootClassName="app-ai-chat-panelroot-class-name1" 
           onClose={() => setActivePanel(null)}
         />
       )}
 
-      {activePanel === 'building' && (
+      {isMtrProduct && activePanel === 'building' && (
         <AppManualBuilding 
           rootClassName="app-manual-buildingroot-class-name1" 
           initial={buildingParams}
@@ -215,7 +271,7 @@ const AppPage = (props) => {
         />
       )}
 
-      {activePanel === 'ductwork' && (
+      {isMtrProduct && activePanel === 'ductwork' && (
         <AppDuctwork 
           rootClassName="app-ductworkroot-class-name" 
           onClose={() => setActivePanel(null)}
@@ -223,7 +279,7 @@ const AppPage = (props) => {
         />
       )}
 
-      {activePanel === 'piping' && (
+      {isMtrProduct && activePanel === 'piping' && (
         <AppPiping 
           rootClassName="app-pipingroot-class-name" 
           onClose={() => setActivePanel(null)}
@@ -231,7 +287,7 @@ const AppPage = (props) => {
         />
       )}
 
-      {activePanel === 'conduits' && (
+      {isMtrProduct && activePanel === 'conduits' && (
         <AppConduits 
           rootClassName="app-conduitsroot-class-name" 
           onClose={() => setActivePanel(null)}
@@ -239,7 +295,7 @@ const AppPage = (props) => {
         />
       )}
 
-      {activePanel === 'cableTrays' && (
+      {isMtrProduct && activePanel === 'cableTrays' && (
         <AppCableTrays 
           rootClassName="app-cable-traysroot-class-name" 
           onClose={() => setActivePanel(null)}
@@ -247,17 +303,19 @@ const AppPage = (props) => {
         />
       )}
 
-      <AppBottomOptions 
-        rootClassName="app-bottom-optionsroot-class-name" 
-        onMeasurementClick={uiHandlers.handleMeasurementToggle}
-        isMeasurementActive={isMeasurementActive}
-        onClearMeasurements={uiHandlers.handleClearMeasurements}
-        onViewModeChange={uiHandlers.handleViewModeChange}
-        onFitView={uiHandlers.handleFitView}
-        initialViewMode={viewMode}
-      />
+      {isMtrProduct && (
+        <AppBottomOptions 
+          rootClassName="app-bottom-optionsroot-class-name" 
+          onMeasurementClick={uiHandlers.handleMeasurementToggle}
+          isMeasurementActive={isMeasurementActive}
+          onClearMeasurements={uiHandlers.handleClearMeasurements}
+          onViewModeChange={uiHandlers.handleViewModeChange}
+          onFitView={uiHandlers.handleFitView}
+          initialViewMode={viewMode}
+        />
+      )}
       
-      {isConfigLoaded ? (
+      {isConfigLoaded && isMtrProduct ? (
         <ThreeScene 
           isMeasurementActive={isMeasurementActive}
           mepItems={mepItems}
@@ -291,6 +349,13 @@ const AppPage = (props) => {
               window.ductworkRendererInstance.updateRackParams(initialRackParams)
             }
           }}
+        />
+      ) : isConfigLoaded && isBathroomPodProduct ? (
+        <BathroomPodWorkspace
+          podData={bathroomPod}
+          onChange={handleBathroomPodChange}
+          projectRefreshKey={projectRepositoryRefreshKey}
+          onProjectRepositoryUpdated={handleProjectRepositoryUpdated}
         />
       ) : (
         <div style={{

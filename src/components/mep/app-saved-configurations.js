@@ -6,9 +6,26 @@
 
 import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { getProjectManifest, setActiveConfiguration, updateTradeRackConfiguration, deleteTradeRackConfiguration, saveConfigurationToList } from '../../utils/projectManifest'
+import {
+  getProjectManifest,
+  setActiveConfiguration,
+  updateTradeRackConfiguration,
+  deleteTradeRackConfiguration,
+  saveConfigurationToList,
+  saveBathroomPodConfigurationToList,
+  updateBathroomPodConfiguration,
+  deleteBathroomPodConfiguration,
+  setActiveBathroomPodConfiguration,
+  saveBathroomPodExportRecord,
+  updateBathroomPodProjectLocation
+} from '../../utils/projectManifest'
 import { getRackTemporaryState, getAllMEPItemsFromTemporary, updateAllMEPItemsInTemporary, clearAllMEPItemsFromTemporary } from '../../utils/temporaryState'
 import { calculateTotalHeight } from '../../types/tradeRack'
+import { bathroomPodTemplates, formatInchesAsFeet } from '../../types/bathroomPod'
+import { getFixtureCounts, validateBathroomPodLayout } from '../../utils/bathroomPodGeometry'
+import { deriveBathroomPodPrecon } from '../../utils/bathroomPodPrecon'
+import { buildBathroomPodExportPackage, createBathroomPodExportFiles } from '../../utils/bathroomPodExport'
+import { chooseLocalProjectDirectory, hasSelectedProjectDirectory, writeProjectFiles } from '../../utils/localProjectFiles'
 import './app-saved-configurations.css'
 
 const AppSavedConfigurations = (props) => {
@@ -17,12 +34,16 @@ const AppSavedConfigurations = (props) => {
   const [configurationName, setConfigurationName] = useState('')
   const [editingConfigId, setEditingConfigId] = useState(null)
   const [editingName, setEditingName] = useState('')
+  const [exportingConfigId, setExportingConfigId] = useState(null)
+  const isBathroomPod = props.productType === 'bathroomPod'
 
   // Load saved configurations from manifest on mount and when refreshTrigger changes
   useEffect(() => {
     try {
       const manifest = getProjectManifest()
-      const configs = manifest.tradeRacks?.configurations || []
+      const configs = isBathroomPod
+        ? (manifest.bathroomPods?.configurations || [])
+        : (manifest.tradeRacks?.configurations || [])
       
       // Sort by updatedAt (if exists) or savedAt date, newest first
       const sortedConfigs = configs.sort((a, b) => {
@@ -33,14 +54,23 @@ const AppSavedConfigurations = (props) => {
       setSavedConfigs(sortedConfigs)
       
       // Get active configuration ID from manifest
-      setActiveConfigId(manifest.tradeRacks?.activeConfigurationId)
+      setActiveConfigId(isBathroomPod ? manifest.bathroomPods?.activeConfigurationId : manifest.tradeRacks?.activeConfigurationId)
     } catch (error) {
       console.error('Error loading saved configurations:', error)
       setSavedConfigs([])
     }
-  }, [props.refreshTrigger])
+  }, [props.refreshTrigger, isBathroomPod])
 
   const handleConfigClick = (config) => {
+    if (isBathroomPod) {
+      if (props.onRestoreBathroomPodConfiguration) {
+        props.onRestoreBathroomPodConfiguration(config)
+      }
+      setActiveBathroomPodConfiguration(config.id)
+      setActiveConfigId(config.id)
+      return
+    }
+
     console.log('🔧 CONFIG CLICK: Attempting to restore config:', JSON.stringify(config, null, 2))
     
     // Restore MEP items from the configuration to temporary state
@@ -77,6 +107,48 @@ const AppSavedConfigurations = (props) => {
   const handleSaveConfiguration = () => {
     if (!configurationName.trim()) {
       alert('Please enter a configuration name')
+      return
+    }
+
+    if (isBathroomPod) {
+      const currentPod = props.currentBathroomPod
+      if (!currentPod) {
+        alert('No bathroom pod configuration to save.')
+        return
+      }
+
+      const validation = validateBathroomPodLayout(currentPod)
+      if (!validation.valid) {
+        alert(`Cannot save bathroom pod: ${validation.errors[0]}`)
+        return
+      }
+
+      const newConfig = {
+        ...currentPod,
+        id: Date.now(),
+        productType: 'bathroomPod',
+        name: configurationName.trim(),
+        savedAt: new Date().toISOString()
+      }
+
+      try {
+        saveBathroomPodConfigurationToList(newConfig)
+        const manifest = getProjectManifest()
+        const configs = manifest.bathroomPods?.configurations || []
+        const sortedConfigs = configs.sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.savedAt)
+          const dateB = new Date(b.updatedAt || b.savedAt)
+          return dateB - dateA
+        })
+        setSavedConfigs(sortedConfigs)
+        setConfigurationName('')
+        if (props.onConfigurationSaved) {
+          props.onConfigurationSaved(newConfig)
+        }
+      } catch (error) {
+        console.error('Error saving bathroom pod configuration:', error)
+        alert('Failed to save bathroom pod configuration. Please try again.')
+      }
       return
     }
     
@@ -185,6 +257,61 @@ const AppSavedConfigurations = (props) => {
 
   const handleUpdateConfig = (configId, event) => {
     event.stopPropagation() // Prevent triggering the card click
+
+    if (isBathroomPod) {
+      const currentPod = props.currentBathroomPod
+      if (!currentPod) {
+        alert('No bathroom pod configuration to update with.')
+        return
+      }
+
+      const validation = validateBathroomPodLayout(currentPod)
+      if (!validation.valid) {
+        alert(`Cannot update bathroom pod: ${validation.errors[0]}`)
+        return
+      }
+
+      const configIndex = savedConfigs.findIndex(config => config.id === configId)
+      if (configIndex === -1) {
+        alert('Configuration not found.')
+        return
+      }
+
+      const existingConfig = savedConfigs[configIndex]
+      if (!window.confirm(`Update "${existingConfig.name}" with the current bathroom pod configuration?`)) {
+        return
+      }
+
+      const updatedConfig = {
+        ...currentPod,
+        id: existingConfig.id,
+        productType: 'bathroomPod',
+        name: existingConfig.name,
+        savedAt: existingConfig.savedAt,
+        updatedAt: new Date().toISOString()
+      }
+
+      const updatedConfigs = [...savedConfigs]
+      updatedConfigs[configIndex] = updatedConfig
+      const sortedConfigs = updatedConfigs.sort((a, b) => {
+        const dateA = new Date(a.updatedAt || a.savedAt)
+        const dateB = new Date(b.updatedAt || b.savedAt)
+        return dateB - dateA
+      })
+      setSavedConfigs(sortedConfigs)
+
+      try {
+        saveBathroomPodConfigurationToList(updatedConfig)
+        updateBathroomPodConfiguration(updatedConfig, false)
+        if (activeConfigId === configId) {
+          setActiveBathroomPodConfiguration(configId)
+        }
+      } catch (error) {
+        console.error('Error updating bathroom pod configuration:', error)
+        alert('Failed to update bathroom pod configuration. Please try again.')
+      }
+      return
+    }
     
     console.log('🔧 UPDATE CONFIG DEBUG: Starting update process...')
     
@@ -397,16 +524,19 @@ const AppSavedConfigurations = (props) => {
 
     try {
       const manifest = getProjectManifest()
-      const configIndex = manifest.tradeRacks.configurations.findIndex(config => config.id === configId)
+      const configList = isBathroomPod
+        ? manifest.bathroomPods.configurations
+        : manifest.tradeRacks.configurations
+      const configIndex = configList.findIndex(config => config.id === configId)
       if (configIndex !== -1) {
-        manifest.tradeRacks.configurations[configIndex].name = editingName.trim()
-        manifest.tradeRacks.configurations[configIndex].updatedAt = new Date().toISOString()
+        configList[configIndex].name = editingName.trim()
+        configList[configIndex].updatedAt = new Date().toISOString()
         
         // Save updated manifest
         require('../../utils/projectManifest').saveProjectManifest(manifest)
         
         // Update local state
-        const sortedConfigs = [...manifest.tradeRacks.configurations].sort((a, b) => {
+        const sortedConfigs = [...configList].sort((a, b) => {
           const dateA = new Date(a.updatedAt || a.savedAt)
           const dateB = new Date(b.updatedAt || b.savedAt)
           return dateB - dateA
@@ -430,7 +560,11 @@ const AppSavedConfigurations = (props) => {
     
     try {
       // Delete configuration from manifest
-      deleteTradeRackConfiguration(configId)
+      if (isBathroomPod) {
+        deleteBathroomPodConfiguration(configId)
+      } else {
+        deleteTradeRackConfiguration(configId)
+      }
     } catch (error) {
       console.error('Error deleting configuration:', error)
     }
@@ -458,6 +592,96 @@ const AppSavedConfigurations = (props) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString()
+  }
+
+  const formatCurrency = (value = 0) => (
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    }).format(Number(value) || 0)
+  )
+
+  const getBathroomPodTypeLabel = (config) => {
+    if (!config) return 'Custom'
+    if (config.templateId === 'custom' || !config.templateId) return 'Custom'
+
+    const starterTemplate = bathroomPodTemplates.find(template => template.id === config.templateId)
+    if (starterTemplate) return starterTemplate.name
+
+    return String(config.templateId)
+      .replace(/^imported_/, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, character => character.toUpperCase())
+  }
+
+  const handleExportConfig = async (config, format, event) => {
+    event.stopPropagation()
+
+    if (!isBathroomPod) return
+
+    const exportKey = `${config.id}:${format}`
+    setExportingConfigId(exportKey)
+    try {
+      const manifest = getProjectManifest()
+      let projectLocation = manifest.bathroomPods?.projectLocation || {
+        mode: 'download',
+        label: 'Browser Downloads'
+      }
+
+      if (projectLocation.mode === 'directory' && !hasSelectedProjectDirectory()) {
+        const handle = await chooseLocalProjectDirectory()
+        if (!handle) {
+          throw new Error('Select the project repository again before exporting.')
+        }
+        projectLocation = updateBathroomPodProjectLocation({
+          mode: 'directory',
+          label: handle.name
+        })
+        props.onProjectRepositoryUpdated?.(handle.name)
+      }
+
+      const exportPackage = buildBathroomPodExportPackage(config, {
+        projectName: manifest.project?.name || 'Untitled Project',
+        projectLocation
+      })
+      const exportRecordBase = {
+        id: `export_${Date.now()}`,
+        configurationId: config.id || null,
+        configurationName: config.name || 'Bathroom Pod',
+        format,
+        createdAt: new Date().toISOString(),
+        status: 'succeeded',
+        totalCostPerPod: exportPackage.precon?.derivedTotals?.totalCostPerPod || 0
+      }
+      const files = createBathroomPodExportFiles(exportPackage, format)
+      const writeResult = await writeProjectFiles({
+        folder: projectLocation.mode === 'directory' ? `exports/${exportRecordBase.id}` : '',
+        files
+      })
+
+      saveBathroomPodExportRecord({
+        ...exportRecordBase,
+        target: writeResult.method === 'directory' ? projectLocation.label : 'Browser Downloads',
+        files: writeResult.files
+      })
+      props.onProjectRepositoryUpdated?.()
+    } catch (error) {
+      saveBathroomPodExportRecord({
+        id: `export_${Date.now()}`,
+        configurationId: config.id || null,
+        configurationName: config.name || 'Bathroom Pod',
+        format,
+        createdAt: new Date().toISOString(),
+        status: 'failed',
+        target: getProjectManifest().bathroomPods?.projectLocation?.label || 'Browser Downloads',
+        files: [],
+        error: error.message || 'Export failed.'
+      })
+      alert(error.message || 'Failed to export bathroom pod configuration.')
+    } finally {
+      setExportingConfigId(null)
+    }
   }
 
   // Generate a color for each configuration based on its index
@@ -492,7 +716,7 @@ const AppSavedConfigurations = (props) => {
               fill="currentColor"
             />
           </svg>
-          <h1 className="heading">Saved Configurations</h1>
+          <h1 className="heading">{isBathroomPod ? 'Saved Pod Configurations' : 'Saved Configurations'}</h1>
         </div>
       </div>
 
@@ -501,7 +725,7 @@ const AppSavedConfigurations = (props) => {
         <div className="app-saved-configurations-save-input-group">
           <input
             type="text"
-            placeholder="Enter configuration name..."
+            placeholder={isBathroomPod ? 'Enter pod configuration name...' : 'Enter configuration name...'}
             value={configurationName}
             onChange={(e) => setConfigurationName(e.target.value)}
             className="app-saved-configurations-name-input"
@@ -525,7 +749,7 @@ const AppSavedConfigurations = (props) => {
             >
               <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V6h10v3z"/>
             </svg>
-            Save Configuration
+            {isBathroomPod ? 'Save Pod Configuration' : 'Save Configuration'}
           </button>
         </div>
       </div>
@@ -534,7 +758,9 @@ const AppSavedConfigurations = (props) => {
         {savedConfigs.length === 0 ? (
           <div className="app-saved-configurations-empty">
             <p className="app-saved-configurations-empty-text">
-              No saved configurations yet. Add a rack and save the configuration to see it here.
+              {isBathroomPod
+                ? 'No saved pod configurations yet. Build a bathroom pod layout and save it here.'
+                : 'No saved configurations yet. Add a rack and save the configuration to see it here.'}
             </p>
           </div>
         ) : (
@@ -546,250 +772,313 @@ const AppSavedConfigurations = (props) => {
                 const dateB = new Date(b.updatedAt || b.savedAt)
                 return dateB - dateA
               })
-              .map((config, index) => (
-              <div
-                key={config.id}
-                className={`app-saved-configurations-card ${activeConfigId === config.id ? 'active' : ''}`}
-                onClick={() => handleConfigClick(config)}
-              >
-                <div className="app-saved-configurations-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  {editingConfigId === config.id ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: 'calc(100% - 30px)' }}>
-                      <input
-                        type="text"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleSaveRename(config.id)
-                          } else if (e.key === 'Escape') {
-                            handleCancelRename()
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: 'normal',
-                          padding: '4px 8px',
-                          border: '1px solid #ddd',
-                          borderRadius: '4px',
-                          flex: 1
-                        }}
-                        autoFocus
-                      />
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleSaveRename(config.id)
-                        }}
-                        title="Save name"
-                        style={{
-                          background: '#4CAF50',
-                          border: '1px solid #45a049',
-                          color: 'white',
-                          padding: '3px 6px',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'normal',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '22px',
-                          height: '22px',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#45a049'
-                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.15)'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#4CAF50'
-                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)'
-                        }}
-                      >
-                        ✓
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleCancelRename()
-                        }}
-                        title="Cancel"
-                        style={{
-                          background: '#f44336',
-                          border: '1px solid #d32f2f',
-                          color: 'white',
-                          padding: '3px 6px',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'normal',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '22px',
-                          height: '22px',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#d32f2f'
-                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.15)'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#f44336'
-                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)'
-                        }}
-                      >
-                        ✗
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: 'calc(100% - 30px)' }}>
-                      <h3 className="app-saved-configurations-card-title" style={{ margin: 0, fontSize: '14px', fontWeight: 'normal', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {config.name || `Rack Configuration ${config.id}`}
-                      </h3>
-                      <button
-                        onClick={(e) => handleStartRename(config, e)}
-                        title="Rename configuration"
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '2px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          opacity: 0.6,
-                          transition: 'opacity 0.2s',
-                          flexShrink: 0
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = 0.6}
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                  <div className="app-saved-configurations-card-status">
-                    <div 
-                      className="app-saved-configurations-status-circle"
-                      style={{ 
-                        backgroundColor: getConfigColor(index),
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {activeConfigId === config.id && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          className="app-saved-configurations-tick-icon"
-                        >
-                          <path
-                            d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                            fill="white"
+              .map((config, index) => {
+                const podPrecon = isBathroomPod
+                  ? (config.precon?.derivedTotals ? config.precon : deriveBathroomPodPrecon(config))
+                  : null
+                return (
+                  <div
+                    key={config.id}
+                    className={`app-saved-configurations-card ${activeConfigId === config.id ? 'active' : ''}`}
+                    onClick={() => handleConfigClick(config)}
+                  >
+                    <div className="app-saved-configurations-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      {editingConfigId === config.id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: 'calc(100% - 30px)' }}>
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleSaveRename(config.id)
+                              } else if (e.key === 'Escape') {
+                                handleCancelRename()
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              fontSize: '14px',
+                              fontWeight: 'normal',
+                              padding: '4px 8px',
+                              border: '1px solid #ddd',
+                              borderRadius: '4px',
+                              flex: 1
+                            }}
+                            autoFocus
                           />
-                        </svg>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSaveRename(config.id)
+                            }}
+                            title="Save name"
+                            style={{
+                              background: '#4CAF50',
+                              border: '1px solid #45a049',
+                              color: 'white',
+                              padding: '3px 6px',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 'normal',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: '22px',
+                              height: '22px',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#45a049'
+                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.15)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#4CAF50'
+                              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleCancelRename()
+                            }}
+                            title="Cancel"
+                            style={{
+                              background: '#f44336',
+                              border: '1px solid #d32f2f',
+                              color: 'white',
+                              padding: '3px 6px',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 'normal',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: '22px',
+                              height: '22px',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#d32f2f'
+                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.15)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#f44336'
+                              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            ✗
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: 'calc(100% - 30px)' }}>
+                          <h3 className="app-saved-configurations-card-title" style={{ margin: 0, fontSize: '14px', fontWeight: 'normal', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {config.name || (isBathroomPod ? `Bathroom Pod ${config.id}` : `Rack Configuration ${config.id}`)}
+                          </h3>
+                          <button
+                            onClick={(e) => handleStartRename(config, e)}
+                            title="Rename configuration"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0.6,
+                              transition: 'opacity 0.2s',
+                              flexShrink: 0
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = 0.6}
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                      <div className="app-saved-configurations-card-status">
+                        <div
+                          className="app-saved-configurations-status-circle"
+                          style={{
+                            backgroundColor: getConfigColor(index),
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {activeConfigId === config.id && (
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              className="app-saved-configurations-tick-icon"
+                            >
+                              <path
+                                d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                                fill="white"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="app-saved-configurations-card-details">
+                      {isBathroomPod ? (
+                        <>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              {config.layout?.length || 0} wall face{(config.layout?.length || 0) === 1 ? '' : 's'} × {getFixtureCounts(config.fixtures || []).total || 0} fixtures
+                            </span>
+                          </div>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              Pod height: {formatInchesAsFeet(config.heights?.overall || 0)} / clear {formatInchesAsFeet(config.heights?.clear || 0)}
+                            </span>
+                          </div>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              GFRC slope depth: {config.slopeBox?.depth || 0}" | Finish: {config.finishType === 'tile' ? 'Tile' : 'Future Finish'}
+                            </span>
+                          </div>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              Type: {getBathroomPodTypeLabel(config)} | Structure: {config.structuralType === 'tiesIntoExisting' ? 'Ties into existing' : 'Monolithic'}
+                            </span>
+                          </div>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              Cost / pod: {formatCurrency(podPrecon?.derivedTotals?.totalCostPerPod || 0)}
+                            </span>
+                          </div>
+                          <div className="app-saved-configurations-export-section">
+                            <div className="app-saved-configurations-export-heading">Export</div>
+                            <p className="app-saved-configurations-export-copy">
+                              IFC package with JSON sidecar written to the current project repository.
+                            </p>
+                            <button
+                              type="button"
+                              className="app-saved-configurations-export-btn"
+                              onClick={(e) => handleExportConfig(config, 'ifc', e)}
+                              title="Export saved bathroom pod configuration as IFC"
+                              disabled={exportingConfigId === `${config.id}:ifc`}
+                            >
+                              {exportingConfigId === `${config.id}:ifc` ? 'Exporting IFC...' : 'Export IFC'}
+                            </button>
+                            <button
+                              type="button"
+                              className="app-saved-configurations-export-btn secondary"
+                              onClick={(e) => handleExportConfig(config, 'driveworks', e)}
+                              title="Export saved bathroom pod configuration for DriveWorks"
+                              disabled={exportingConfigId === `${config.id}:driveworks`}
+                            >
+                              {exportingConfigId === `${config.id}:driveworks` ? 'Exporting DriveWorks...' : 'Export DriveWorks'}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              {formatDimension(config.rackLength)} × {formatDimension(config.rackWidth)} × {config.tierCount} tiers
+                            </span>
+                          </div>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              Total height: {config.totalHeight || calculateTotalHeight(config)}
+                            </span>
+                          </div>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              Top clearance: {formatTopClearance(config.topClearance)}
+                            </span>
+                          </div>
+                          <div className="app-saved-configurations-detail-row">
+                            <span className="app-saved-configurations-detail-label">
+                              MEP items: {config.mepItems?.totalCount || 0} components
+                            </span>
+                          </div>
+                        </>
                       )}
                     </div>
-                  </div>
-                </div>
 
-                <div className="app-saved-configurations-card-details">
-                  <div className="app-saved-configurations-detail-row">
-                    <span className="app-saved-configurations-detail-label">
-                      {formatDimension(config.rackLength)} × {formatDimension(config.rackWidth)} × {config.tierCount} tiers
-                    </span>
+                    <div className="app-saved-configurations-card-footer">
+                      <div className="app-saved-configurations-mount-type">
+                        <span className="app-saved-configurations-mount-badge">
+                          {isBathroomPod
+                            ? (config.productType === 'bathroomPod' ? 'Pod' : 'Pod')
+                            : `${config.mountType === 'deck' ? 'Deck' : 'Floor'} mounted`}
+                        </span>
+                      </div>
+                      <div className="app-saved-configurations-date">
+                        <span className="app-saved-configurations-date-text">
+                          {config.updatedAt ? `Updated ${formatDate(config.updatedAt)}` : `Saved ${formatDate(config.savedAt)}`}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          className="app-saved-configurations-update-btn"
+                          onClick={(e) => handleUpdateConfig(config.id, e)}
+                          title={isBathroomPod ? 'Update configuration with current pod' : 'Update configuration with current rack'}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: 0.7,
+                            transition: 'opacity 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                          </svg>
+                        </button>
+                        <button
+                          className="app-saved-configurations-delete-btn"
+                          onClick={(e) => handleDeleteConfig(config.id, e)}
+                          title="Delete configuration"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="app-saved-configurations-detail-row">
-                    <span className="app-saved-configurations-detail-label">
-                      Total height: {config.totalHeight || calculateTotalHeight(config)}
-                    </span>
-                  </div>
-                  <div className="app-saved-configurations-detail-row">
-                    <span className="app-saved-configurations-detail-label">
-                      Top clearance: {formatTopClearance(config.topClearance)}
-                    </span>
-                  </div>
-                  <div className="app-saved-configurations-detail-row">
-                    <span className="app-saved-configurations-detail-label">
-                      MEP items: {config.mepItems?.totalCount || 0} components
-                    </span>
-                  </div>
-                </div>
-
-                <div className="app-saved-configurations-card-footer">
-                  <div className="app-saved-configurations-mount-type">
-                    <span className="app-saved-configurations-mount-badge">
-                      {config.mountType === 'deck' ? 'Deck' : 'Floor'} mounted
-                    </span>
-                  </div>
-                  <div className="app-saved-configurations-date">
-                    <span className="app-saved-configurations-date-text">
-                      {config.updatedAt ? `Updated ${formatDate(config.updatedAt)}` : `Saved ${formatDate(config.savedAt)}`}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      className="app-saved-configurations-update-btn"
-                      onClick={(e) => handleUpdateConfig(config.id, e)}
-                      title="Update configuration with current rack"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: 0.7,
-                        transition: 'opacity 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                      </svg>
-                    </button>
-                    <button
-                      className="app-saved-configurations-delete-btn"
-                      onClick={(e) => handleDeleteConfig(config.id, e)}
-                      title="Delete configuration"
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                )
+              })}
           </div>
         )}
       </div>
@@ -800,15 +1089,23 @@ const AppSavedConfigurations = (props) => {
 AppSavedConfigurations.defaultProps = {
   rootClassName: '',
   onRestoreConfiguration: () => {},
+  onRestoreBathroomPodConfiguration: () => {},
+  onProjectRepositoryUpdated: () => {},
   refreshTrigger: 0,
   onConfigurationSaved: () => {},
+  productType: 'mtr',
+  currentBathroomPod: null,
 }
 
 AppSavedConfigurations.propTypes = {
   rootClassName: PropTypes.string,
   onRestoreConfiguration: PropTypes.func,
+  onRestoreBathroomPodConfiguration: PropTypes.func,
+  onProjectRepositoryUpdated: PropTypes.func,
   refreshTrigger: PropTypes.number,
   onConfigurationSaved: PropTypes.func,
+  productType: PropTypes.oneOf(['mtr', 'bathroomPod']),
+  currentBathroomPod: PropTypes.object,
 }
 
 export default AppSavedConfigurations
